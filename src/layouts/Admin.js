@@ -26,132 +26,101 @@ import FixedPlugin from "components/FixedPlugin/FixedPlugin";
 import MainPanel from "components/Layout/MainPanel";
 import PanelContainer from "components/Layout/PanelContainer";
 import PanelContent from "components/Layout/PanelContent";
-import bgAdmin from "assets/img/admin-background.png";
+
+import { Helmet } from "react-helmet-async";
+
+// ✅ Updated imports for background images
+import bgLight from "../assets/img/admin-backgroud-red.png";
+import bgDark from "../assets/img/admin-background-dark.png";
 
 export default function Dashboard(props) {
-  const { ...rest } = props;
-  // states and functions
-  const [fixed, setFixed] = useState(false);
-  const { colorMode } = useColorMode();
 
-  // functions for changing the states from components
-  const getRoute = () => {
-    return window.location.pathname !== "/admin/full-screen-maps";
-  };
+
+  const { ...rest } = props; 
+  const [fixed, setFixed] = useState(false);
+  const { colorMode } = useColorMode(); 
+
+  const getRoute = () => window.location.pathname !== "/admin/full-screen-maps";
 
   const getActiveRoute = (routes) => {
     let activeRoute = "Default Brand Text";
     for (let i = 0; i < routes.length; i++) {
       if (routes[i].collapse) {
         let collapseActiveRoute = getActiveRoute(routes[i].views);
-        if (collapseActiveRoute !== activeRoute) {
-          return collapseActiveRoute;
-        }
+        if (collapseActiveRoute !== activeRoute) return collapseActiveRoute;
       } else if (routes[i].category) {
         let categoryActiveRoute = getActiveRoute(routes[i].views);
-        if (categoryActiveRoute !== activeRoute) {
-          return categoryActiveRoute;
-        }
+        if (categoryActiveRoute !== activeRoute) return categoryActiveRoute;
       } else {
-        if (
-          window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
-        ) {
+        if (window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1)
           return routes[i].name;
-        }
       }
     }
     return activeRoute;
   };
 
-  // This changes navbar state(fixed or not)
   const getActiveNavbar = (routes) => {
     let activeNavbar = false;
     for (let i = 0; i < routes.length; i++) {
       if (routes[i].category) {
         let categoryActiveNavbar = getActiveNavbar(routes[i].views);
-        if (categoryActiveNavbar !== activeNavbar) {
-          return categoryActiveNavbar;
-        }
+        if (categoryActiveNavbar !== activeNavbar) return categoryActiveNavbar;
       } else {
-        if (
-          window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
-        ) {
-          if (routes[i].secondaryNavbar) {
-            return routes[i].secondaryNavbar;
-          }
+        if (window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1) {
+          if (routes[i].secondaryNavbar) return routes[i].secondaryNavbar;
         }
       }
     }
     return activeNavbar;
   };
 
-  // Generate Route components for v6
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
-      if (prop.collapse) {
-        return getRoutes(prop.views);
-      }
-      if (prop.category === "account") {
-        return getRoutes(prop.views);
-      }
-      if (prop.layout === "/admin") {
-        return (
-          <Route
-            path={prop.path}
-            element={prop.element}
-            key={key}
-          />
-        );
-      } else {
-        return null;
-      }
+      if (prop.collapse) return getRoutes(prop.views);
+      if (prop.category === "account") return getRoutes(prop.views);
+      if (prop.layout === "/admin") return <Route path={prop.path} element={prop.element} key={key} />;
+      return null;
     });
   };
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   document.documentElement.dir = "ltr";
 
-  // Chakra Color Mode
   return (
+    <>
+    <Helmet>
+        <title>Deepthy Fenishers</title>
+      </Helmet>
     <Box>
+      
+      {/* ✅ Background box for light/dark mode */}
       <Box
         minH="40vh"
         w="100%"
         position="absolute"
-        bgImage={colorMode === "light" ? bgAdmin : "none"}
-        bg={colorMode === "light" ? bgAdmin : "navy.900"}
-        bgSize="cover"
         top="0"
+        bgImage={colorMode === "light" ? `url(${bgLight})` : `url(${bgDark})`}
+        bgColor={colorMode === "dark" ? "navy.900" : "transparent"}
+        bgSize="cover"
+        bgPosition="center"
+        bgRepeat="no-repeat"
       />
+
       <Sidebar
         routes={routes}
         logo={
           <Stack direction="row" spacing="12px" align="center" justify="center">
-            {colorMode === "dark" ? (
-              <ArgonLogoLight w="74px" h="27px" />
-            ) : (
-              <ArgonLogoDark w="74px" h="27px" />
-            )}
-            <Box
-              w="1px"
-              h="20px"
-              bg={colorMode === "dark" ? "white" : "gray.700"}
-            />
-            {colorMode === "dark" ? (
-              <ChakraLogoLight w="82px" h="21px" />
-            ) : (
-              <ChakraLogoDark w="82px" h="21px" />
-            )}
+            {colorMode === "dark" ? <ArgonLogoLight w="74px" h="27px" /> : <ArgonLogoDark w="74px" h="27px" />}
+            <Box w="1px" h="20px" bg={colorMode === "dark" ? "white" : "gray.700"} />
+            {colorMode === "dark" ? <ChakraLogoLight w="82px" h="21px" /> : <ChakraLogoDark w="82px" h="21px" />}
           </Stack>
         }
         display="none"
         {...rest}
       />
+
       <MainPanel
-        w={{
-          base: "100%",
-          xl: "calc(100% - 275px)",
-        }}
+        w={{ base: "100%", xl: "calc(100% - 275px)" }}
       >
         <Portal>
           <AdminNavbar
@@ -160,22 +129,22 @@ export default function Dashboard(props) {
             secondary={getActiveNavbar(routes)}
             fixed={fixed}
             {...rest}
-          />
+            />
         </Portal>
+
         {getRoute() ? (
           <PanelContent>
             <PanelContainer>
               <Routes>
                 {getRoutes(routes)}
-                <Route
-                  path="/admin"
-                  element={<Navigate to="/admin/dashboard" replace />}
-                />
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
               </Routes>
             </PanelContainer>
           </PanelContent>
         ) : null}
+
         <Footer />
+
         <Portal>
           <FixedPlugin
             secondary={getActiveNavbar(routes)}
@@ -183,16 +152,16 @@ export default function Dashboard(props) {
             onOpen={onOpen}
           />
         </Portal>
+
         <Configurator
           secondary={getActiveNavbar(routes)}
           isOpen={isOpen}
           onClose={onClose}
           isChecked={fixed}
-          onSwitch={(value) => {
-            setFixed(value);
-          }}
-        />
+          onSwitch={(value) => setFixed(value)}
+          />
       </MainPanel>
     </Box>
+          </>
   );
 }

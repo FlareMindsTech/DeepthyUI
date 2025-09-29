@@ -1,41 +1,33 @@
-/*!
-
-=========================================================
-* Argon Dashboard Chakra - v1.0.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/argon-dashboard-chakra
-* Copyright 2022 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://github.com/creativetimofficial/argon-dashboard-chakra/blob/master/LICENSE.md)
-
-* Design and Coded by Simmmple & Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
 import React from "react";
 import ReactDOM from "react-dom";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ChakraProvider } from "@chakra-ui/react";
+import { HelmetProvider } from "react-helmet-async"; // ✅ Import once here
 
 import AuthLayout from "layouts/Auth.js";
 import AdminLayout from "layouts/Admin.js";
-
-import { ChakraProvider } from "@chakra-ui/react";
-// Custom Chakra theme
 import theme from "theme/theme.js";
 
 ReactDOM.render(
   <ChakraProvider theme={theme} resetCss={false} position="relative">
-    <HashRouter>
-      <Routes>
-        <Route path="/auth/*" element={<AuthLayout />} />
-        <Route path="/admin/*" element={<AdminLayout />} />
-        {/* <Route path="/rtl/*" element={<RTLLayout />} /> */}
-        <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-      </Routes>
-    </HashRouter>
+    <HelmetProvider>  {/* ✅ ONLY here */}
+      <HashRouter >
+        <Routes>
+          {/* Auth routes */}
+          <Route path="/auth/*" element={<AuthLayout />} />
+          <Route path="/auth/signup" element={<AuthLayout />} />
+
+          {/* Admin routes */}
+          <Route path="/admin/*" element={<AdminLayout />} />
+
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+
+          {/* Catch-all 404 */}
+          <Route path="*" element={<Navigate to="/auth/signin" replace />} />
+        </Routes>
+      </HashRouter>
+    </HelmetProvider>
   </ChakraProvider>,
   document.getElementById("root")
 );

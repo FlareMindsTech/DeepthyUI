@@ -20,7 +20,6 @@ import {
   DocumentIcon,
   HomeIcon,
   PersonIcon,
-  RocketIcon,
 } from "components/Icons/Icons";
 
 import { SidebarResponsive } from "components/Sidebar/Sidebar";
@@ -29,27 +28,17 @@ import { NavLink } from "react-router-dom";
 import routes from "routes.js";
 
 export default function AuthNavbar(props) {
-  const { logo, logoText, secondary, ...rest } = props;
+  const { logoText, secondary, ...rest } = props;
   const { colorMode } = useColorMode();
 
-  // Chakra color mode
-  let mainText = "white";
-  let navbarIcon = "white";
-  let navbarBg = "none";
-  let navbarBorder = "none";
-  let navbarShadow = "initial";
-  let navbarFilter = "initial";
-  let navbarBackdrop = "none";
-  let bgButton = useColorModeValue("white", "navy.900");
-  let colorButton = useColorModeValue("gray.700", "white");
-  let navbarPosition = "absolute";
-  let hamburgerColor = {
-    base: useColorModeValue("gray.700", "white"),
-    md: "white",
-  };
+  const mainText = "#C41E3A"; // Updated color
+  const navbarIcon = "#C41E3A";
+  const navbarBg = useColorModeValue("whiteAlpha.100", "whiteAlpha.50");
+  const navbarBorder = "1px solid #C41E3A";
+  const navbarShadow = "sm";
+  const navbarBackdrop = "blur(10px)";
 
-  // Brand
-  let brand = (
+  const brand = (
     <Link
       href={`${process.env.PUBLIC_URL}/#/`}
       target="_blank"
@@ -62,7 +51,7 @@ export default function AuthNavbar(props) {
     >
       <Stack direction="row" spacing="12px" align="center" justify="center">
         <ArgonLogoLight w="74px" h="27px" />
-        <Box w="1px" h="20px" bg={"white"} />
+        <Box w="1px" h="20px" bg={mainText} />
         <ChakraLogoBlue w="82px" h="21px" />
       </Stack>
       <Text fontSize="sm" mt="3px">
@@ -71,79 +60,37 @@ export default function AuthNavbar(props) {
     </Link>
   );
 
-  hamburgerColor = { base: "white" };
-
-  // ✅ Updated NavLink for v6
-  var linksAuth = (
+  const linksAuth = (
     <HStack display={{ sm: "none", lg: "flex" }}>
-      <NavLink
-        to="/admin/dashboard"
-        className={({ isActive }) => (isActive ? "active-link" : "")}
-      >
-        <Button
-          fontSize="sm"
-          color={navbarIcon}
-          variant="no-effects"
-          leftIcon={<HomeIcon color={navbarIcon} w="12px" h="12px" />}
-        >
-          <Text>Dashboard</Text>
-        </Button>
-      </NavLink>
-
-      <NavLink
-        to="/admin/profile"
-        className={({ isActive }) => (isActive ? "active-link" : "")}
-      >
-        <Button
-          fontSize="sm"
-          color={navbarIcon}
-          variant="no-effects"
-          leftIcon={<PersonIcon color={navbarIcon} w="12px" h="12px" />}
-        >
-          <Text>Profile</Text>
-        </Button>
-      </NavLink>
-
-      <NavLink
-        to="/auth/signup"
-        className={({ isActive }) => (isActive ? "active-link" : "")}
-      >
-        <Button
-          fontSize="sm"
-          color={navbarIcon}
-          variant="no-effects"
-          leftIcon={<RocketIcon color={navbarIcon} w="12px" h="12px" />}
-        >
-          <Text>Sign Up</Text>
-        </Button>
-      </NavLink>
-
-      <NavLink
-        to="/auth/signin"
-        className={({ isActive }) => (isActive ? "active-link" : "")}
-      >
-        <Button
-          fontSize="sm"
-          color={navbarIcon}
-          variant="no-effects"
-          leftIcon={<DocumentIcon color={navbarIcon} w="12px" h="12px" />}
-        >
-          <Text>Sign In</Text>
-        </Button>
-      </NavLink>
+      {[
+        { to: "/admin/dashboard", label: "Dashboard", icon: <HomeIcon color={navbarIcon} w="12px" h="12px" /> },
+        { to: "/admin/profile", label: "Profile", icon: <PersonIcon color={navbarIcon} w="12px" h="12px" /> },
+        { to: "/auth/signin", label: "Sign In", icon: <DocumentIcon color={navbarIcon} w="12px" h="12px" /> },
+      ].map((link, idx) => (
+        <NavLink key={idx} to={link.to} className={({ isActive }) => (isActive ? "active-link" : "")}>
+          <Button
+            fontSize="sm"
+            color={navbarIcon}
+            variant="ghost"
+            _hover={{ bg: "#C41E3A20", color: "white" }}
+            leftIcon={link.icon}
+          >
+            <Text>{link.label}</Text>
+          </Button>
+        </NavLink>
+      ))}
     </HStack>
   );
 
   return (
     <Flex
-      position={navbarPosition}
+      position="absolute"
       top="16px"
       left="50%"
       transform="translate(-50%, 0px)"
       background={navbarBg}
       border={navbarBorder}
       boxShadow={navbarShadow}
-      filter={navbarFilter}
       backdropFilter={navbarBackdrop}
       borderRadius="15px"
       px="16px"
@@ -156,12 +103,9 @@ export default function AuthNavbar(props) {
     >
       <Flex w="100%" justifyContent={{ sm: "start", lg: "space-between" }}>
         {brand}
-        <Box
-          ms={{ base: "auto", lg: "0px" }}
-          display={{ base: "flex", lg: "none" }}
-        >
+        <Box ms={{ base: "auto", lg: "0px" }} display={{ base: "flex", lg: "none" }}>
           <SidebarResponsive
-            hamburgerColor={hamburgerColor}
+            hamburgerColor={{ base: "#C41E3A" }}
             logoText={props.logoText}
             secondary={props.secondary}
             routes={routes}
@@ -172,11 +116,7 @@ export default function AuthNavbar(props) {
                 ) : (
                   <ArgonLogoDark w="74px" h="27px" />
                 )}
-                <Box
-                  w="1px"
-                  h="20px"
-                  bg={colorMode === "dark" ? "white" : "gray.700"}
-                />
+                <Box w="1px" h="20px" bg={mainText} />
                 {colorMode === "dark" ? (
                   <ChakraLogoLight w="82px" h="21px" />
                 ) : (
@@ -188,21 +128,6 @@ export default function AuthNavbar(props) {
           />
         </Box>
         {linksAuth}
-        <Link href="https://creative-tim.com/product/argon-dashboard-chakra">
-          <Button
-            bg={bgButton}
-            color={colorButton}
-            fontSize="xs"
-            variant="no-hover"
-            px="30px"
-            display={{
-              sm: "none",
-              lg: "flex",
-            }}
-          >
-            Free Download
-          </Button>
-        </Link>
       </Flex>
     </Flex>
   );

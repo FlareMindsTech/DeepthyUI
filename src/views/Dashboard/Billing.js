@@ -1,256 +1,282 @@
+/* eslint-disable */
 import {
-  Box, Table, Thead, Tbody, Tr, Th, Td,
-  Text, useColorModeValue, Modal, ModalOverlay, ModalContent,
-  ModalHeader, ModalCloseButton, ModalBody, useDisclosure, Button, Flex, Tabs, Tab, TabList, TabPanels, TabPanel
+  Box,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Text,
+  Button,
+  Flex,
+  Tabs,
+  Tab,
+  TabList,
+  TabPanels,
+  TabPanel,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  Center,
 } from "@chakra-ui/react";
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-import Card from "components/Card/Card.js";
-import CardBody from "components/Card/CardBody.js";
-import CardHeader from "components/Card/CardHeader.js";
-
 export default function Billing() {
-  const textColor = useColorModeValue("gray.800", "white");
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedOrder, setSelectedOrder] = useState(null);
-
-  // ✅ Orders Data
-  const orders = [
+  const [bills, setBills] = useState([
     {
       id: "001",
-      customer: "Emily Carter",
-      email: "emily.carter@example.com",
-      phone: "555-123-4567",
-      address: "Fashion Street Mall, Los Angeles, CA",
+      user: "John Doe",
+      worker: "Alex Smith",
       items: [
-        { name: "Denim Jacket", price: 75, qty: 1 },
-        { name: "Slim Fit Jeans", price: 50, qty: 2 },
-        { name: "Sneakers", price: 90, qty: 1 },
+        { product: "Laptop Repair", cost: 500, hours: 5 },
+        { product: "Keyboard Replacement", cost: 100, hours: 1 },
       ],
-      compliment: "Free scarf included in the package",
     },
     {
       id: "002",
-      customer: "Michael Brown",
-      email: "michael.brown@example.com",
-      phone: "555-987-6543",
-      address: "Downtown Plaza, New York, NY",
+      user: "Jane Smith",
+      worker: "Emma Johnson",
       items: [
-        { name: "Formal Shirt", price: 40, qty: 2 },
-        { name: "Leather Belt", price: 30, qty: 1 },
-        { name: "Oxford Shoes", price: 120, qty: 1 },
+        { product: "Phone Screen Replacement", cost: 200, hours: 2 },
       ],
-      compliment: "Gift wrap included with this order",
     },
-  ];
+  ]);
 
-  // ✅ Transactions Data
-  const transactions = [
-    { id: "T001", orderId: "001", amount: 265, mode: "Credit Card", date: "2025-09-10" },
-    { id: "T002", orderId: "002", amount: 230, mode: "UPI", date: "2025-09-09" },
-  ];
+  const [history, setHistory] = useState([]);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [tabIndex, setTabIndex] = useState(0);
 
-  const handleRowClick = (order) => {
-    setSelectedOrder(order);
-    onOpen();
+  const openModal = (bill) => {
+    setSelectedBill(bill);
+    setIsOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedBill(null);
+    setIsOpen(false);
   };
 
   const calculateTotal = (items) => {
-    let totalQty = 0;
-    let totalPrice = 0;
+    let totalCost = 0;
+    let totalHours = 0;
     items.forEach((it) => {
-      totalQty += it.qty;
-      totalPrice += it.qty * it.price;
+      totalCost += it.cost;
+      totalHours += it.hours;
     });
-    return { totalQty, totalPrice };
+    return { totalCost, totalHours };
   };
 
-  // ✅ Download PDF Receipt
-  const handleDownload = () => {
-    if (!selectedOrder) return;
-
+  const downloadBill = (bill) => {
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("Order Receipt", 14, 20);
+    doc.setFontSize(16);
+    doc.text("Billing Printout", 105, 20, { align: "center" });
 
-    // Customer Info
     doc.setFontSize(12);
-    doc.text(`Order ID: ${selectedOrder.id}`, 14, 30);
-    doc.text(`Customer: ${selectedOrder.customer}`, 14, 38);
-    doc.text(`Email: ${selectedOrder.email}`, 14, 46);
-    doc.text(`Phone: ${selectedOrder.phone}`, 14, 54);
-    doc.text(`Address: ${selectedOrder.address}`, 14, 62);
+    doc.text(`Bill No: ${bill.id}`, 105, 30, { align: "center" });
+    doc.text(`User: ${bill.user}`, 105, 38, { align: "center" });
+    doc.text(`Worker: ${bill.worker}`, 105, 46, { align: "center" });
 
-    // Items Table
-    const tableData = selectedOrder.items.map(it => [
-      it.name, `$${it.price}`, it.qty, `$${it.qty * it.price}`
-    ]);
+    const tableData = bill.items.map((it) => [it.product, `₹${it.cost}`, it.hours]);
+
     autoTable(doc, {
-      head: [["Item", "Price", "Qty", "Total"]],
+      head: [["Product", "Cost", "Hours"]],
       body: tableData,
-      startY: 70,
+      startY: 55,
+      theme: "grid",
+      styles: { halign: "center" },
     });
 
-    // Totals
-    const { totalQty, totalPrice } = calculateTotal(selectedOrder.items);
-    doc.text(`Total Items: ${totalQty}`, 14, doc.lastAutoTable.finalY + 10);
-    doc.text(`Total Price: $${totalPrice}`, 14, doc.lastAutoTable.finalY + 18);
+    const { totalCost, totalHours } = calculateTotal(bill.items);
+    doc.text(`Total Cost: ₹${totalCost}`, 105, doc.lastAutoTable.finalY + 10, { align: "center" });
+    doc.text(`Total Hours: ${totalHours}`, 105, doc.lastAutoTable.finalY + 18, { align: "center" });
 
-    if (selectedOrder.compliment) {
-      doc.text(`Note: ${selectedOrder.compliment}`, 14, doc.lastAutoTable.finalY + 30);
-    }
+    doc.save(`Bill_${bill.id}.pdf`);
 
-    doc.save(`Order_${selectedOrder.id}.pdf`);
+    // Add to printout history
+    setHistory((prev) => [...prev, { ...bill, date: new Date().toLocaleString() }]);
+    closeModal();
+
+    // Switch to Printout History tab
+    setTabIndex(1);
   };
 
   return (
-    <Box pt={{ base: "20px", md: "75px" }}>
-      <Tabs isFitted variant="enclosed">
-        <TabList mb="1em">
-          <Tab>Order Summary</Tab>
-          <Tab>Transaction Summary</Tab>
-        </TabList>
+    <Center minH="100vh" px={3} py={5}>
+      <Box w={{ base: "100%", md: "95%", lg: "90%" }}>
+        <Tabs
+          isFitted
+          variant="enclosed"
+          w="100%"
+          index={tabIndex}
+          onChange={(index) => setTabIndex(index)}
+        >
+          <TabList mb="1em" borderBottom="2px solid #C41E3A">
+            <Tab _selected={{ bg: "#C41E3A", color: "white" }}>Billing Printout</Tab>
+            <Tab _selected={{ bg: "#C41E3A", color: "white" }}>Printout History</Tab>
+          </TabList>
 
-        <TabPanels>
-          {/* ✅ Orders Tab */}
-          <TabPanel>
-            <Card>
-              <CardHeader>
-                <Text fontSize="xl" fontWeight="bold">Order Summary</Text>
-              </CardHeader>
-              <CardBody>
-                <Table size="sm" variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>Order ID</Th>
-                      <Th>Customer</Th>
-                      <Th>Email</Th>
-                      <Th>Phone</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {orders.map((order, i) => (
-                      <Tr
-                        key={i}
-                        cursor="pointer"
-                        _hover={{ bg: "gray.100" }}
-                        onClick={() => handleRowClick(order)}
-                      >
-                        <Td>{order.id}</Td>
-                        <Td>{order.customer}</Td>
-                        <Td>{order.email}</Td>
-                        <Td>{order.phone}</Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-              </CardBody>
-            </Card>
-          </TabPanel>
-
-          {/* ✅ Transactions Tab */}
-          <TabPanel>
-            <Card>
-              <CardHeader>
-                <Text fontSize="xl" fontWeight="bold">Transaction Summary</Text>
-              </CardHeader>
-              <CardBody>
-                <Table size="sm" variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>Transaction ID</Th>
-                      <Th>Order ID</Th>
-                      <Th>Amount</Th>
-                      <Th>Mode</Th>
-                      <Th>Date</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {transactions.map((txn, i) => (
-                      <Tr key={i}>
-                        <Td>{txn.id}</Td>
-                        <Td>{txn.orderId}</Td>
-                        <Td>${txn.amount}</Td>
-                        <Td>{txn.mode}</Td>
-                        <Td>{txn.date}</Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-              </CardBody>
-            </Card>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-
-      {/* ✅ Modal for Order Details */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Order Details</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {selectedOrder && (
-              <Card>
-                <CardHeader>
-                  <Text fontSize="lg" fontWeight="bold">
-                    {selectedOrder.customer} &nbsp; #{selectedOrder.id}
-                  </Text>
-                </CardHeader>
-                <CardBody>
-                  <Flex justify="space-between" mb="4">
-                    <Box>
-                      <Text><strong>Email:</strong> {selectedOrder.email}</Text>
-                      <Text><strong>Phone:</strong> {selectedOrder.phone}</Text>
-                    </Box>
-                    <Box textAlign="right">
-                      <Text><strong>Distribution:</strong></Text>
-                      <Text>{selectedOrder.address}</Text>
-                    </Box>
-                  </Flex>
-
-                  <Table size="sm" variant="simple" mb="3">
-                    <Thead>
+          <TabPanels>
+            {/* Billing Printout Tab */}
+            <TabPanel>
+              <Center flexDirection="column">
+                <Box w="100%" overflowX="auto">
+                  <Table size="sm" variant="simple" textAlign="center" w="100%">
+                    <Thead bg="#FDE2E5">
                       <Tr>
-                        <Th>Item</Th>
-                        <Th isNumeric>Price</Th>
-                        <Th isNumeric>Qty</Th>
+                        <Th>No</Th>
+                        <Th>User Name</Th>
+                        <Th>Worker Name</Th>
+                        <Th>Products</Th>
+                        <Th>Total Cost</Th>
+                        <Th>Total Hours</Th>
+                        <Th>Printout</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {selectedOrder.items.map((it, idx) => (
+                      {bills.map((bill, idx) => {
+                        const { totalCost, totalHours } = calculateTotal(bill.items);
+                        return (
+                          <Tr key={idx}>
+                            <Td>{idx + 1}</Td>
+                            <Td>{bill.user}</Td>
+                            <Td>{bill.worker}</Td>
+                            <Td>
+                              {bill.items.map((it, i) => (
+                                <Box key={i}>
+                                  {it.product} (₹{it.cost}, {it.hours}h)
+                                </Box>
+                              ))}
+                            </Td>
+                            <Td>₹{totalCost}</Td>
+                            <Td>{totalHours}</Td>
+                            <Td>
+                              <Button
+                                size="sm"
+                                bg="#C41E3A"
+                                color="white"
+                                _hover={{ bg: "#A01830" }}
+                                onClick={() => openModal(bill)}
+                              >
+                                Printout
+                              </Button>
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </Tbody>
+                  </Table>
+                </Box>
+              </Center>
+            </TabPanel>
+
+            {/* Printout History Tab */}
+            <TabPanel>
+              <Center flexDirection="column">
+                <Box w="100%" overflowX="auto">
+                  <Table size="sm" variant="simple" textAlign="center" w="100%">
+                    <Thead bg="#FDE2E5">
+                      <Tr>
+                        <Th>No</Th>
+                        <Th>User Name</Th>
+                        <Th>Worker Name</Th>
+                        <Th>Products</Th>
+                        <Th>Total Cost</Th>
+                        <Th>Total Hours</Th>
+                        <Th>Date</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {history.map((bill, idx) => {
+                        const { totalCost, totalHours } = calculateTotal(bill.items);
+                        return (
+                          <Tr key={idx}>
+                            <Td>{idx + 1}</Td>
+                            <Td>{bill.user}</Td>
+                            <Td>{bill.worker}</Td>
+                            <Td>
+                              {bill.items.map((it, i) => (
+                                <Box key={i}>
+                                  {it.product} (₹{it.cost}, {it.hours}h)
+                                </Box>
+                              ))}
+                            </Td>
+                            <Td>₹{totalCost}</Td>
+                            <Td>{totalHours}</Td>
+                            <Td>{bill.date}</Td>
+                          </Tr>
+                        );
+                      })}
+                    </Tbody>
+                  </Table>
+                </Box>
+              </Center>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+      </Box>
+
+      {/* Modal for Previewing Bill */}
+      <Modal isOpen={isOpen} onClose={closeModal} size="md" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader textAlign="center">Billing Preview</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {selectedBill && (
+              <Center flexDirection="column" gap={3} w="100%">
+                <Text><strong>Bill No:</strong> {selectedBill.id}</Text>
+                <Text><strong>User:</strong> {selectedBill.user}</Text>
+                <Text><strong>Worker:</strong> {selectedBill.worker}</Text>
+
+                <Box w="100%" overflowX="auto">
+                  <Table size="sm" variant="simple" w="100%">
+                    <Thead bg="#FDE2E5">
+                      <Tr>
+                        <Th>Product</Th>
+                        <Th>Cost</Th>
+                        <Th>Hours</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {selectedBill.items.map((it, idx) => (
                         <Tr key={idx}>
-                          <Td>{it.name}</Td>
-                          <Td isNumeric>${it.price}</Td>
-                          <Td isNumeric>{it.qty}</Td>
+                          <Td>{it.product}</Td>
+                          <Td>₹{it.cost}</Td>
+                          <Td>{it.hours}</Td>
                         </Tr>
                       ))}
                     </Tbody>
                   </Table>
+                </Box>
 
-                  {(() => {
-                    const { totalQty, totalPrice } = calculateTotal(selectedOrder.items);
-                    return (
-                      <Flex justify="space-between" fontWeight="bold" mb="4">
-                        <Text>Total</Text>
-                        <Text>${totalPrice} ({totalQty} items)</Text>
-                      </Flex>
-                    );
-                  })()}
+                <Flex justify="space-between" w="100%" mt={2} fontWeight="bold">
+                  <Text>Total Cost: ₹{calculateTotal(selectedBill.items).totalCost}</Text>
+                  <Text>Total Hours: {calculateTotal(selectedBill.items).totalHours}</Text>
+                </Flex>
 
-                  <Flex justify="flex-end" gap="3">
-                    <Button size="sm" colorScheme="green" onClick={handleDownload}>
-                      Download Receipt
-                    </Button>
-                  </Flex>
-                </CardBody>
-              </Card>
+                <Flex justify="center" mt={3}>
+                  <Button
+                    size="sm"
+                    bg="#C41E3A"
+                    color="white"
+                    _hover={{ bg: "#A01830" }}
+                    onClick={() => downloadBill(selectedBill)}
+                  >
+                    Download Printout
+                  </Button>
+                </Flex>
+              </Center>
             )}
           </ModalBody>
         </ModalContent>
       </Modal>
-    </Box>
+    </Center>
   );
 }

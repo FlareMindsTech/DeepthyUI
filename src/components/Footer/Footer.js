@@ -1,92 +1,48 @@
 /*eslint-disable*/
-import { Flex, Link, List, ListItem, Text } from "@chakra-ui/react";
+import { Flex, Link, List, Text, Box, keyframes } from "@chakra-ui/react";
 import React from "react";
 
 export default function Footer(props) {
+  // Smooth heartbeat animation
+  const heartbeat = keyframes`
+    0%, 100% { transform: scale(1); }
+    25% { transform: scale(1.2); }
+    50% { transform: scale(1.3); }
+    75% { transform: scale(1.2); }
+  `;
+
   return (
     <Flex
-      flexDirection={{
-        base: "column",
-        xl: "row",
-      }}
-      alignItems={{
-        base: "center",
-        xl: "start",
-      }}
-      justifyContent='space-between'
-      px='30px'
-      pb='20px'>
+      flexDirection={{ base: "column", xl: "row" }}
+      alignItems={{ base: "center", xl: "start" }}
+      justifyContent="space-between"
+      px="30px"
+      pb="20px"
+    >
       <Text
-        color='gray.400'
-        textAlign={{
-          base: "center",
-          xl: "start",
-        }}
-        mb={{ base: "20px", xl: "0px" }}>
-        &copy; {1900 + new Date().getYear()},{" "}
-        <Text as='span'>
-          {document.documentElement.dir === "rtl"
-            ? " مصنوع من ❤️ بواسطة"
-            : "Made with ❤️ by "}
-        </Text>
+        color="#C41E3A"
+        textAlign={{ base: "center", xl: "start" }}
+        mb={{ base: "20px", xl: "0px" }}
+      >
+        &copy; {1900 + new Date().getYear()}, Made with{" "}
+        <Box
+          as="span"
+          display="inline-block"
+          animation={`${heartbeat} 2s infinite`}
+        >
+          ❤️
+        </Box>{" "}
+        by{" "}
         <Link
-          color='blue.400'
-          href='https://www.creative-tim.com'
-          target='_blank'>
-          {document.documentElement.dir === "rtl"
-            ? " توقيت الإبداعية"
-            : "Creative Tim "}
+          color="#C41E3A"
+          href="https://flaremindstech.com/"
+          target="_blank"
+          _hover={{ color: "#FF6B81" }}
+        >
+          Flareminds
         </Link>
-        &
-        <Link color='blue.400' href='https://www.simmmple.com' target='_blank'>
-          {document.documentElement.dir === "rtl" ? "سيممبل " : " Simmmple"}
-        </Link>
-        {document.documentElement.dir === "rtl"
-          ? "للحصول على ويب أفضل"
-          : " for a better web"}
       </Text>
-      <List display='flex'>
-        <ListItem
-          me={{
-            base: "20px",
-            md: "44px",
-          }}>
-          <Link color='gray.400' href='https://www.creative-tim.com'>
-            {document.documentElement.dir === "rtl"
-              ? "توقيت الإبداعية"
-              : "Creative Tim"}
-          </Link>
-        </ListItem>
-        <ListItem
-          me={{
-            base: "20px",
-            md: "44px",
-          }}>
-          <Link color='gray.400' href='https://www.simmmple.com'>
-            {document.documentElement.dir === "rtl" ? "سيممبل" : "Simmmple"}
-          </Link>
-        </ListItem>
-        <ListItem
-          me={{
-            base: "20px",
-            md: "44px",
-          }}>
-          <Link
-            color='gray.400'
-            // href='#blog'
-            href='https://creative-tim.com/blog'>
-            {document.documentElement.dir === "rtl" ? "مدونة" : "Blog"}
-          </Link>
-        </ListItem>
-        <ListItem>
-          <Link
-            color='gray.400'
-            // href='#license'
-            href='https://www.creative-tim.com/license'>
-            {document.documentElement.dir === "rtl" ? "رخصة" : "License"}
-          </Link>
-        </ListItem>
-      </List>
+      <List display="flex">{/* Add additional links/items here if needed */}</List>
     </Flex>
   );
 }
