@@ -23,12 +23,13 @@ import {
 import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt, FaHistory } from "react-icons/fa";
 import { IoSettingsSharp } from "react-icons/io5";
 // Assets
-import storeLogo from "assets/img/Aadvi-logo.png";
+import storeLogo from "assets/img/deepthy_logo.png";
 // Custom components
 import Card from "components/Card/Card";
 
 import React, { useEffect, useState } from "react";
 import Chart from "react-apexcharts"; // ApexCharts
+import { useNavigate } from "react-router-dom"; // <-- added
 
 export default function AdminProfile() {
   const themeColor = "#C41E3A";
@@ -39,6 +40,8 @@ export default function AdminProfile() {
   const [adminData, setAdminData] = useState(null);
   const [currentView, setCurrentView] = useState("dashboard"); // dashboard | users | products
   const [selectedUser, setSelectedUser] = useState(null);
+
+  const navigate = useNavigate(); // <-- added
 
   useEffect(() => {
     // Demo Data
@@ -118,6 +121,12 @@ export default function AdminProfile() {
     }
   };
 
+  // ✅ Logout function
+  const handleLogout = () => {
+    localStorage.removeItem("user"); // clear current user
+    navigate("/auth/signin"); // redirect to sign-in page
+  };
+
   if (!adminData) {
     return (
       <Flex justify="center" align="center" h="100vh">
@@ -161,7 +170,9 @@ export default function AdminProfile() {
 
           <VStack spacing={2} w="100%">
             <Button w="100%" leftIcon={<FaEdit />} bg={themeColor} color="white" _hover={{ bg: "#A01830" }}>Edit Profile</Button>
-            <Button w="100%" leftIcon={<FaSignOutAlt />} bg={themeColor} color="white" _hover={{ bg: "#A01830" }}>Logout</Button>
+            <Button w="100%" leftIcon={<FaSignOutAlt />} bg={themeColor} color="white" _hover={{ bg: "#A01830" }} onClick={handleLogout}>
+              Logout
+            </Button>
           </VStack>
         </Flex>
       </Card>

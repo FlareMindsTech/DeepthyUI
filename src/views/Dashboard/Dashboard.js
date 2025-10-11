@@ -32,7 +32,7 @@ const UsersSection = ({ users }) => (
     borderRadius="15px"
     border="1px solid"
     borderColor="#C41E3A"
-    bg="rgba(196, 30, 58, 0.85)" // softer background
+    bg="rgba(196, 30, 58, 0.85)"
     color="white"
   >
     <Heading size="md" mb={4}>👤 User Details</Heading>
@@ -44,7 +44,6 @@ const UsersSection = ({ users }) => (
             <Th>Name</Th>
             <Th>Email</Th>
             <Th>Role</Th>
-            <Th>Actions</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -54,10 +53,6 @@ const UsersSection = ({ users }) => (
               <Td>{u.name}</Td>
               <Td>{u.email}</Td>
               <Td>{u.role}</Td>
-              <Td>
-                <Button size="sm" colorScheme="whiteAlpha" mr={2} disabled>Edit</Button>
-                <Button size="sm" colorScheme="red" disabled>Delete</Button>
-              </Td>
             </Tr>
           ))}
         </Tbody>
@@ -75,7 +70,7 @@ const StaffSection = ({ staffDetails }) => (
     bg="rgba(196, 30, 58, 0.85)"
     color="white"
   >
-    <Heading size="md" mb={4}>👨‍💼 Staff Details</Heading>
+    <Heading size="md" mb={4}>👨‍💼 Working Staff</Heading>
     <Box overflowX="auto">
       <Table variant="striped" colorScheme="whiteAlpha" minW="600px">
         <Thead bg="rgba(255,255,255,0.15)">
@@ -109,43 +104,6 @@ const StaffSection = ({ staffDetails }) => (
   </Card>
 );
 
-const DressesSection = ({ dresses }) => (
-  <Card
-    p={5}
-    borderRadius="15px"
-    border="1px solid"
-    borderColor="#C41E3A"
-    bg="rgba(196, 30, 58, 0.85)"
-    color="white"
-  >
-    <Heading size="md" mb={4}>👗 Top Dress Details</Heading>
-    <Box overflowX="auto">
-      <Table variant="striped" colorScheme="whiteAlpha" minW="600px">
-        <Thead bg="rgba(255,255,255,0.15)">
-          <Tr>
-            <Th>ID</Th>
-            <Th>Name</Th>
-            <Th>Price</Th>
-            <Th>Size</Th>
-            <Th>Color</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {dresses.map((d) => (
-            <Tr key={d.id}>
-              <Td>{d.id}</Td>
-              <Td>{d.name}</Td>
-              <Td>{d.price}</Td>
-              <Td>{d.size}</Td>
-              <Td>{d.color}</Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </Box>
-  </Card>
-);
-
 const SalesSection = ({ sales, getStatusColor }) => (
   <Card
     p={5}
@@ -155,7 +113,7 @@ const SalesSection = ({ sales, getStatusColor }) => (
     bg="rgba(196, 30, 58, 0.85)"
     color="white"
   >
-    <Heading size="md" mb={4}>💰 Sales Details</Heading>
+    <Heading size="md" mb={4}>💰 Process Details</Heading>
     <Box overflowX="auto">
       <Table variant="striped" colorScheme="whiteAlpha" minW="800px">
         <Thead bg="rgba(255,255,255,0.15)">
@@ -196,12 +154,6 @@ export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("");
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
-
-  const [topDressDetails] = useState([
-    { id: 1, name: "Floral Summer Dress", price: 1200, size: "M", color: "Red" },
-    { id: 2, name: "Classic Black Gown", price: 2500, size: "L", color: "Black" },
-    { id: 3, name: "Casual Denim Jacket", price: 1800, size: "XL", color: "Blue" },
-  ]);
 
   const [showStaffDetails] = useState([
     { id: 1, name: "Ravi Kumar", email: "ravi.kumar@shopnow.com", department: "Customer Support", role: "Support Executive" },
@@ -255,25 +207,25 @@ export default function Dashboard() {
         </Text>
       </Box>
 
-      {/* Summary Cards */}
-      <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
-        {[{
-          label: "Today's Top Sales",
-          value: "$53,897",
-          section: "dresses",
-        },{
-          label: "Total Users",
-          value: users.length,
-          section: "users",
-        },{
-          label: "Total Staff",
-          value: showStaffDetails.length,
-          section: "staffs",
-        },{
-          label: "Total Sales",
-          value: showSalesDetails.length,
-          section: "sales",
-        }].map((card, idx) => (
+      {/* Updated Summary Cards */}
+      <SimpleGrid columns={{ sm: 1, md: 2, xl: 3 }} spacing="24px" mb="20px">
+        {[
+          {
+            label: "Total Process",
+            value: showSalesDetails.length,
+            section: "sales",
+          },
+          {
+            label: "Total Users",
+            value: users.length,
+            section: "users",
+          },
+          {
+            label: "Total Working",
+            value: showStaffDetails.length,
+            section: "staffs",
+          },
+        ].map((card, idx) => (
           <Card
             key={idx}
             minH="125px"
@@ -288,10 +240,15 @@ export default function Dashboard() {
               <StatLabel color="whiteAlpha.800">{card.label}</StatLabel>
               <StatNumber fontSize="xl">{card.value}</StatNumber>
             </Stat>
-            <Button mt={3} colorScheme="whiteAlpha" leftIcon={<FaChartLine />} onClick={() => setActiveSection(card.section)}>
-              {card.section === "dresses" ? "Top Sales Dress Details" :
+            <Button
+              mt={3}
+              colorScheme="whiteAlpha"
+              leftIcon={<FaChartLine />}
+              onClick={() => setActiveSection(card.section)}
+            >
+              {card.section === "sales" ? "Show Process Details" :
                card.section === "users" ? "Show User Details" :
-               card.section === "staffs" ? "Show Staff Details" : "Show Sales Details"}
+               "Show Working Staff Details"}
             </Button>
           </Card>
         ))}
@@ -301,7 +258,6 @@ export default function Dashboard() {
       <Box mt={6}>
         {activeSection === "users" && <UsersSection users={users} />}
         {activeSection === "staffs" && <StaffSection staffDetails={showStaffDetails} />}
-        {activeSection === "dresses" && <DressesSection dresses={topDressDetails} />}
         {activeSection === "sales" && <SalesSection sales={showSalesDetails} getStatusColor={getStatusColor} />}
       </Box>
     </Flex>

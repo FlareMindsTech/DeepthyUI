@@ -73,13 +73,7 @@ export default function Pages(props) {
         return getRoutes(prop.views);
       }
       if (prop.layout === "/auth") {
-        return (
-          <Route
-            path={prop.path}
-            element={prop.element}
-            key={key}
-          />
-        );
+        return <Route path={prop.path} element={prop.element} key={key} />;
       }
       return null;
     });
@@ -90,26 +84,29 @@ export default function Pages(props) {
 
   return (
     <>
-    <Helmet>
-        <title>Deepthy Fenishers</title>
+      <Helmet>
+        <title>Login | Deepthy Fenishers</title>
       </Helmet>
-    <Box ref={navRef} w="100%">
-      {/* <Portal containerRef={navRef}>
+      <Box ref={navRef} w="100%">
+        {/* <Portal containerRef={navRef}>
         <AuthNavbar secondary={getActiveNavbar(routes)} logoText="" />
       </Portal> */}
-      <Box w="100%">
-        <Box ref={wrapper} w="100%">
-          <Routes>
-            {getRoutes(routes)}
-            {/* ✅ Default /auth redirect */}
-            <Route path="/auth" element={<Navigate to="/auth/signin" replace />} />
-          </Routes>
+        <Box w="100%">
+          <Box ref={wrapper} w="100%">
+            <Routes>
+              {getRoutes(routes)}
+              {/* ✅ Default /auth redirect */}
+              <Route
+                path="/auth"
+                element={<Navigate to="/auth/signin" replace />}
+              />
+            </Routes>
+          </Box>
+        </Box>
+        <Box px="24px" mx="auto" width="1044px" maxW="100%" mt="60px">
+          {/* <Footer /> */}
         </Box>
       </Box>
-      <Box px="24px" mx="auto" width="1044px" maxW="100%" mt="60px">
-        {/* <Footer /> */}
-      </Box>
-    </Box>
     </>
   );
 }

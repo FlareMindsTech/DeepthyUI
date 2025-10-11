@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-// Chakra imports
 import {
   Box,
   Flex,
@@ -15,20 +14,26 @@ import {
   IconButton,
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
-// Assets
+import { useNavigate } from "react-router-dom";
 import signInImage from "assets/img/signInImage.png";
 
 function Login() {
   const bgForm = useColorModeValue("white", "navy.800");
   const redColor = "#C41E3A";
 
-  const [phone, setPhone] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const navigate = useNavigate();
 
-  const ADMIN_PHONE = "1234567890";
-  const ADMIN_PASSWORD = "admin123";
+  // Dummy login data
+  const DUMMY_USERS = [
+    { username: "owner", phone: "1111111111", password: "owner123", role: "owner" },
+    { username: "admin", phone: "1234567890", password: "admin123", role: "admin" },
+    { username: "user", phone: "9876543210", password: "user123", role: "user" },
+  ];
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -37,29 +42,99 @@ function Login() {
     };
   }, []);
 
-  const handleLogin = (e) => {
-    e.preventDefault();
+const handleLogin = async (e) => {
+  e.preventDefault();
 
-    if (phone === ADMIN_PHONE && password === ADMIN_PASSWORD) {
+  if (!identifier || !password) {
+    toast({
+      title: "Validation Error",
+      description: "Please enter both username/phone and password.",
+      status: "warning",
+      duration: 3000,
+      isClosable: true,
+    });
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await fetch(
+      "https://deepthy-fenishers-1.onrender.com/api/users/login",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.token && data.user) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
       toast({
         title: "Login Successful",
-        description: "Welcome back, Admin!",
+        description: `Welcome back, ${data.user.role}!`,
         status: "success",
         duration: 3000,
         isClosable: true,
       });
 
-      window.location.href = "/admin/dashboard";
+      navigate(
+        data.user.role === "owner"
+          ? "/owner/dashboard"
+          : data.user.role === "admin"
+          ? "/admin/dashboard"
+          : "/user/dashboard"
+      );
+    } else {
+      // API returned 401 or invalid credentials
+      throw new Error(data.message || "Invalid credentials");
+    }
+  } catch (error) {
+    console.warn("API login failed, using dummy fallback...", error.message);
+
+    // Check dummy users
+    const foundUser = DUMMY_USERS.find(
+      (u) =>
+        (u.username.toLowerCase() === identifier.toLowerCase() ||
+          u.phone === identifier) &&
+        u.password === password
+    );
+
+    if (foundUser) {
+      localStorage.setItem("user", JSON.stringify(foundUser));
+      toast({
+        title: "Login Successful (Dummy Data)",
+        description: `Welcome back, ${foundUser.role}!`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      navigate(
+        foundUser.role === "owner"
+          ? "/owner/dashboard"
+          : foundUser.role === "admin"
+          ? "/admin/dashboard"
+          : "/user/dashboard"
+      );
     } else {
       toast({
-        title: "Invalid Credentials",
-        description: "Phone number or password is incorrect.",
+        title: "Login Failed",
+        description: error.message,
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <Flex
@@ -71,9 +146,8 @@ function Login() {
       align="center"
       justify="center"
       overflow="hidden"
-      px={{ base: 3, md: 0 }} // padding for mobile
+      px={{ base: 3, md: 0 }}
     >
-      {/* Login Form */}
       <Flex
         zIndex="2"
         direction="column"
@@ -94,25 +168,29 @@ function Login() {
           bgGradient={`linear(to-r, ${redColor}, #FF6B6B)`}
           bgClip="text"
         >
-          Admin Login
+          Login
         </Text>
 
         <form onSubmit={handleLogin}>
           <FormControl>
-            <FormLabel fontSize="sm" fontWeight="semibold">Phone Number</FormLabel>
+            <FormLabel fontSize="sm" fontWeight="semibold">
+              Phone Number or Username
+            </FormLabel>
             <Input
               variant="auth"
-              type="tel"
-              placeholder="Enter phone number"
+              type="text"
+              placeholder="Enter phone number or username"
               mb="20px"
               size="lg"
               borderRadius="12px"
               focusBorderColor={redColor}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
 
-            <FormLabel fontSize="sm" fontWeight="semibold">Password</FormLabel>
+            <FormLabel fontSize="sm" fontWeight="semibold">
+              Password
+            </FormLabel>
             <InputGroup size="lg" mb="20px">
               <Input
                 variant="auth"
@@ -146,6 +224,8 @@ function Login() {
               _hover={{ bg: "#FF6B6B" }}
               _active={{ bg: "#B71C1C" }}
               transition="all 0.3s"
+              isLoading={loading}
+              loadingText="Logging in..."
             >
               LOGIN
             </Button>
@@ -153,7 +233,6 @@ function Login() {
         </form>
       </Flex>
 
-      {/* Background */}
       <Box
         position="absolute"
         w="100%"

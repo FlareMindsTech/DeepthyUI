@@ -2,32 +2,46 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ChakraProvider } from "@chakra-ui/react";
-import { HelmetProvider } from "react-helmet-async"; // ✅ Import once here
+import { HelmetProvider } from "react-helmet-async";
 
 import AuthLayout from "layouts/Auth.js";
 import AdminLayout from "layouts/Admin.js";
+import UserLayout from "layouts/User.js"; // 👈 User layout
+import UserDashboard from "views/UserDashboard/UserDashboard.js"; // 👈 User dashboard
+import FabricProcessPage from "./components/FabricProcessForm/FabricProcessPage";
 import theme from "theme/theme.js";
 
+// Default page is login
 ReactDOM.render(
-  <ChakraProvider theme={theme} resetCss={false} position="relative">
-    <HelmetProvider>  {/* ✅ ONLY here */}
-      <HashRouter >
-        <Routes>
-          {/* Auth routes */}
-          <Route path="/auth/*" element={<AuthLayout />} />
-          <Route path="/auth/signup" element={<AuthLayout />} />
+  <React.StrictMode>
+    <ChakraProvider theme={theme}>
+      <HelmetProvider>
+        <HashRouter>
+          <Routes>
+            {/* Auth routes */}
+            <Route path="/auth/*" element={<AuthLayout />} />
 
-          {/* Admin routes */}
-          <Route path="/admin/*" element={<AdminLayout />} />
+            {/* Admin routes */}
+            <Route path="/admin/*" element={<AdminLayout />}>
+              <Route path="dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+              {/* Add other admin routes here */}
+            </Route>
 
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+            {/* User routes */}
+            <Route path="/user/*" element={<UserLayout />}>
+              <Route path="dashboard" element={<UserDashboard />} />
+              <Route path="fabric-process" element={<FabricProcessPage />} />
+            </Route>
 
-          {/* Catch-all 404 */}
-          <Route path="*" element={<Navigate to="/auth/signin" replace />} />
-        </Routes>
-      </HashRouter>
-    </HelmetProvider>
-  </ChakraProvider>,
+            {/* Default route → login */}
+            <Route path="/" element={<Navigate to="/auth/signin" replace />} />
+
+            {/* Catch-all 404 */}
+            <Route path="*" element={<Navigate to="/auth/signin" replace />} />
+          </Routes>
+        </HashRouter>
+      </HelmetProvider>
+    </ChakraProvider>
+  </React.StrictMode>,
   document.getElementById("root")
 );

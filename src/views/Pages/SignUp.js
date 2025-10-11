@@ -1,100 +1,215 @@
-import React from "react";
-// Chakra imports
+/* eslint-disable */
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Button,
   Flex,
+  Button,
   FormControl,
   FormLabel,
   Input,
+  Select,
   Text,
   useColorModeValue,
-  Link,
+  IconButton,
+  useToast,
 } from "@chakra-ui/react";
-// Assets
+import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import BgSignUp from "assets/img/BgSignUp.png";
 
 function SignUp() {
+  const navigate = useNavigate();
+  const toast = useToast();
   const bgForm = useColorModeValue("white", "navy.800");
-  const titleColor = useColorModeValue("gray.700", "blue.500");
-  const textColor = useColorModeValue("gray.700", "white");
+  const redColor = "#C41E3A";
+
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    password: "",
+    role: "user",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState(""); // Owner or Admin
+
+  // Protect page: only owner/admin
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user || (user.role !== "owner" && user.role !== "admin")) {
+      navigate("/auth/signin");
+    } else {
+      setCurrentUserRole(user.role); // save current user's role
+    }
+  }, [navigate]);
+
+  const handleChange = (field, value) =>
+    setFormData({ ...formData, [field]: value });
+
+  const handleSignUp = (e) => {
+    e.preventDefault();
+
+    localStorage.setItem("user", JSON.stringify(formData));
+
+    toast({
+      title: "Registration Successful",
+      description: `Registered as ${formData.role}!`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+
+    if (formData.role === "admin") navigate("/admin/dashboard");
+    else navigate("/user/dashboard");
+  };
 
   return (
-    <Flex direction="column" align="center" justify="center" overflow="hidden">
+    <Flex
+      position="fixed"
+      top="0"
+      left="0"
+      w="100vw"
+      h="100vh"
+      align="center"
+      justify="center"
+      overflow="hidden"
+      px={{ base: 3, md: 0 }}
+    >
       {/* Background */}
       <Box
         position="absolute"
-        w="100vw"
-        h="100vh"
+        w="100%"
+        h="100%"
+        left="0"
+        top="0"
         bgImage={BgSignUp}
         bgSize="cover"
         bgPosition="center"
-        zIndex="-1"
+        zIndex="1"
       >
-        <Box w="100%" h="100%" bg="blue.500" opacity="0.8"></Box>
+        <Box w="100%" h="100%" bg={redColor} opacity="0.75"></Box>
       </Box>
 
-      {/* Header */}
-      <Flex direction="column" textAlign="center" justify="center" align="center" mt="125px" mb="30px">
-        <Text fontSize="4xl" color="white" fontWeight="bold">
-          Welcome!
-        </Text>
-        <Text
-          fontSize="md"
-          color="white"
-          fontWeight="normal"
-          mt="10px"
-          mb="26px"
-          w={{ base: "90%", sm: "60%", lg: "40%", xl: "333px" }}
-        >
-          Use this form to view account information. Login is restricted to the admin account only.
-        </Text>
-      </Flex>
-
       {/* Form */}
-      <Flex align="center" justify="center" mb="60px" mt="20px">
-        <Flex
-          direction="column"
-          w="445px"
-          bg={bgForm}
-          borderRadius="15px"
-          p="40px"
-          boxShadow={useColorModeValue("0px 5px 14px rgba(0, 0, 0, 0.05)", "unset")}
+      <Flex
+        zIndex="2"
+        direction="column"
+        w={{ base: "90%", sm: "400px", md: "445px" }}
+        borderRadius="20px"
+        p={{ base: "30px", md: "40px" }}
+        bg={bgForm}
+        boxShadow={useColorModeValue(
+          "0px 8px 30px rgba(0, 0, 0, 0.1)",
+          "0px 8px 30px rgba(0, 0, 0, 0.4)"
+        )}
+      >
+        <Text
+          fontSize={{ base: "xl", md: "2xl" }}
+          fontWeight="extrabold"
+          textAlign="center"
+          mb={{ base: "20px", md: "28px" }}
+          bgGradient={`linear(to-r, ${redColor}, #FF6B6B)`}
+          bgClip="text"
         >
-          <Text fontSize="xl" color={textColor} fontWeight="bold" textAlign="center" mb="22px">
-            Register With
-          </Text>
+          Sign Up
+        </Text>
 
-          <FormControl>
-            <FormLabel ms="4px" fontSize="sm" fontWeight="normal">
+        <form onSubmit={handleSignUp}>
+          <FormControl display="flex" flexDirection="column" gap="15px">
+            <FormLabel fontSize="sm" fontWeight="semibold">
               Name
             </FormLabel>
-            <Input variant="auth" fontSize="sm" ms="4px" type="text" placeholder="Your full name" mb="24px" size="lg" />
+            <Input
+              variant="auth"
+              type="text"
+              placeholder="Your full name"
+              size="lg"
+              borderRadius="12px"
+              focusBorderColor={redColor}
+              value={formData.name}
+              onChange={(e) => handleChange("name", e.target.value)}
+            />
 
-            <FormLabel ms="4px" fontSize="sm" fontWeight="normal">
+            <FormLabel fontSize="sm" fontWeight="semibold">
               Phone Number
             </FormLabel>
-            <Input variant="auth" fontSize="sm" ms="4px" type="tel" placeholder="Your phone number" mb="24px" size="lg" />
+            <Input
+              variant="auth"
+              type="tel"
+              placeholder="Your phone number"
+              size="lg"
+              borderRadius="12px"
+              focusBorderColor={redColor}
+              value={formData.phone}
+              onChange={(e) => handleChange("phone", e.target.value)}
+            />
 
-            <FormLabel ms="4px" fontSize="sm" fontWeight="normal">
+            <FormLabel fontSize="sm" fontWeight="semibold">
               Password
             </FormLabel>
-            <Input variant="auth" fontSize="sm" ms="4px" type="password" placeholder="Your password" mb="24px" size="lg" />
+            <Flex>
+              <Input
+                variant="auth"
+                type={showPassword ? "text" : "password"}
+                placeholder="Your password"
+                size="lg"
+                borderRadius="12px"
+                focusBorderColor={redColor}
+                value={formData.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+              />
+              <IconButton
+                ml="2"
+                icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label="Toggle password visibility"
+              />
+            </Flex>
 
-            <Button fontSize="10px" variant="solid" fontWeight="bold" w="100%" h="45" mb="24px">
+            <FormLabel fontSize="sm" fontWeight="semibold">
+              Role
+            </FormLabel>
+            <Select
+              value={formData.role}
+              onChange={(e) => handleChange("role", e.target.value)}
+              size="lg"
+              borderRadius="12px"
+              focusBorderColor={redColor}
+            >
+              {currentUserRole === "owner" && <option value="owner">Owner</option>}
+              {currentUserRole === "owner" && <option value="admin">Admin</option>}
+              <option value="user">User</option>
+            </Select>
+
+            <Button
+              type="submit"
+              fontSize="sm"
+              bg={redColor}
+              color="white"
+              fontWeight="bold"
+              w="100%"
+              h="50px"
+              borderRadius="12px"
+              _hover={{ bg: "#FF6B6B" }}
+              _active={{ bg: "#B71C1C" }}
+              mt="10px"
+            >
               SIGN UP
             </Button>
           </FormControl>
+        </form>
 
-          <Flex direction="column" justify="center" align="center" maxW="100%" mt="0px">
-            <Text color={textColor} fontWeight="medium">
-              Already have an account?
-              <Link color={titleColor} as="span" ms="5px" href="/login" fontWeight="bold">
-                Sign In
-              </Link>
-            </Text>
-          </Flex>
-        </Flex>
+        <Text fontSize="sm" textAlign="center" mt="20px">
+          Already have an account?{" "}
+          <Box
+            as="span"
+            color={redColor}
+            fontWeight="bold"
+            cursor="pointer"
+            onClick={() => navigate("/auth/signin")}
+          >
+            Sign In
+          </Box>
+        </Text>
       </Flex>
     </Flex>
   );

@@ -6,7 +6,7 @@ import {
   Box,
   useColorMode,
 } from "@chakra-ui/react";
-import Footer from "components/Footer/Footer.js";
+import Footer from "../components/Footer/Footer";
 import {
   ArgonLogoDark,
   ArgonLogoLight,
@@ -14,14 +14,14 @@ import {
   ChakraLogoLight,
 } from "components/Icons/Icons";
 // Layout components
-import AdminNavbar from "components/Navbars/AdminNavbar.js";
-import Sidebar from "components/Sidebar/Sidebar.js";
+import UserNavbar from "../components/Navbars/UserNavbar.js"; // <-- User navbar
+import Sidebar from "../components/Sidebar/Sidebar.js";
 import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import routes from "routes.js";
-import MainPanel from "components/Layout/MainPanel";
-import PanelContainer from "components/Layout/PanelContainer";
-import PanelContent from "components/Layout/PanelContent";
+import routes from "routes.js"; // make sure this includes /user/* routes
+import MainPanel from "../components/Layout/MainPanel";
+import PanelContainer from "../components/Layout/PanelContainer";
+import PanelContent from "../components/Layout/PanelContent";
 
 import { Helmet } from "react-helmet-async";
 
@@ -29,18 +29,15 @@ import { Helmet } from "react-helmet-async";
 import bgLight from "../assets/img/admin-backgroud-red.png";
 import bgDark from "../assets/img/admin-background-dark.png";
 
-export default function Dashboard(props) {
+export default function UserDashboard(props) {
   const { ...rest } = props;
   const [fixed, setFixed] = useState(false);
   const { colorMode } = useColorMode();
-  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  document.documentElement.dir = "ltr";
-
-  const getRoute = () => window.location.pathname !== "/admin/full-screen-maps";
+  const getRoute = () => window.location.pathname !== "/user/full-screen-maps";
 
   const getActiveRoute = (routes) => {
-    let activeRoute = "Default Brand Text";
+    let activeRoute = "User Dashboard";
     for (let i = 0; i < routes.length; i++) {
       if (routes[i].collapse) {
         let collapseActiveRoute = getActiveRoute(routes[i].views);
@@ -49,7 +46,9 @@ export default function Dashboard(props) {
         let categoryActiveRoute = getActiveRoute(routes[i].views);
         if (categoryActiveRoute !== activeRoute) return categoryActiveRoute;
       } else {
-        if (window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1)
+        if (
+          window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
+        )
           return routes[i].name;
       }
     }
@@ -63,7 +62,9 @@ export default function Dashboard(props) {
         let categoryActiveNavbar = getActiveNavbar(routes[i].views);
         if (categoryActiveNavbar !== activeNavbar) return categoryActiveNavbar;
       } else {
-        if (window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1) {
+        if (
+          window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
+        ) {
           if (routes[i].secondaryNavbar) return routes[i].secondaryNavbar;
         }
       }
@@ -71,21 +72,23 @@ export default function Dashboard(props) {
     return activeNavbar;
   };
 
-  // ✅ Exclude Settings route from rendering
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
       if (prop.collapse) return getRoutes(prop.views);
       if (prop.category === "account") return getRoutes(prop.views);
-      if (prop.layout === "/admin" && prop.name !== "Settings")
+      if (prop.layout === "/user") // <-- change admin to user
         return <Route path={prop.path} element={prop.element} key={key} />;
       return null;
     });
   };
 
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  document.documentElement.dir = "ltr";
+
   return (
     <>
       <Helmet>
-        <title>Dashboard | Deepthy Fenishers</title>
+        <title>User Dashboard | Deepthy Fenishers</title>
       </Helmet>
       <Box>
         {/* ✅ Background box for light/dark mode */}
@@ -102,7 +105,7 @@ export default function Dashboard(props) {
         />
 
         <Sidebar
-          routes={routes.filter((r) => r.name !== "Settings")} // remove Settings from sidebar
+          routes={routes}
           logo={
             <Stack
               direction="row"
@@ -133,7 +136,7 @@ export default function Dashboard(props) {
 
         <MainPanel w={{ base: "100%", xl: "calc(100% - 275px)" }}>
           <Portal>
-            <AdminNavbar
+            <UserNavbar
               onOpen={onOpen}
               brandText={getActiveRoute(routes)}
               secondary={getActiveNavbar(routes)}
@@ -148,8 +151,8 @@ export default function Dashboard(props) {
                 <Routes>
                   {getRoutes(routes)}
                   <Route
-                    path="/admin"
-                    element={<Navigate to="/admin/dashboard" replace />}
+                    path="/user"
+                    element={<Navigate to="/user/dashboard" replace />}
                   />
                 </Routes>
               </PanelContainer>
