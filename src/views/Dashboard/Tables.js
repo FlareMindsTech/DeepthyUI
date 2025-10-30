@@ -41,7 +41,7 @@ export default function WorkHoursTable() {
   const getShiftSegments = (start, end) => {
     let startHour = parseTime(start);
     let endHour = parseTime(end);
-    if (endHour <= startHour) endHour += 24; // Handle overnight shifts
+    if (endHour <= startHour) endHour += 24; // Overnight shifts
     const segments = [];
     shifts.forEach((shift) => {
       const overlapStart = Math.max(startHour, shift.start);
@@ -71,13 +71,6 @@ export default function WorkHoursTable() {
   const headingColor = useColorModeValue("white", "white");
   const tableBg = useColorModeValue("#fff5f7", "#2A2A2A");
 
-  const timelineHours = Array.from({ length: 24 }, (_, i) => {
-    const hour = i % 24;
-    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-    const period = hour >= 12 ? "PM" : "AM";
-    return `${displayHour} ${period}`;
-  });
-
   const getStatusColor = (status) => {
     const colors = { "Completed": "green", "In Progress": "orange", "Pending": "red" };
     return colors[status] || "gray";
@@ -85,7 +78,7 @@ export default function WorkHoursTable() {
 
   return (
     <Center minH="100vh">
-      <Box p="6" borderRadius="md" w={{ base: "95%", md: "90%", lg: "80%" }}>
+      <Box p="6" borderRadius="md" w={{ base: "95%", md: "90%", lg: "100%" }} marginTop={-150}>
         <Text
           fontSize="2xl"
           fontWeight="bold"
@@ -99,8 +92,8 @@ export default function WorkHoursTable() {
           Work Hours Summary
         </Text>
 
-        <Box overflowX="auto" bg={tableBg} borderRadius="md" boxShadow="sm">
-          <Table variant="simple" size="md" textAlign="center" minW="1100px">
+        <Box bg={tableBg} borderRadius="md" boxShadow="sm">
+          <Table variant="simple" size="md" textAlign="center" w="100%">
             <Thead>
               <Tr>
                 <Th>User Name</Th>
@@ -111,29 +104,12 @@ export default function WorkHoursTable() {
                 <Th>Total Work H</Th>
                 <Th>Total Cost</Th>
                 <Th>Status</Th>
-                <Th>
-                  <Flex w="100%" h="25px" borderRadius="md" overflow="hidden">
-                    {timelineHours.map((hour, idx) => (
-                      <Box
-                        key={idx}
-                        w={`${100 / 24}%`}
-                        borderRight={idx < 23 ? "1px solid #ccc" : "none"}
-                        fontSize="xs"
-                        textAlign="center"
-                        lineHeight="25px"
-                        color="gray.700"
-                      >
-                        {hour}
-                      </Box>
-                    ))}
-                  </Flex>
-                </Th>
+                <Th>Working Hours</Th>
               </Tr>
             </Thead>
             <Tbody>
               {workData.map((row, idx) => {
                 const segments = getShiftSegments(row.start, row.end);
-                const totalDuration = segments.reduce((acc, seg) => acc + seg.width, 0);
                 return (
                   <Tr key={idx} _hover={{ bg: "#f0f0f0" }}>
                     <Td>{row.user}</Td>
@@ -147,27 +123,30 @@ export default function WorkHoursTable() {
                       <Badge colorScheme={getStatusColor(row.status)}>{row.status}</Badge>
                     </Td>
                     <Td>
-                      <Flex borderRadius="md" overflow="hidden" h="25px" w="100%" position="relative">
-                        {segments.map((seg, i) => {
-                          const leftPercent = (seg.startTime / 24) * 100;
-                          const widthPercent = (seg.width / 24) * 100;
-                          return (
-                            <Tooltip
-                              key={i}
-                              label={`${seg.name}: ${formatHour(seg.startTime)} - ${formatHour(seg.endTime)}`}
-                              hasArrow
-                              placement="top"
-                            >
-                              <Box
-                                bg={seg.color}
-                                position="absolute"
-                                left={`${leftPercent}%`}
-                                width={`${widthPercent}%`}
-                                h="100%"
-                              />
-                            </Tooltip>
-                          );
-                        })}
+                      <Flex
+                        h="25px"
+                        w="90px"
+                        borderRadius="md"
+                        overflow="hidden"
+                        position="relative"
+                        justify="center"
+                        align="center"
+                      >
+                        {segments.map((seg, i) => (
+                          <Tooltip
+                            key={i}
+                            label={`${formatHour(seg.startTime)} - ${formatHour(seg.endTime)}`}
+                            hasArrow
+                            placement="top"
+                          >
+                            <Box
+                              bg={seg.color}
+                              h="100%"
+                              w="100%"
+                              borderRadius="md"
+                            />
+                          </Tooltip>
+                        ))}
                       </Flex>
                     </Td>
                   </Tr>

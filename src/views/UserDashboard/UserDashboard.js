@@ -194,7 +194,7 @@ export default function UserDashboard() {
   return (
     <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
       <Box mb={6}>
-        <Text fontSize="2xl" fontWeight="bold" color="white">
+        <Text fontSize="2xl" fontWeight="bold" color="black">
           Welcome back, {user.name} 👋
         </Text>
       </Box>

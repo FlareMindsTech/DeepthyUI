@@ -7,7 +7,7 @@ import Profile from "views/Dashboard/Profile.js";
 import SignIn from "views/Pages/SignIn.js";
 import SignUp from "views/Pages/SignUp.js";
 import UserDashboard from "views/UserDashboard/UserDashboard.js";
-import FabricProcessPage from "./components/FabricProcessForm/FabricProcessPage"; 
+import FabricProcessPage from "./components/FabricProcessForm/FabricProcessPage";
 import UserProfile from "views/UserDashboard/UserProfile.js";
 
 import {
@@ -19,7 +19,7 @@ import {
   RocketIcon,
 } from "components/Icons/Icons";
 
-// 🌟 Admin Routes
+// 🌟 Admin & Owner Routes
 export const adminRoutes = [
   {
     path: "/dashboard",
@@ -27,7 +27,7 @@ export const adminRoutes = [
     icon: <HomeIcon color="inherit" />,
     element: <Dashboard />,
     layout: "/admin",
-    roles: ["admin"],
+    roles: ["admin", "owner"], // ✅ Added owner
   },
   {
     path: "/tables",
@@ -35,7 +35,7 @@ export const adminRoutes = [
     icon: <StatsIcon color="inherit" />,
     element: <Tables />,
     layout: "/admin",
-    roles: ["admin"],
+    roles: ["admin", "owner"], // ✅ Added owner
   },
   {
     path: "/billing",
@@ -43,7 +43,7 @@ export const adminRoutes = [
     icon: <CreditIcon color="inherit" />,
     element: <Billing />,
     layout: "/admin",
-    roles: ["admin"],
+    roles: ["admin", "owner"], // ✅ Added owner
   },
   {
     name: "ACCOUNT PAGES",
@@ -56,7 +56,7 @@ export const adminRoutes = [
         icon: <PersonIcon color="inherit" />,
         element: <Profile />,
         layout: "/admin",
-        roles: ["admin"],
+        roles: ["admin", "owner"], // ✅ Added owner
       },
     ],
   },
@@ -97,7 +97,7 @@ export const userRoutes = [
         path: "/profile",
         name: "Profile",
         icon: <PersonIcon color="inherit" />,
-        element: <UserProfile />,  // 👈 Updated to use UserProfile
+        element: <UserProfile />, // 👈 Using UserProfile for user
         layout: "/user",
         roles: ["user"],
       },
@@ -120,8 +120,8 @@ export const authRoutes = [
     name: "Sign Up",
     icon: <RocketIcon color="inherit" />,
     element: <SignUp />,
-    layout: "/auth",
-    roles: ["guest"],
+    layout: "/admin",
+    roles: ["admin", "owner"], // only admin/owner can see it
   },
 ];
 

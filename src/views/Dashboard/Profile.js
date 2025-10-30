@@ -136,7 +136,7 @@ export default function AdminProfile() {
   }
 
   return (
-    <Flex direction={{ base: "column", md: "row" }} gap={8} p={9} mt={9}>
+    <Flex direction={{ base: "column", md: "row" }} gap={8} p={9} mt={-5}>
       {/* Left Column */}
       <Card w={{ base: "100%", md: "300px" }} bg={cardBg} p={6} borderRadius="20px" shadow="md">
         <Flex direction="column" align="center">

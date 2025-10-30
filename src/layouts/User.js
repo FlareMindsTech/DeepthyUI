@@ -91,77 +91,76 @@ export default function UserDashboard(props) {
         <title>User Dashboard | Deepthy Fenishers</title>
       </Helmet>
       <Box>
-        {/* ✅ Background box for light/dark mode */}
+  {/* ✅ Background box for light/dark mode */}
+  <Box
+    minH="15vh"
+    w="100%"
+    position="fixed"
+    top="0"
+    bgImage={colorMode === "light" ? `url(${bgLight})` : `url(${bgDark})`}
+    bgColor={colorMode === "dark" ? "navy.900" : "transparent"}
+    bgSize="cover"
+    bgPosition="center"
+    bgRepeat="no-repeat"
+    zIndex="0"  // ⚡ Lower background
+  />
+
+  {/* ✅ Sidebar under header */}
+  <Sidebar
+    routes={routes}
+    logo={
+      <Stack direction="row" spacing="12px" align="center" justify="center">
+        {colorMode === "dark" ? (
+          <ArgonLogoLight w="74px" h="27px" />
+        ) : (
+          <ArgonLogoDark w="74px" h="27px" />
+        )}
         <Box
-          minH="40vh"
-          w="100%"
-          position="absolute"
-          top="0"
-          bgImage={colorMode === "light" ? `url(${bgLight})` : `url(${bgDark})`}
-          bgColor={colorMode === "dark" ? "navy.900" : "transparent"}
-          bgSize="cover"
-          bgPosition="center"
-          bgRepeat="no-repeat"
+          w="1px"
+          h="20px"
+          bg={colorMode === "dark" ? "white" : "gray.700"}
         />
+        {colorMode === "dark" ? (
+          <ChakraLogoLight w="82px" h="21px" />
+        ) : (
+          <ChakraLogoDark w="82px" h="21px" />
+        )}
+      </Stack>
+    }
+    zIndex="10" // ⚡ Sidebar below header
+    {...rest}
+  />
 
-        <Sidebar
-          routes={routes}
-          logo={
-            <Stack
-              direction="row"
-              spacing="12px"
-              align="center"
-              justify="center"
-            >
-              {colorMode === "dark" ? (
-                <ArgonLogoLight w="74px" h="27px" />
-              ) : (
-                <ArgonLogoDark w="74px" h="27px" />
-              )}
-              <Box
-                w="1px"
-                h="20px"
-                bg={colorMode === "dark" ? "white" : "gray.700"}
-              />
-              {colorMode === "dark" ? (
-                <ChakraLogoLight w="82px" h="21px" />
-              ) : (
-                <ChakraLogoDark w="82px" h="21px" />
-              )}
-            </Stack>
-          }
-          display="none"
-          {...rest}
-        />
+  <MainPanel w={{ base: "100%", xl: "calc(100% - 275px)" }} zIndex="-5" marginTop= "10">
+    <Portal>
+      <UserNavbar
+        onOpen={onOpen}
+        brandText={getActiveRoute(routes)}
+        secondary={getActiveNavbar(routes)}
+        fixed={fixed}
+        zIndex="20" // ⚡ Navbar on top of everything except modals
+        {...rest}
+      />
+    </Portal>
 
-        <MainPanel w={{ base: "100%", xl: "calc(100% - 275px)" }}>
-          <Portal>
-            <UserNavbar
-              onOpen={onOpen}
-              brandText={getActiveRoute(routes)}
-              secondary={getActiveNavbar(routes)}
-              fixed={fixed}
-              {...rest}
+    {getRoute() ? (
+      <PanelContent zIndex="5" position="relative">
+        <PanelContainer>
+          <Routes>
+            {getRoutes(routes)}
+            <Route
+              path="/user"
+              element={<Navigate to="/user/dashboard" replace />}
             />
-          </Portal>
+          </Routes>
+        </PanelContainer>
+      </PanelContent>
+    ) : null}
 
-          {getRoute() ? (
-            <PanelContent>
-              <PanelContainer>
-                <Routes>
-                  {getRoutes(routes)}
-                  <Route
-                    path="/user"
-                    element={<Navigate to="/user/dashboard" replace />}
-                  />
-                </Routes>
-              </PanelContainer>
-            </PanelContent>
-          ) : null}
+    <Footer zIndex="5" />
+  </MainPanel>
+</Box>
 
-          <Footer />
-        </MainPanel>
-      </Box>
     </>
   );
 }

@@ -43,7 +43,7 @@ function Sidebar({ routes }) {
   const variantChange = "0.2s linear";
 
   const filterRoutes = (routes) => {
-    let filteredRoutes = routes
+    return routes
       .filter((r) => {
         if (r.roles && role && !r.roles.includes(role)) return false;
         return true;
@@ -111,53 +111,6 @@ function Sidebar({ routes }) {
           </NavLink>
         );
       });
-
-    // Add Sign Up below Profile for admin/owner with Profile button style
-    if (role === "admin" || role === "owner") {
-      const signUpRoute = routes.find((r) => r.name === "Sign Up");
-      if (signUpRoute) {
-        filteredRoutes.push(
-          <NavLink to={signUpRoute.layout + signUpRoute.path} key="signup">
-            {({ isActive }) => (
-              <Button
-                justifyContent="flex-start"
-                alignItems="center"
-                mb="6px"
-                mx="auto"
-                ps="16px"
-                py="12px"
-                borderRadius="15px"
-                w="100%"
-                transition={variantChange}
-                bg={isActive ? activeBg : "transparent"}  // same as Profile button
-                color={isActive ? activeColor : inactiveColor}  // same as Profile button
-                boxShadow={isActive ? sidebarActiveShadow : "none"}
-                _focus={{ boxShadow: "none" }}
-              >
-                <Flex>
-                  {signUpRoute.icon && (
-                    <IconBox
-                      bg={isActive ? activeBg : inactiveBg} // same as Profile
-                      color={isActive ? activeColor : inactiveColor}
-                      h="30px"
-                      w="30px"
-                      me="12px"
-                    >
-                      {signUpRoute.icon}
-                    </IconBox>
-                  )}
-                  <Text my="auto" fontSize="sm">
-                    {signUpRoute.name}
-                  </Text>
-                </Flex>
-              </Button>
-            )}
-          </NavLink>
-        );
-      }
-    }
-
-    return filteredRoutes;
   };
 
   const links = <>{filterRoutes(routes)}</>;
@@ -232,16 +185,18 @@ export function SidebarResponsive({ routes, hamburgerColor }) {
   const inactiveColor = "#C41E3A";
 
   const filterRoutes = (routes) => {
-    let filteredRoutes = routes
+    return routes
       .filter((r) => {
         if (r.roles && role && !r.roles.includes(role)) return false;
         return true;
       })
       .map((prop, key) => {
         if (prop.redirect) return null;
+
         if (prop.category) {
           const filteredViews = filterRoutes(prop.views);
           if (filteredViews.length === 0) return null;
+
           return (
             <React.Fragment key={key}>
               <Text
@@ -296,51 +251,6 @@ export function SidebarResponsive({ routes, hamburgerColor }) {
           </NavLink>
         );
       });
-
-    // Sign Up button same style as Profile
-    if (role === "admin" || role === "owner") {
-      const signUpRoute = routes.find((r) => r.name === "Sign Up");
-      if (signUpRoute) {
-        filteredRoutes.push(
-          <NavLink to={signUpRoute.layout + signUpRoute.path} key="signup">
-            {({ isActive }) => (
-              <Button
-                justifyContent="flex-start"
-                alignItems="center"
-                mb="6px"
-                mx="auto"
-                ps="16px"
-                py="12px"
-                borderRadius="15px"
-                w="100%"
-                bg={isActive ? activeBg : "transparent"}
-                color={isActive ? activeColor : inactiveColor}
-                _focus={{ boxShadow: "none" }}
-              >
-                <Flex>
-                  {signUpRoute.icon && (
-                    <IconBox
-                      bg={isActive ? activeBg : inactiveBg}
-                      color={isActive ? activeColor : inactiveColor}
-                      h="30px"
-                      w="30px"
-                      me="12px"
-                    >
-                      {signUpRoute.icon}
-                    </IconBox>
-                  )}
-                  <Text my="auto" fontSize="sm">
-                    {signUpRoute.name}
-                  </Text>
-                </Flex>
-              </Button>
-            )}
-          </NavLink>
-        );
-      }
-    }
-
-    return filteredRoutes;
   };
 
   const links = <>{filterRoutes(routes)}</>;
@@ -362,7 +272,7 @@ export function SidebarResponsive({ routes, hamburgerColor }) {
   );
 
   return (
-    <Flex display={{ sm: "flex", xl: "none" }} ref={mainPanel} alignItems="center">
+    <Flex display={{ sm: "flex", xl: "none" }} ref={mainPanel} alignItems="center" zIndex="9">
       <HamburgerIcon color={hamburgerColor} w="18px" h="18px" onClick={onOpen} />
       <Drawer isOpen={isOpen} onClose={onClose} placement="left">
         <DrawerOverlay />

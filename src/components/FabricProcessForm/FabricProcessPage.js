@@ -13,7 +13,7 @@ export default function FabricProcessPage() {
   };
 
   return (
-    <Box p={5}>
+    <Box p={5} marginTop={20}>
       <Heading mb={5}>Fabric Process Management</Heading>
       <FabricProcessForm existingData={editData} onSuccess={refreshList} />
       <FabricProcessList key={reload} onEdit={setEditData} />

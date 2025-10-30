@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Flex,
@@ -28,13 +28,16 @@ function Login() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  // Dummy login data
-  const DUMMY_USERS = [
-    { username: "owner", phone: "1111111111", password: "owner123", role: "owner" },
-    { username: "admin", phone: "1234567890", password: "admin123", role: "admin" },
-    { username: "user", phone: "9876543210", password: "user123", role: "user" },
-  ];
+  // ✅ Use useRef to track if component is mounted
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
+  // Prevent background scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -42,35 +45,39 @@ function Login() {
     };
   }, []);
 
-const handleLogin = async (e) => {
-  e.preventDefault();
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-  if (!identifier || !password) {
-    toast({
-      title: "Validation Error",
-      description: "Please enter both username/phone and password.",
-      status: "warning",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
+    // Validation
+    if (!identifier || !password) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter both phone/name and password.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
-  setLoading(true);
+    if (isMounted.current) setLoading(true);
 
-  try {
-    const response = await fetch(
-      "https://deepthy-fenishers-1.onrender.com/api/users/login",
-      {
+    try {
+      // Always send { identifier, password } to backend
+      const payload = { identifier, password };
+      console.log("Login payload:", payload);
+
+      const response = await fetch("http://localhost:8080/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
-      }
-    );
+        body: JSON.stringify(payload),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok && data.token && data.user) {
+      if (!response.ok) throw new Error(data.message || "Invalid credentials");
+
+      // Save JWT token & user info
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -82,46 +89,14 @@ const handleLogin = async (e) => {
         isClosable: true,
       });
 
+      // Navigate based on role
       navigate(
-        data.user.role === "owner"
-          ? "/owner/dashboard"
-          : data.user.role === "admin"
+        data.user.role === "owner" || data.user.role === "admin"
           ? "/admin/dashboard"
           : "/user/dashboard"
       );
-    } else {
-      // API returned 401 or invalid credentials
-      throw new Error(data.message || "Invalid credentials");
-    }
-  } catch (error) {
-    console.warn("API login failed, using dummy fallback...", error.message);
-
-    // Check dummy users
-    const foundUser = DUMMY_USERS.find(
-      (u) =>
-        (u.username.toLowerCase() === identifier.toLowerCase() ||
-          u.phone === identifier) &&
-        u.password === password
-    );
-
-    if (foundUser) {
-      localStorage.setItem("user", JSON.stringify(foundUser));
-      toast({
-        title: "Login Successful (Dummy Data)",
-        description: `Welcome back, ${foundUser.role}!`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      navigate(
-        foundUser.role === "owner"
-          ? "/owner/dashboard"
-          : foundUser.role === "admin"
-          ? "/admin/dashboard"
-          : "/user/dashboard"
-      );
-    } else {
+    } catch (error) {
+      console.error("❌ Login failed:", error.message);
       toast({
         title: "Login Failed",
         description: error.message,
@@ -129,18 +104,16 @@ const handleLogin = async (e) => {
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      if (isMounted.current) setLoading(false); // ✅ safe state update
     }
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <Flex
       position="fixed"
-      top="0"
-      left="0"
+      top={0}
+      left={0}
       w="100vw"
       h="100vh"
       align="center"
@@ -149,7 +122,7 @@ const handleLogin = async (e) => {
       px={{ base: 3, md: 0 }}
     >
       <Flex
-        zIndex="2"
+        zIndex={2}
         direction="column"
         w={{ base: "90%", sm: "400px", md: "445px" }}
         borderRadius="20px"
@@ -174,12 +147,12 @@ const handleLogin = async (e) => {
         <form onSubmit={handleLogin}>
           <FormControl>
             <FormLabel fontSize="sm" fontWeight="semibold">
-              Phone Number or Username
+              Phone Number or Name
             </FormLabel>
             <Input
-              variant="auth"
+              variant="filled"
               type="text"
-              placeholder="Enter phone number or username"
+              placeholder="Enter phone number or name"
               mb="20px"
               size="lg"
               borderRadius="12px"
@@ -193,7 +166,7 @@ const handleLogin = async (e) => {
             </FormLabel>
             <InputGroup size="lg" mb="20px">
               <Input
-                variant="auth"
+                variant="filled"
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter password"
                 borderRadius="12px"
@@ -221,8 +194,8 @@ const handleLogin = async (e) => {
               w="100%"
               h="50px"
               borderRadius="12px"
-              _hover={{ bg: "#FF6B6B" }}
-              _active={{ bg: "#B71C1C" }}
+              _hover={{ backgroundColor: "#FF6B6B" }}
+              _active={{ backgroundColor: "#B71C1C" }}
               transition="all 0.3s"
               isLoading={loading}
               loadingText="Logging in..."
@@ -237,14 +210,14 @@ const handleLogin = async (e) => {
         position="absolute"
         w="100%"
         h="100%"
-        left="0"
-        top="0"
+        left={0}
+        top={0}
         bgImage={signInImage}
         bgSize="cover"
         bgPosition="center"
-        zIndex="1"
+        zIndex={1}
       >
-        <Box w="100%" h="100%" bg={redColor} opacity="0.75"></Box>
+        <Box w="100%" h="100%" bg={redColor} opacity={0.75}></Box>
       </Box>
     </Flex>
   );

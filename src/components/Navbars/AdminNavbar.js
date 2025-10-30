@@ -41,7 +41,7 @@ export default function AdminNavbar(props) {
       ? useColorModeValue("gray.700", "gray.200")
       : useColorModeValue("white", "gray.200");
 
-  let navbarPosition = "absolute";
+  let navbarPosition = "fixed";
   let navbarFilter = "none";
   let navbarBackdrop = "none";
   let navbarShadow = "none";
@@ -119,6 +119,7 @@ export default function AdminNavbar(props) {
       pt="8px"
       top="18px"
       w={{ sm: "calc(100vw - 30px)", xl: "calc(100vw - 75px - 275px)" }}
+      zIndex = "9"
     >
       <Flex
         w="100%"
@@ -161,11 +162,12 @@ export default function AdminNavbar(props) {
             _focus={{
               boxShadow: "none",
             }}
+            // zIndex="9"
           >
             {brandText}
           </Box>
         </Box>
-        <Box ms="auto" w={{ sm: "100%", md: "unset" }}>
+        <Box ms="auto" w={{ sm: "100%", md: "unset" }} >
           <AdminNavbarLinks
             onOpen={props.onOpen}
             logoText={props.logoText}

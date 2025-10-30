@@ -15,7 +15,6 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
-import BgSignUp from "assets/img/BgSignUp.png";
 
 function SignUp() {
   const navigate = useNavigate();
@@ -64,38 +63,27 @@ function SignUp() {
 
   return (
     <Flex
-      position="fixed"
-      top="0"
-      left="0"
-      w="100vw"
-      h="100vh"
+      // w="100vw"
+      minH="100vh"
       align="center"
       justify="center"
-      overflow="hidden"
+      overflow="hidden" // allow scrolling
       px={{ base: 3, md: 0 }}
+      py={{ base: 6, md: 0 }}
+      // bg={useColorModeValue("gray.100", "gray.900")} // optional plain background
+      marginTop={-10}
     >
-      {/* Background */}
-      <Box
-        position="absolute"
-        w="100%"
-        h="100%"
-        left="0"
-        top="0"
-        bgImage={BgSignUp}
-        bgSize="cover"
-        bgPosition="center"
-        zIndex="1"
-      >
-        <Box w="100%" h="100%" bg={redColor} opacity="0.75"></Box>
-      </Box>
-
-      {/* Form */}
+      {/* Form Container */}
       <Flex
         zIndex="2"
         direction="column"
-        w={{ base: "90%", sm: "400px", md: "445px" }}
+        w={{ base: "90%", sm: "450px", md: "445px", lg: "480px" }}
+        maxW="95%"
+        maxH={{ base: "90vh", md: "auto" }} // max height for scroll on small screens
+        overflowY={{ base: "auto", md: "visible" }}
         borderRadius="20px"
-        p={{ base: "30px", md: "40px" }}
+        p={{ base: "25px", md: "5px" }}
+        padding = "0 20"
         bg={bgForm}
         boxShadow={useColorModeValue(
           "0px 8px 30px rgba(0, 0, 0, 0.1)",
@@ -107,7 +95,7 @@ function SignUp() {
           fontWeight="extrabold"
           textAlign="center"
           mb={{ base: "20px", md: "28px" }}
-          bgGradient={`linear(to-r, ${redColor}, #FF6B6B)`}
+          bgGradient="linear(to-r, #C41E3A, #FF6B6B)"
           bgClip="text"
         >
           Sign Up
@@ -175,8 +163,12 @@ function SignUp() {
               borderRadius="12px"
               focusBorderColor={redColor}
             >
-              {currentUserRole === "owner" && <option value="owner">Owner</option>}
-              {currentUserRole === "owner" && <option value="admin">Admin</option>}
+              {currentUserRole === "owner" && (
+                <option value="owner">Owner</option>
+              )}
+              {currentUserRole === "owner" && (
+                <option value="admin">Admin</option>
+              )}
               <option value="user">User</option>
             </Select>
 

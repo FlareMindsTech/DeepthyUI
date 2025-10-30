@@ -39,7 +39,7 @@ export default function UserHeaderLinks(props) {
   };
 
   return (
-    <Flex pe={{ sm: "0px", md: "16px" }} w={{ sm: "100%", md: "auto" }} alignItems="center" flexDirection="row">
+    <Flex pe={{ sm: "0px", md: "16px" }} w={{ sm: "100%", md: "auto" }} alignItems="center" flexDirection="row" zIndex="1" >
       
       {/* Sign In / Logout */}
       {!user ? (

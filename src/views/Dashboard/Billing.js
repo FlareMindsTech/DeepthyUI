@@ -16,6 +16,12 @@ import {
   TabPanels,
   TabPanel,
   Center,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  ModalCloseButton,
 } from "@chakra-ui/react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -38,10 +44,11 @@ export default function Billing() {
 
   const [history, setHistory] = useState([]);
   const [selectedBill, setSelectedBill] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
-  const [currentUser, setCurrentUser] = useState(null); // ✅ to store logged-in user
+  const [currentUser, setCurrentUser] = useState(null);
   const invoiceRef = useRef();
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // ✅ Load logged-in user from localStorage
   useEffect(() => {
@@ -53,12 +60,7 @@ export default function Billing() {
 
   const openModal = (bill) => {
     setSelectedBill(bill);
-    setIsOpen(true);
-  };
-
-  const closeModal = () => {
-    setSelectedBill(null);
-    setIsOpen(false);
+    onOpen();
   };
 
   const calculateTotal = (items) =>
@@ -79,13 +81,11 @@ export default function Billing() {
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 20;
 
-    // Clone invoice for safe manipulation
     const tempDiv = invoiceRef.current.cloneNode(true);
     tempDiv.style.width = "800px";
-    tempDiv.style.backgroundColor = "#ffffff"; // keep white background
+    tempDiv.style.backgroundColor = "#ffffff";
     document.body.appendChild(tempDiv);
 
-    // Capture whole invoice as canvas
     const canvas = await html2canvas(tempDiv, { scale: 3, useCORS: true });
     const imgData = canvas.toDataURL("image/png");
 
@@ -110,13 +110,12 @@ export default function Billing() {
     pdf.save(`Invoice_${bill.id}.pdf`);
     document.body.removeChild(tempDiv);
 
-    // ✅ Add to history only if admin
     if (currentUser?.role === "admin") {
       setHistory((prev) => [...prev, { ...bill, date: new Date().toLocaleString() }]);
       setTabIndex(1);
     }
 
-    closeModal();
+    onClose();
   };
 
   // ---------------- Print ----------------
@@ -130,7 +129,7 @@ export default function Billing() {
           <title>Invoice - ${selectedBill.id}</title>
           <style>
             @page { size: A4; margin: 15mm; }
-            body { font-family: Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
+            body { font-family: Arial, sans-serif; -webkit-print-color-adjust: exact; background: white; }
             table { width: 100%; border-collapse: collapse; }
             th, td { border: 1px solid #C41E3A; padding: 5px; font-size: 12px; }
             th { background-color: #FDE2E5; }
@@ -152,7 +151,7 @@ export default function Billing() {
   };
 
   return (
-    <Center minH="100vh" px={3} py={5}>
+    <Center minH="100vh" px={3} py={5} marginTop={-220} zIndex={5}>
       <Box w={{ base: "100%", md: "95%", lg: "90%" }}>
         <Tabs
           isFitted
@@ -163,8 +162,6 @@ export default function Billing() {
         >
           <TabList mb="1em" borderBottom="2px solid #C41E3A">
             <Tab _selected={{ bg: "#C41E3A", color: "white" }}>Billing Printout</Tab>
-
-            {/* ✅ Show History tab only if role is admin */}
             {currentUser?.role === "admin" && (
               <Tab _selected={{ bg: "#C41E3A", color: "white" }}>Printout History</Tab>
             )}
@@ -217,7 +214,6 @@ export default function Billing() {
               </Table>
             </TabPanel>
 
-            {/* ✅ History Tab - Render only for admin */}
             {currentUser?.role === "admin" && (
               <TabPanel>
                 <Table size="sm" variant="simple" textAlign="center" w="100%">
@@ -259,115 +255,91 @@ export default function Billing() {
         </Tabs>
       </Box>
 
-      {/* Invoice Modal */}
-      {isOpen && selectedBill && (
-        <Box
-          position="fixed"
-          inset={0}
-          bg="blackAlpha.700"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          zIndex={50}
-        >
-          <Box
-            bg="white"
-            w={["95%", "850px"]}
-            maxH="95vh"
-            overflowY="auto"
-            borderRadius="md"
-            shadow="lg"
-            p={4}
-            position="relative"
-          >
-            <Button
-              onClick={closeModal}
-              position="absolute"
-              top={2}
-              right={3}
-              fontSize="xl"
-            >
-              ✖
-            </Button>
-
-            {/* Invoice Content */}
-            <Box ref={invoiceRef} fontSize="12px">
-              <Box
-                className="invoice-header"
-                display="flex"
-                justifyContent="space-between"
-                borderBottom="1px solid #C41E3A"
-                pb={2}
-              >
-                <Box>
-                  <Box fontSize="22px" fontWeight="bold" color="#b91c1c">
-                    DEEPTHY FENISHERS
+      {/* ✅ Chakra Modal replaces manual overlay */}
+      <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
+        <ModalOverlay />
+        <ModalContent p={4} borderRadius="md" maxW="900px">
+          <ModalCloseButton />
+          <ModalBody>
+            {selectedBill && (
+              <Box ref={invoiceRef} fontSize="12px">
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  borderBottom="1px solid #C41E3A"
+                  pb={2}
+                >
+                  <Box>
+                    <Box fontSize="22px" fontWeight="bold" color="#b91c1c">
+                      DEEPTHY FENISHERS
+                    </Box>
+                    <Box fontSize="xs">
+                      1/153G, Semmedu Thottam, Somanur Road, Mangalam<br />
+                      Tirupur - 641663, Mobile: 7494009099<br />
+                      GSTIN NO: 33AAACF3127H1ZY
+                    </Box>
                   </Box>
-                  <Box fontSize="xs">
-                    1/153G, Semmedu Thottam, Somanur Road, Mangalam<br />
-                    Tirupur - 641663, Mobile: 7494009099<br />
-                    GSTIN NO: 33AAACF3127H1ZY
+                  <Box textAlign="right" fontSize="sm">
+                    <Box border="1px solid" p={1}>
+                      <Box fontWeight="semibold">DUPLICATE</Box>
+                      <Box>INVOICE</Box>
+                    </Box>
+                    <Box mt={2}>
+                      <Box>Inv No: {selectedBill.id}</Box>
+                      <Box>Date: {new Date().toLocaleDateString()}</Box>
+                    </Box>
                   </Box>
                 </Box>
-                <Box textAlign="right" fontSize="sm">
-                  <Box border="1px solid" p={1}>
-                    <Box fontWeight="semibold">DUPLICATE</Box>
-                    <Box>INVOICE</Box>
-                  </Box>
-                  <Box mt={2}>
-                    <Box>Inv No: {selectedBill.id}</Box>
-                    <Box>Date: {new Date().toLocaleDateString()}</Box>
-                  </Box>
+
+                <Box mt={4} border="1px solid #C41E3A" p={2}>
+                  <Box fontWeight="semibold">To: {selectedBill.user}</Box>
+                  <Box mt={1}>Party GST No: 33AAEFV2662B1ZK</Box>
                 </Box>
-              </Box>
 
-              <Box mt={4} border="1px solid #C41E3A" p={2}>
-                <Box fontWeight="semibold">To: {selectedBill.user}</Box>
-                <Box mt={1}>Party GST No: 33AAEFV2662B1ZK</Box>
-              </Box>
-
-              <Table mt={4} size="sm" border="1px solid #C41E3A">
-                <Thead bg="#FDE2E5">
-                  <Tr>
-                    <Th>S.No</Th>
-                    <Th>Product</Th>
-                    <Th textAlign="right">Cost</Th>
-                    <Th textAlign="right">Hours</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {selectedBill.items.map((item, idx) => (
-                    <Tr key={idx}>
-                      <Td>{idx + 1}</Td>
-                      <Td>{item.product}</Td>
-                      <Td textAlign="right">₹{item.cost.toFixed(2)}</Td>
-                      <Td textAlign="right">{item.hours}</Td>
+                <Table mt={4} size="sm" border="1px solid #C41E3A">
+                  <Thead bg="#FDE2E5">
+                    <Tr>
+                      <Th>S.No</Th>
+                      <Th>Product</Th>
+                      <Th textAlign="right">Cost</Th>
+                      <Th textAlign="right">Hours</Th>
                     </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+                  </Thead>
+                  <Tbody>
+                    {selectedBill.items.map((item, idx) => (
+                      <Tr key={idx}>
+                        <Td>{idx + 1}</Td>
+                        <Td>{item.product}</Td>
+                        <Td textAlign="right">₹{item.cost.toFixed(2)}</Td>
+                        <Td textAlign="right">{item.hours}</Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
 
-              <Flex mt={4} justify="space-between">
-                <Box>
-                  <Box>Bank: The Federal Bank LTD</Box>
-                  <Box>ACNO: 13590200001050</Box>
-                  <Box>IFSC: FDRL0001359</Box>
-                </Box>
-                <Box>
-                  Total: ₹
-                  {selectedBill.items
-                    .reduce((acc, i) => acc + i.cost, 0)
-                    .toFixed(2)}
-                </Box>
-              </Flex>
+                <Flex mt={4} justify="space-between">
+                  <Box>
+                    <Box>Bank: The Federal Bank LTD</Box>
+                    <Box>ACNO: 13590200001050</Box>
+                    <Box>IFSC: FDRL0001359</Box>
+                  </Box>
+                  <Box fontWeight="bold">
+                    Total: ₹
+                    {selectedBill.items
+                      .reduce((acc, i) => acc + i.cost, 0)
+                      .toFixed(2)}
+                  </Box>
+                </Flex>
 
-              <Box mt={10} textAlign="right">
-                For DEEPTHY FENISHERS
-                <Box mt={12}>Authorised Signature</Box>
+                <Box mt={10} textAlign="right">
+                  For DEEPTHY FENISHERS
+                  <Box mt={12}>Authorised Signature</Box>
+                </Box>
               </Box>
-            </Box>
+            )}
 
-            <Flex justify="center" mt={4} gap={3}>
+            {/* ✅ Buttons */}
+            <Flex justify="center" mt={6} gap={3}>
               <Button
                 size="sm"
                 bg="#C41E3A"
@@ -379,16 +351,16 @@ export default function Billing() {
               </Button>
               <Button
                 size="sm"
-                colorScheme="gray"
                 variant="outline"
+                colorScheme="gray"
                 onClick={printBill}
               >
                 Print
               </Button>
             </Flex>
-          </Box>
-        </Box>
-      )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Center>
   );
 }

@@ -32,7 +32,7 @@ export default function UserNavbar(props) {
       ? useColorModeValue("gray.700", "gray.200")
       : useColorModeValue("white", "gray.200");
 
-  let navbarPosition = "absolute";
+  let navbarPosition = "fixed";
   let navbarFilter = "none";
   let navbarBackdrop = "none";
   let navbarShadow = "none";
