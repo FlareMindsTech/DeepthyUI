@@ -15,12 +15,20 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
+import axios from "axios";
+
 
 function SignUp() {
   const navigate = useNavigate();
   const toast = useToast();
-  const bgForm = useColorModeValue("white", "navy.800");
+
+  // Colors
   const redColor = "#C41E3A";
+  const bgGradient = useColorModeValue(
+    "linear(to-br, #fdfbfb, #ebedee)",
+    "linear(to-br, #1A202C, #2D3748)"
+  );
+  const cardBg = useColorModeValue("rgba(255, 255, 255, 0.85)", "rgba(26, 32, 44, 0.85)");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,168 +37,195 @@ function SignUp() {
     role: "user",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [currentUserRole, setCurrentUserRole] = useState(""); // Owner or Admin
+  const [currentUserRole, setCurrentUserRole] = useState("");
 
-  // Protect page: only owner/admin
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
       navigate("/auth/signin");
     } else {
-      setCurrentUserRole(user.role); // save current user's role
+      setCurrentUserRole(user.role);
     }
   }, [navigate]);
 
-  const handleChange = (field, value) =>
-    setFormData({ ...formData, [field]: value });
+  const handleChange = (field, value) => setFormData({ ...formData, [field]: value });
 
-  const handleSignUp = (e) => {
-    e.preventDefault();
+  const handleSignUp = async (e) => {
+  e.preventDefault();
 
-    localStorage.setItem("user", JSON.stringify(formData));
+  try {
+    const token = localStorage.getItem("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    // ✅ Make API request
+    const res = await axios.post(
+      `${process.env.REACT_APP_API_URL}/create`,
+      formData,
+      { headers }
+    );
 
     toast({
       title: "Registration Successful",
-      description: `Registered as ${formData.role}!`,
+      description: res.data.message || `Registered as ${formData.role}!`,
       status: "success",
       duration: 3000,
       isClosable: true,
     });
 
+    // ✅ Store user info if needed
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+
+    // ✅ Redirect based on role
     if (formData.role === "admin") navigate("/admin/dashboard");
     else navigate("/user/dashboard");
-  };
+
+  } catch (err) {
+    console.error(err);
+    toast({
+      title: "Error",
+      description: err.response?.data?.message || "Failed to register",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
 
   return (
     <Flex
-      // w="100vw"
-      minH="100vh"
-      align="center"
+      minH="50vh"
+      align="flex-start"
       justify="center"
-      overflow="hidden" // allow scrolling
-      px={{ base: 3, md: 0 }}
-      py={{ base: 6, md: 0 }}
-      // bg={useColorModeValue("gray.100", "gray.900")} // optional plain background
-      marginTop={-10}
+       bgSize="cover"
+       bgPosition="center"
+        pt="60px"
+      overflow="auto"
     >
-      {/* Form Container */}
-      <Flex
-        zIndex="2"
-        direction="column"
-        w={{ base: "90%", sm: "450px", md: "445px", lg: "480px" }}
-        maxW="95%"
-        maxH={{ base: "90vh", md: "auto" }} // max height for scroll on small screens
-        overflowY={{ base: "auto", md: "visible" }}
-        borderRadius="20px"
-        p={{ base: "25px", md: "5px" }}
-        padding = "0 20"
-        bg={bgForm}
-        boxShadow={useColorModeValue(
-          "0px 8px 30px rgba(0, 0, 0, 0.1)",
-          "0px 8px 30px rgba(0, 0, 0, 0.4)"
-        )}
+      <Box
+        w={{ base: "100%", sm: "450px", md: "700px", lg: "700px" }}
+        borderRadius="25px"
+        p={{ base: 7, md: 8 }}
+        bg={cardBg}
+        backdropFilter="blur(15px)"
+          border="1px solid rgba(255,255,255,0.3)"
+    boxShadow="0px 10px 40px rgba(0,0,0,0.15)"
+        _hover={{
+          transform: "translateY(-5px)",
+          boxShadow: "0 15px 50px rgba(0,0,0,0.25)",
+        }} zIndex="2"
+ 
+
       >
         <Text
-          fontSize={{ base: "xl", md: "2xl" }}
+          fontSize={{ base: "2xl", md: "3xl" }}
           fontWeight="extrabold"
           textAlign="center"
-          mb={{ base: "20px", md: "28px" }}
+          mb={6}
           bgGradient="linear(to-r, #C41E3A, #FF6B6B)"
           bgClip="text"
+          letterSpacing="wide"
         >
-          Sign Up
+          Create an Account
         </Text>
 
         <form onSubmit={handleSignUp}>
-          <FormControl display="flex" flexDirection="column" gap="15px">
-            <FormLabel fontSize="sm" fontWeight="semibold">
-              Name
-            </FormLabel>
-            <Input
-              variant="auth"
-              type="text"
-              placeholder="Your full name"
-              size="lg"
-              borderRadius="12px"
-              focusBorderColor={redColor}
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-            />
-
-            <FormLabel fontSize="sm" fontWeight="semibold">
-              Phone Number
-            </FormLabel>
-            <Input
-              variant="auth"
-              type="tel"
-              placeholder="Your phone number"
-              size="lg"
-              borderRadius="12px"
-              focusBorderColor={redColor}
-              value={formData.phone}
-              onChange={(e) => handleChange("phone", e.target.value)}
-            />
-
-            <FormLabel fontSize="sm" fontWeight="semibold">
-              Password
-            </FormLabel>
-            <Flex>
+          <FormControl display="flex" flexDirection="column" gap="18px">
+            <Box>
+              <FormLabel fontSize="sm" fontWeight="semibold">
+                Name
+              </FormLabel>
               <Input
-                variant="auth"
-                type={showPassword ? "text" : "password"}
-                placeholder="Your password"
+                variant="filled"
+                type="text"
+                placeholder="Enter your full name"
                 size="lg"
-                borderRadius="12px"
+                borderRadius="14px"
                 focusBorderColor={redColor}
-                value={formData.password}
-                onChange={(e) => handleChange("password", e.target.value)}
+                value={formData.name}
+                onChange={(e) => handleChange("name", e.target.value)}
               />
-              <IconButton
-                ml="2"
-                icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label="Toggle password visibility"
-              />
-            </Flex>
+            </Box>
 
-            <FormLabel fontSize="sm" fontWeight="semibold">
-              Role
-            </FormLabel>
-            <Select
-              value={formData.role}
-              onChange={(e) => handleChange("role", e.target.value)}
-              size="lg"
-              borderRadius="12px"
-              focusBorderColor={redColor}
-            >
-              {currentUserRole === "owner" && (
-                <option value="owner">Owner</option>
-              )}
-              {currentUserRole === "owner" && (
-                <option value="admin">Admin</option>
-              )}
-              <option value="user">User</option>
-            </Select>
+            <Box>
+              <FormLabel fontSize="sm" fontWeight="semibold">
+                Phone Number
+              </FormLabel>
+              <Input
+                variant="filled"
+                type="tel"
+                placeholder="Enter your phone number"
+                size="lg"
+                borderRadius="14px"
+                focusBorderColor={redColor}
+                value={formData.phone}
+                onChange={(e) => handleChange("phone", e.target.value)}
+              />
+            </Box>
+
+            <Box>
+              <FormLabel fontSize="sm" fontWeight="semibold">
+                Password
+              </FormLabel>
+              <Flex align="center">
+                <Input
+                  variant="filled"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a password"
+                  size="lg"
+                  borderRadius="14px"
+                  focusBorderColor={redColor}
+                  value={formData.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                />
+                <IconButton
+                  ml="2"
+                  icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle password visibility"
+                  variant="ghost"
+                  colorScheme="red"
+                />
+              </Flex>
+            </Box>
+
+            <Box>
+              <FormLabel fontSize="sm" fontWeight="semibold">
+                Role
+              </FormLabel>
+              <Select
+                value={formData.role}
+                onChange={(e) => handleChange("role", e.target.value)}
+                size="lg"
+                borderRadius="14px"
+                focusBorderColor={redColor}
+              >
+                {currentUserRole === "owner" && <option value="owner">Owner</option>}
+                {currentUserRole === "owner" && <option value="admin">Admin</option>}
+                <option value="user">User</option>
+              </Select>
+            </Box>
 
             <Button
               type="submit"
-              fontSize="sm"
-              bg={redColor}
+              bgGradient="linear(to-r, #C41E3A, #FF6B6B)"
               color="white"
               fontWeight="bold"
-              w="100%"
-              h="50px"
-              borderRadius="12px"
-              _hover={{ bg: "#FF6B6B" }}
-              _active={{ bg: "#B71C1C" }}
-              mt="10px"
+              size="lg"
+              h="52px"
+              borderRadius="14px"
+              mt="5px"
+              _hover={{
+                bgGradient: "linear(to-r, #B71C1C, #E64A19)",
+                transform: "scale(1.03)",
+              }}
+              transition="all 0.3s ease"
             >
-              SIGN UP
+              Register
             </Button>
           </FormControl>
         </form>
 
-        <Text fontSize="sm" textAlign="center" mt="20px">
+        <Text fontSize="sm" textAlign="center" mt="24px">
           Already have an account?{" "}
           <Box
             as="span"
@@ -198,11 +233,12 @@ function SignUp() {
             fontWeight="bold"
             cursor="pointer"
             onClick={() => navigate("/auth/signin")}
+            _hover={{ textDecoration: "underline" }}
           >
-            Sign In
+            SignIn
           </Box>
         </Text>
-      </Flex>
+      </Box>
     </Flex>
   );
 }

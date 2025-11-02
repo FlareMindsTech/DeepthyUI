@@ -7,10 +7,12 @@ import Profile from "views/Dashboard/Profile.js";
 import SignIn from "views/Pages/SignIn.js";
 import SignUp from "views/Pages/SignUp.js";
 import UserDashboard from "views/UserDashboard/UserDashboard.js";
-import FabricProcessPage from "./components/FabricProcessForm/FabricProcessPage";
 import UserProfile from "views/UserDashboard/UserProfile.js";
 import UserManage from "views/Dashboard/UserManage.js"; 
 import AdminManage from "views/Dashboard/AdminManage"; 
+import FabricProcessPage from "./components/FabricProcessForm/FabricProcessForm";
+import FabricProcessWatercost from "./components/FabricProcessForm/FabricProcessWatercost";
+import FabricManagement from "./components/FabricProcessForm/FabricProcessList";
 
 import {
   HomeIcon,
@@ -25,12 +27,15 @@ import {
 export const adminRoutes = [
   {
     path: "/dashboard",
-    name: "Admin Dashboard",
+    name: "Dashboard",
     icon: <HomeIcon color="inherit" />,
     element: <Dashboard />,
     layout: "/admin",
     roles: ["admin", "owner"], // ✅ Added owner
   },
+  
+  
+
   {
     path: "/users-manage",
     name: "User Manage",
@@ -90,13 +95,30 @@ export const userRoutes = [
     layout: "/user",
     roles: ["user"],
   },
+   {
+  path: "/fabric-watercost",
+  name: "Fabric Watercost",
+  icon: <StatsIcon color="inherit" />,
+  element: <FabricProcessWatercost />,
+  layout: "/user",
+  roles: ["user"],
+},
+{
+  path: "/fabric-mangement",
+  name: "Fabric Management",
+  icon: <StatsIcon color="inherit" />,
+  element: <FabricManagement/>,
+  layout: "/user",
+  roles: ["user","owner","admin"],
+},
+
   {
     path: "/fabric-process",
     name: "Fabric Process",
     icon: <StatsIcon color="inherit" />,
     element: <FabricProcessPage />,
     layout: "/user",
-    roles: ["user"],
+    roles: ["user",,"owner","admin"],
   },
   {
     path: "/billing",
@@ -112,7 +134,7 @@ export const userRoutes = [
     state: "pageCollapse",
     views: [
       {
-        path: "/profile",
+        path: "/user-profile",
         name: "Profile",
         icon: <PersonIcon color="inherit" />,
         element: <UserProfile />, // 👈 Using UserProfile for user
@@ -138,7 +160,7 @@ export const authRoutes = [
     name: "Sign Up",
     icon: <RocketIcon color="inherit" />,
     element: <SignUp />,
-    layout: "/admin",
+    layout: "/auth",
     roles: ["admin", "owner"], // only admin/owner can see it
   },
 ];

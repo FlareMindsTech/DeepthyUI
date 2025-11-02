@@ -10,7 +10,12 @@ import AuthLayout from "layouts/Auth.js";
 import AdminLayout from "layouts/Admin.js";
 import UserLayout from "layouts/User.js"; // 👈 User layout
 import UserDashboard from "views/UserDashboard/UserDashboard.js"; // 👈 User dashboard
-import FabricProcessPage from "./components/FabricProcessForm/FabricProcessPage";
+import FabricProcessPage from "./components/FabricProcessForm/FabricProcessForm";
+import FabricProcessWatercost from "./components/FabricProcessForm/FabricProcessWatercost";
+import FabricManagement from "./components/FabricProcessForm/FabricProcessList";
+
+
+
 import theme from "theme/theme.js";
 
 // Default page is login
@@ -33,6 +38,10 @@ ReactDOM.render(
             <Route path="/user/*" element={<UserLayout />}>
               <Route path="dashboard" element={<UserDashboard />} />
               <Route path="fabric-process" element={<FabricProcessPage />} />
+              <Route path="watercost" element={<FabricProcessWatercost />} /> {/* ✅ Added this */}
+              <Route path="fabric-mangement" element={<FabricManagement />} /> {/* ✅ Added this */}
+              {/* Add other user routes here */}
+
             </Route>
 
             {/* Default route → login */}
