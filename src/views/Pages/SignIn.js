@@ -28,27 +28,20 @@ function Login() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  // ✅ Use useRef to track if component is mounted
   const isMounted = useRef(true);
   useEffect(() => {
     isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
+    return () => { isMounted.current = false; };
   }, []);
 
-  // Prevent background scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
+    return () => { document.body.style.overflow = "auto"; };
   }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!identifier || !password) {
       toast({
         title: "Validation Error",
@@ -63,7 +56,6 @@ function Login() {
     if (isMounted.current) setLoading(true);
 
     try {
-      // Always send { identifier, password } to backend
       const payload = { identifier, password };
       console.log("Login payload:", payload);
 
@@ -74,12 +66,20 @@ function Login() {
       });
 
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.message || "Invalid credentials");
 
-      // Save JWT token & user info
+      // ✅ Save JWT token
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // ✅ Save User Info with `_id`
+      const userObj = {
+        _id: data.user.id,   // convert id → _id for consistency
+        name: data.user.name,
+        phone: data.user.phone,
+        role: data.user.role,
+      };
+
+      localStorage.setItem("user", JSON.stringify(userObj));
 
       toast({
         title: "Login Successful",
@@ -89,7 +89,6 @@ function Login() {
         isClosable: true,
       });
 
-      // Navigate based on role
       navigate(
         data.user.role === "owner" || data.user.role === "admin"
           ? "/admin/dashboard"
@@ -105,7 +104,7 @@ function Login() {
         isClosable: true,
       });
     } finally {
-      if (isMounted.current) setLoading(false); // ✅ safe state update
+      if (isMounted.current) setLoading(false);
     }
   };
 

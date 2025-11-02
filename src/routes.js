@@ -9,6 +9,8 @@ import SignUp from "views/Pages/SignUp.js";
 import UserDashboard from "views/UserDashboard/UserDashboard.js";
 import FabricProcessPage from "./components/FabricProcessForm/FabricProcessPage";
 import UserProfile from "views/UserDashboard/UserProfile.js";
+import UserManage from "views/Dashboard/UserManage.js"; 
+import AdminManage from "views/Dashboard/AdminManage"; 
 
 import {
   HomeIcon,
@@ -28,6 +30,22 @@ export const adminRoutes = [
     element: <Dashboard />,
     layout: "/admin",
     roles: ["admin", "owner"], // ✅ Added owner
+  },
+  {
+    path: "/users-manage",
+    name: "User Manage",
+    icon: <StatsIcon color="inherit" />, // ✅ change icon later
+    element: <UserManage />,
+    layout: "/admin",
+    roles: ["admin", "owner"], // ✅ only admin/owner
+  },
+  {
+    path: "/admin-manage",
+    name: "admin Manage",
+    icon: <StatsIcon color="inherit" />, // ✅ change icon later
+    element: <AdminManage />,
+    layout: "/admin",
+    roles: ["admin", "owner"], // ✅ only admin/owner
   },
   {
     path: "/tables",

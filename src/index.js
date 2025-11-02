@@ -3,6 +3,8 @@ import ReactDOM from "react-dom";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ChakraProvider } from "@chakra-ui/react";
 import { HelmetProvider } from "react-helmet-async";
+import "bootstrap/dist/css/bootstrap.min.css";
+
 
 import AuthLayout from "layouts/Auth.js";
 import AdminLayout from "layouts/Admin.js";
