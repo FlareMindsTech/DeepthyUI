@@ -140,11 +140,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || storedUser.role !== "admin") {
-      toast({ title: "Access Denied", description: "Only admin users can access this page.", status: "error", duration: 3000, isClosable: true });
-      navigate("/auth/signin");
-      return;
-    }
+    if (!storedUser || (storedUser.role !== "admin" && storedUser.role !== "owner")) {
+  toast({
+    title: "Access Denied",
+    description: "Only admin users can access this page.",
+    status: "error",
+    duration: 3000,
+    isClosable: true,
+  });
+  navigate("/auth/signin");
+  return;
+}
+
     setCurrentUser(storedUser);
   }, [navigate, toast]);
 
@@ -182,7 +189,7 @@ useEffect(() => {
     // Staff
     try {
       setLoadingStaff(true);
-      const staffRes = await axios.get("http://localhost:8080/api/staff/all", {
+      const staffRes = await axios.get("http://localhost:8080/api/users/all", {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log("Staff API Response:", staffRes.data);

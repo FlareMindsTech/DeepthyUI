@@ -1,113 +1,323 @@
-import React, { useEffect, useState } from "react";
-import { Box, Table, Thead, Tbody, Tr, Th, Td, Button, Text } from "@chakra-ui/react";
+import React, { useEffect, useState, useRef } from "react";
+import {
+  Box,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Button,
+  Heading,
+  useToast,
+  Spinner,
+  Text,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  FormControl,
+  FormLabel,
+  Input,
+  ModalCloseButton,
+} from "@chakra-ui/react";
 import axios from "axios";
 
-export default function FabricProcessList({ onEdit }) {
-  const [processes, setProcesses] = useState([]);
+const API_URL = "http://localhost:8080/api/fabric";
 
-  // ✅ Default records (used if API fails or returns empty)
-  const defaultProcesses = [
-    {
-      _id: "1",
-      dcNo: "DC001",
-      partName: "Shirt Front",
-      qty: 100,
-      color: "Blue",
-      machineNo: "M-12",
-      rate: 12.5,
-    },
-    {
-      _id: "2",
-      dcNo: "DC002",
-      partName: "Sleeve",
-      qty: 80,
-      color: "Red",
-      machineNo: "M-05",
-      rate: 10,
-    },
-  ];
+export default function FabricTable() {
+  const [fabrics, setFabrics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDcNo, setSelectedDcNo] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editData, setEditData] = useState({});
+  const cancelRef = useRef();
+  const toast = useToast();
 
-  const fetchProcesses = async () => {
+  // ✅ Fetch fabric processes
+  const fetchFabrics = async () => {
     try {
-      const res = await axios.get("/api/fabric-process");
-      if (res.data && res.data.length > 0) {
-        setProcesses(res.data);
-      } else {
-        // ✅ If no data, show default list
-        setProcesses(defaultProcesses);
-      }
-    } catch (error) {
-      console.error("Failed to fetch fabric process:", error);
-      // ✅ On error, also show default values
-      setProcesses(defaultProcesses);
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFabrics(res.data);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error fetching data",
+        description: err.response?.data?.message || err.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this record?")) {
-      try {
-        await axios.delete(`/api/fabric-process/${id}`);
-        fetchProcesses();
-      } catch (error) {
-        console.error("Delete failed:", error);
-      }
+  // ✅ Handle Delete Click
+  const handleDeleteClick = (dcNo) => {
+    setSelectedDcNo(dcNo);
+    setIsOpen(true);
+  };
+
+  // ✅ Confirm Delete
+  const confirmDelete = async () => {
+    if (!selectedDcNo) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/delete/${selectedDcNo}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast({
+        title: "Deleted Successfully",
+        description: `Fabric record with DC No ${selectedDcNo} removed.`,
+        status: "success",
+        duration: 2500,
+      });
+
+      setFabrics((prev) => prev.filter((f) => f.dcNo !== selectedDcNo));
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Delete Failed",
+        description: err.response?.data?.message || err.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      setIsOpen(false);
+      setSelectedDcNo(null);
+    }
+  };
+
+  // ✅ Handle Edit Click
+  const handleEditClick = (fabric) => {
+    setEditData(fabric);
+    setIsEditOpen(true);
+  };
+
+  // ✅ Handle Edit Change
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ✅ Update Fabric Process
+  const handleUpdate = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(`${API_URL}/update/${editData.dcNo}`, editData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast({
+        title: "Fabric Updated",
+        description: `DC No ${editData.dcNo} has been updated successfully.`,
+        status: "success",
+        duration: 2500,
+      });
+
+      // Update frontend state instantly
+      setFabrics((prev) =>
+        prev.map((f) => (f.dcNo === editData.dcNo ? { ...f, ...editData } : f))
+      );
+
+      setIsEditOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Update Failed",
+        description: err.response?.data?.message || err.message,
+        status: "error",
+        duration: 3000,
+      });
     }
   };
 
   useEffect(() => {
-    fetchProcesses();
+    fetchFabrics();
   }, []);
 
+  if (loading)
+    return (
+      <Box textAlign="center" py={20}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading fabric records...</Text>
+      </Box>
+    );
+
   return (
-    <Box mt={5}>
-      <Table variant="simple" size="sm">
-        <Thead bg="gray.100">
-          <Tr>
-            <Th>DC No</Th>
-            <Th>Part Name</Th>
-            <Th>Quantity</Th>
-            <Th>Color</Th>
-            <Th>Machine</Th>
-            <Th>Rate</Th>
-            <Th>Actions</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {processes.length === 0 ? (
+    <Box p={8}>
+      <Heading size="lg" mb={6} textAlign="center">
+        🧵 Fabric Process Management
+      </Heading>
+
+      {fabrics.length === 0 ? (
+        <Text textAlign="center" color="gray.500">
+          No fabric process records found.
+        </Text>
+      ) : (
+        <Table variant="striped" colorScheme="red">
+          <Thead>
             <Tr>
-              <Td colSpan={7}>
-                <Text textAlign="center" color="gray.500">
-                  No records found
-                </Text>
-              </Td>
+              <Th>DC No</Th>
+              <Th>Brand</Th>
+              <Th>Color</Th>
+              <Th>Qty</Th>
+              <Th>Machine</Th>
+              <Th>Rate</Th>
+              <Th>Total Cost</Th>
+              <Th>Date</Th>
+              <Th>Action</Th>
             </Tr>
-          ) : (
-            processes.map((proc) => (
-              <Tr key={proc._id}>
-                <Td>{proc.dcNo}</Td>
-                <Td>{proc.partName}</Td>
-                <Td>{proc.qty}</Td>
-                <Td>{proc.color}</Td>
-                <Td>{proc.machineNo}</Td>
-                <Td>{proc.rate}</Td>
+          </Thead>
+          <Tbody>
+            {fabrics.map((fabric) => (
+              <Tr key={fabric._id}>
+                <Td>{fabric.dcNo}</Td>
+                <Td>{fabric.brandName}</Td>
+                <Td>{fabric.color}</Td>
+                <Td>{fabric.qty}</Td>
+                <Td>{fabric.machineNo || "-"}</Td>
+                <Td>{fabric.rate || "-"}</Td>
+                <Td>₹{fabric.totalCost || "0"}</Td>
                 <Td>
-                  <Button size="xs" colorScheme="yellow" onClick={() => onEdit(proc)}>
+                  {fabric.createdAt
+                    ? new Date(fabric.createdAt).toLocaleDateString()
+                    : "-"}
+                </Td>
+                <Td>
+                  <Button
+                    colorScheme="blue"
+                    size="sm"
+                    mr={2}
+                    onClick={() => handleEditClick(fabric)}
+                  >
                     Edit
                   </Button>
                   <Button
-                    size="xs"
                     colorScheme="red"
-                    ml={2}
-                    onClick={() => handleDelete(proc._id)}
+                    size="sm"
+                    onClick={() => handleDeleteClick(fabric.dcNo)}
                   >
                     Delete
                   </Button>
                 </Td>
               </Tr>
-            ))
-          )}
-        </Tbody>
-      </Table>
+            ))}
+          </Tbody>
+        </Table>
+      )}
+
+      {/* ✅ Edit Modal */}
+      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit Fabric Process</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <FormControl mb={3}>
+              <FormLabel>Brand Name</FormLabel>
+              <Input
+                name="brandName"
+                value={editData.brandName || ""}
+                onChange={handleEditChange}
+              />
+            </FormControl>
+
+            <FormControl mb={3}>
+              <FormLabel>Color</FormLabel>
+              <Input
+                name="color"
+                value={editData.color || ""}
+                onChange={handleEditChange}
+              />
+            </FormControl>
+
+            <FormControl mb={3}>
+              <FormLabel>Machine No</FormLabel>
+              <Input
+                name="machineNo"
+                value={editData.machineNo || ""}
+                onChange={handleEditChange}
+              />
+            </FormControl>
+
+            <FormControl mb={3}>
+              <FormLabel>Quantity</FormLabel>
+              <Input
+                type="number"
+                name="qty"
+                value={editData.qty || ""}
+                onChange={handleEditChange}
+              />
+            </FormControl>
+
+            <FormControl mb={3}>
+              <FormLabel>Rate</FormLabel>
+              <Input
+                type="number"
+                name="rate"
+                value={editData.rate || ""}
+                onChange={handleEditChange}
+              />
+            </FormControl>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button onClick={() => setIsEditOpen(false)} mr={3}>
+              Cancel
+            </Button>
+            <Button colorScheme="blue" onClick={handleUpdate}>
+              Save Changes
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ✅ Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Fabric Record
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to delete{" "}
+              <Text as="span" fontWeight="semibold">
+                DC No: {selectedDcNo}
+              </Text>
+              ? This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setIsOpen(false)}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 }

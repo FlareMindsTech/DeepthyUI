@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box, Heading } from "@chakra-ui/react";
 import FabricProcessForm from "./FabricProcessForm";
 import FabricProcessList from "./FabricProcessList";
+import FabricProcessWatercost from "./FabricProcessWatercost";
 
 export default function FabricProcessPage() {
   const [editData, setEditData] = useState(null);
@@ -14,7 +15,6 @@ export default function FabricProcessPage() {
 
   return (
     <Box p={5} marginTop={20}>
-      <Heading mb={5}>Fabric Process Management</Heading>
       <FabricProcessForm existingData={editData} onSuccess={refreshList} />
       <FabricProcessList key={reload} onEdit={setEditData} />
     </Box>
