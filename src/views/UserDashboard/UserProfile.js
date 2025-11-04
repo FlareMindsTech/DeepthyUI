@@ -39,21 +39,17 @@ export default function UserProfile() {
         const storedUser = JSON.parse(localStorage.getItem("user"));
         const token = localStorage.getItem("token");
 
-        if (!storedUser?._id || !token) {
-          window.location.href = "/auth/signin";
-          return;
-        }
+    if (!storedUser || !token) {
+      navigate("/auth/signin");
+      return;
+    }
+        if (storedUser.role !== "user") {
+      alert("Access Denied — Admins only!");
+      navigate("/auth/signin");
+      return;
+    }
 
-        const res = await axios.get(
-          `http://localhost:8080/api/users/byId/${storedUser._id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        setUserData(res.data.user);
+        setUserData(storedUser);
       } catch (error) {
         console.error("User fetch error:", error);
         window.location.href = "/auth/signin";

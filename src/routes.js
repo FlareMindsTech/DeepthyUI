@@ -31,14 +31,14 @@ export const adminRoutes = [
     icon: <HomeIcon color="inherit" />,
     element: <Dashboard />,
     layout: "/admin",
-    roles: ["admin", "owner"], // ✅ Added owner
+    roles: ["admin","owner"], // ✅ Added owner
   },
   
   
 
   {
     path: "/users-manage",
-    name: "User Manage",
+    name: "User Management",
     icon: <StatsIcon color="inherit" />, // ✅ change icon later
     element: <UserManage />,
     layout: "/admin",
@@ -46,11 +46,11 @@ export const adminRoutes = [
   },
   {
     path: "/admin-manage",
-    name: "admin Manage",
+    name: "Admin Management",
     icon: <StatsIcon color="inherit" />, // ✅ change icon later
     element: <AdminManage />,
     layout: "/admin",
-    roles: ["admin", "owner"], // ✅ only admin/owner
+    roles: ["owner","admin"], // ✅ only admin/owner
   },
   {
     path: "/tables",
@@ -68,21 +68,22 @@ export const adminRoutes = [
     layout: "/admin",
     roles: ["admin", "owner"], // ✅ Added owner
   },
-  {
-    name: "ACCOUNT PAGES",
-    category: "account",
-    state: "pageCollapse",
-    views: [
-      {
-        path: "/profile",
-        name: "Profile",
-        icon: <PersonIcon color="inherit" />,
-        element: <Profile />,
-        layout: "/admin",
-        roles: ["admin", "owner"], // ✅ Added owner
-      },
-    ],
-  },
+ {
+  name: "ACCOUNT PAGES",
+  category: "account",
+  state: "pageCollapse",
+  views: [
+    {
+      path: "/profile",
+      name: "Profile",
+      icon: <PersonIcon color="inherit" />,
+      element: <Profile />,
+      layout: "/admin",
+      roles: ["admin"], // ✅ Added owner
+    },
+  ],
+},
+
 ];
 
 // 🌟 User Routes (Separate)
@@ -101,7 +102,7 @@ export const userRoutes = [
   icon: <StatsIcon color="inherit" />,
   element: <FabricProcessWatercost />,
   layout: "/user",
-  roles: ["user"],
+  roles: ["user","owner","admin"],
 },
 {
   path: "/fabric-mangement",
@@ -118,7 +119,7 @@ export const userRoutes = [
     icon: <StatsIcon color="inherit" />,
     element: <FabricProcessPage />,
     layout: "/user",
-    roles: ["user",,"owner","admin"],
+    roles: ["user","owner","admin"],
   },
   {
     path: "/billing",
@@ -160,7 +161,7 @@ export const authRoutes = [
     name: "Sign Up",
     icon: <RocketIcon color="inherit" />,
     element: <SignUp />,
-    layout: "/auth",
+    layout: "/admin",
     roles: ["admin", "owner"], // only admin/owner can see it
   },
 ];

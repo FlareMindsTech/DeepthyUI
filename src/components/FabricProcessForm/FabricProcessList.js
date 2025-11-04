@@ -159,9 +159,9 @@ export default function FabricTable() {
     );
 
   return (
-    <Box p={8}>
+    <Box p={20}>
       <Heading size="lg" mb={6} textAlign="center">
-        🧵 Fabric Process Management
+        🧵 Fabric Management
       </Heading>
 
       {fabrics.length === 0 ? (
@@ -178,6 +178,8 @@ export default function FabricTable() {
               <Th>Qty</Th>
               <Th>Machine</Th>
               <Th>Rate</Th>
+                <Th>Running Time</Th> {/* 👈 new */}
+                <Th>Water Cost</Th>   {/* 👈 new */}
               <Th>Total Cost</Th>
               <Th>Date</Th>
               <Th>Action</Th>
@@ -192,6 +194,9 @@ export default function FabricTable() {
                 <Td>{fabric.qty}</Td>
                 <Td>{fabric.machineNo || "-"}</Td>
                 <Td>{fabric.rate || "-"}</Td>
+                <Td>{fabric.runningTime || "-"}</Td>
+<Td>₹{fabric.waterCost?.toFixed(2) || "0.00"}</Td>
+
                 <Td>₹{fabric.totalCost || "0"}</Td>
                 <Td>
                   {fabric.createdAt
