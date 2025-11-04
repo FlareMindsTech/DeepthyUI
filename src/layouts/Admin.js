@@ -60,8 +60,7 @@ export default function Dashboard(props) {
     });
   };
 
-  const getRoute = () =>
-    window.location.pathname !== "/admin/full-screen-maps";
+  const getRoute = () => window.location.pathname !== "/admin/full-screen-maps";
 
   const getActiveRoute = (routes) => {
     let activeRoute = "Dashboard";
@@ -109,9 +108,11 @@ export default function Dashboard(props) {
         position="fixed"
         top="0"
         bgImage={colorMode === "light" ? `url(${bgLight})` : `url(${bgDark})`}
+        bgColor={colorMode === "dark" ? "navy.900" : "transparent"}
         bgSize="cover"
+        bgPosition="center"
         bgRepeat="no-repeat"
-        zIndex="0"
+        zIndex="0" // ⚡ Lower background
       />
 
       {/* ✅ Mobile Sidebar */}
@@ -152,6 +153,7 @@ export default function Dashboard(props) {
         w={{ base: "100%", xl: "calc(100% - 275px)" }}
         ml={{ base: "0px", xl: "275px" }}
         transition="all 0.3s ease"
+        zIndex="-1"
       >
         <Portal>
           <AdminNavbar

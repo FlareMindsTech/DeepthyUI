@@ -32,16 +32,16 @@ export default function WorkHoursTable() {
   };
 
   const shifts = [
-    { name: "Morning", start: 6, end: 12, color: "yellow.400" },
-    { name: "Afternoon", start: 12, end: 17, color: "orange.400" },
-    { name: "Evening", start: 17, end: 21, color: "blue.400" },
-    { name: "Night", start: 21, end: 30, color: "gray.600" },
+    { name: "Morning", start: 6, end: 12, color: "#ffcb42" },
+    { name: "Afternoon", start: 12, end: 17, color: "#ff914d" },
+    { name: "Evening", start: 17, end: 21, color: "#5bc0f8" },
+    { name: "Night", start: 21, end: 30, color: "#6b7280" },
   ];
 
   const getShiftSegments = (start, end) => {
     let startHour = parseTime(start);
     let endHour = parseTime(end);
-    if (endHour <= startHour) endHour += 24; // Overnight shifts
+    if (endHour <= startHour) endHour += 24;
     const segments = [];
     shifts.forEach((shift) => {
       const overlapStart = Math.max(startHour, shift.start);
@@ -67,83 +67,112 @@ export default function WorkHoursTable() {
     return `${displayHour}:${min.toString().padStart(2, "0")} ${period}`;
   };
 
-  const headingBg = useColorModeValue("#C41E3A", "#C41E3A");
-  const headingColor = useColorModeValue("white", "white");
-  const tableBg = useColorModeValue("#fff5f7", "#2A2A2A");
+  const tableBg = useColorModeValue(
+    "rgba(255,255,255,0.8)",
+    "rgba(32,32,32,0.7)"
+  );
 
   const getStatusColor = (status) => {
-    const colors = { "Completed": "green", "In Progress": "orange", "Pending": "red" };
+    const colors = { Completed: "green", "In Progress": "orange", Pending: "red" };
     return colors[status] || "gray";
   };
 
   return (
     <Center minH="100vh">
-      <Box p="6" borderRadius="md" w={{ base: "95%", md: "90%", lg: "100%" }} marginTop={-150}>
+      <Box
+        p="6"
+        borderRadius="25px"
+        w={{ base: "95%", md: "90%", lg: "100%" }}
+        backdropFilter="blur(20px)"
+        bg={tableBg}
+        boxShadow="0 8px 32px rgba(0,0,0,0.2)"
+        border="1px solid rgba(255,255,255,0.18)"
+        transition="0.3s"
+        _hover={{ transform: "scale(1.01)" }}
+      >
+        {/* Gradient Heading */}
         <Text
           fontSize="2xl"
           fontWeight="bold"
           mb="4"
           textAlign="center"
-          bg={headingBg}
-          color={headingColor}
-          py="2"
-          borderRadius="md"
+          bgGradient="linear(to-r, #C41E3A, #ff6b6b)"
+          color="white"
+          py="3"
+          borderRadius="lg"
+          shadow="md"
         >
-          Work Hours Summary
+          👔 Tailoring Work Hours Summary
         </Text>
 
-        <Box bg={tableBg} borderRadius="md" boxShadow="sm">
-          <Table variant="simple" size="md" textAlign="center" w="100%">
-            <Thead>
+        <Box borderRadius="lg" overflow="hidden">
+          <Table variant="simple" size="md">
+            <Thead bg="#C41E3A">
               <Tr>
-                <Th>User Name</Th>
-                <Th>Customer Name</Th>
-                <Th>Material</Th>
-                <Th>Start Hours</Th>
-                <Th>End Hours</Th>
-                <Th>Total Work H</Th>
-                <Th>Total Cost</Th>
-                <Th>Status</Th>
-                <Th>Working Hours</Th>
+                {[
+                  "User Name",
+                  "Customer Name",
+                  "Material",
+                  "Start Hours",
+                  "End Hours",
+                  "Total Work",
+                  "Total Cost",
+                  "Status",
+                  "Work Timeline"
+                ].map((h, i) => (
+                  <Th key={i} color="white" textAlign="center">{h}</Th>
+                ))}
               </Tr>
             </Thead>
+
             <Tbody>
               {workData.map((row, idx) => {
                 const segments = getShiftSegments(row.start, row.end);
+
                 return (
-                  <Tr key={idx} _hover={{ bg: "#f0f0f0" }}>
-                    <Td>{row.user}</Td>
-                    <Td>{row.customer}</Td>
-                    <Td>{row.material}</Td>
-                    <Td>{row.start}</Td>
-                    <Td>{row.end}</Td>
-                    <Td>{row.total}</Td>
-                    <Td>{row.cost}</Td>
-                    <Td>
-                      <Badge colorScheme={getStatusColor(row.status)}>{row.status}</Badge>
+                  <Tr
+                    key={idx}
+                    _hover={{ bg: "rgba(255,0,0,0.05)" }}
+                    transition="0.2s"
+                  >
+                    <Td textAlign="center">{row.user}</Td>
+                    <Td textAlign="center">{row.customer}</Td>
+                    <Td textAlign="center">{row.material}</Td>
+                    <Td textAlign="center">{row.start}</Td>
+                    <Td textAlign="center">{row.end}</Td>
+                    <Td textAlign="center">{row.total}</Td>
+                    <Td textAlign="center">₹{row.cost}</Td>
+
+                    <Td textAlign="center">
+                      <Badge
+                        colorScheme={getStatusColor(row.status)}
+                        p="1"
+                        px="2"
+                        borderRadius="md"
+                        shadow="sm"
+                      >
+                        {row.status}
+                      </Badge>
                     </Td>
+
                     <Td>
                       <Flex
                         h="25px"
-                        w="90px"
+                        w="120px"
+                        bg="gray.200"
                         borderRadius="md"
                         overflow="hidden"
-                        position="relative"
-                        justify="center"
-                        align="center"
                       >
                         {segments.map((seg, i) => (
                           <Tooltip
                             key={i}
                             label={`${formatHour(seg.startTime)} - ${formatHour(seg.endTime)}`}
-                            hasArrow
-                            placement="top"
                           >
                             <Box
                               bg={seg.color}
-                              h="100%"
-                              w="100%"
-                              borderRadius="md"
+                              width={`${seg.width * 12}px`}
+                              transition="0.3s"
+                              _hover={{ filter: "brightness(1.3)" }}
                             />
                           </Tooltip>
                         ))}

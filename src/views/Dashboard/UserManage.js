@@ -1,4 +1,3 @@
-
 // Chakra imports
 import {
   Box,
@@ -43,9 +42,13 @@ import {
 } from "react-icons/fa";
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdAdminPanelSettings, MdPerson } from "react-icons/md";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { InputGroup, InputRightElement } from "@chakra-ui/react";
+
 import {
   getAllUsers,
   updateUser,
+  createUsers,
 } from "../../utils/axiosInstance";
 
 // Main User Management Component
@@ -58,11 +61,12 @@ function UserManagement() {
   const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
 
   // Custom color theme
-  const customColor = "#7b2cbf";
-  const customHoverColor = "#5a189a";
+  const customColor = "#FF6B6B";
+  const customHoverColor = "#B71C1C";
 
   const toast = useToast();
 
+  const [showPassword, setShowPassword] = useState(false);
   const [userData, setUserData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -80,13 +84,10 @@ function UserManagement() {
 
   // Form state
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     phone: "",
-    email: "",
     password: "",
-    profileImage: "",
-    role: "user"
+    role: "user",
   });
 
   // Pagination state
@@ -98,16 +99,13 @@ function UserManagement() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  // add user
   const handleAddUser = () => {
     setFormData({
-      firstName: "",
-      lastName: "",
+      name: "",
       phone: "",
-      email: "",
       password: "",
-      confirmPassword: "",
-      profileImage: "",
-      role: "user"
+      role: "user",
     });
     setEditingUser(null);
     setCurrentView("add");
@@ -120,7 +118,7 @@ function UserManagement() {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (
       !storedUser ||
-      (storedUser.role !== "admin" && storedUser.role !== "super admin")
+      (storedUser.role !== "admin" && storedUser.role !== "owner")
     ) {
       toast({
         title: "Access Denied",
@@ -145,12 +143,18 @@ function UserManagement() {
       try {
         const response = await getAllUsers();
         console.log("Fetched users response:", response);
-        
+
         // Handle different response formats
-        const users = response.data?.users || response.data || response?.users || response || [];
+        const users =
+          response.data?.users ||
+          response.data ||
+          response?.users ||
+          response ||
+          [];
+        const userOnly = users.filter((u) => u.role === "user");
 
         // Sort users in descending order (newest first)
-        const sortedUsers = users.sort(
+        const sortedUsers = userOnly.sort(
           (a, b) =>
             new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)
         );
@@ -160,7 +164,10 @@ function UserManagement() {
         setDataLoaded(true);
       } catch (err) {
         console.error("Error fetching users:", err);
-        const errorMessage = err.response?.data?.message || err.message || "Failed to load user list.";
+        const errorMessage =
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to load user list.";
         setError(errorMessage);
         setDataLoaded(true);
         toast({
@@ -210,11 +217,14 @@ function UserManagement() {
       if (searchTerm.trim() !== "") {
         filtered = filtered.filter(
           (user) =>
-            `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            `${user.name}`
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
             user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.status && user.status.toLowerCase().includes(searchTerm.toLowerCase()))
+            (user.role &&
+              user.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (user.status &&
+              user.status.toLowerCase().includes(searchTerm.toLowerCase()))
         );
       }
 
@@ -244,13 +254,10 @@ function UserManagement() {
   // Handle edit user - show edit form
   const handleEditUser = (user) => {
     setFormData({
-      firstName: user.firstName || "",
-      lastName: user.lastName || "",
-      phone: user.phone || "",
-      email: user.email || "",
+      name: user.name,
+      phone: user.phone,
+      role: user.role,
       password: "", // Don't pre-fill password for security
-      profileImage: user.profileImage || "",
-      role: user.role || "user"
     });
     setEditingUser(user);
     setCurrentView("edit");
@@ -268,109 +275,86 @@ function UserManagement() {
 
   // Handle form submit
   const handleSubmit = async () => {
-    // Frontend validation
-    if (!formData.firstName || !formData.lastName || !formData.email) {
+    if (!formData.name || !formData.phone) {
       return toast({
         title: "Validation Error",
-        description: "First name, last name, and email are required",
+        description: "Name and phone are required",
         status: "error",
         duration: 3000,
-        isClosable: true,
       });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
+    if (currentView === "add" && !formData.password) {
       return toast({
         title: "Validation Error",
-        description: "Invalid email format",
+        description: "Password is required for new user",
         status: "error",
         duration: 3000,
-        isClosable: true,
       });
     }
 
-    // Validate password strength if provided
-    if (formData.password) {
-      const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
-      if (!passwordRegex.test(formData.password)) {
-        return toast({
-          title: "Validation Error",
-          description:
-            "Password must be at least 8 characters, include uppercase, lowercase, and a number",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      return toast({
+        title: "Validation Error",
+        description: "Invalid phone format",
+        status: "error",
+        duration: 3000,
+      });
     }
 
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
-      // Prepare data for API with exact structure
       const userDataToSend = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        name: formData.name,
         phone: formData.phone,
-        email: formData.email,
         role: formData.role,
-        profileImage: formData.profileImage || "",
-        ...(formData.password && { password: formData.password })
+        ...(formData.password && { password: formData.password }),
       };
 
-      // Update existing user using the API function
-      const response = await updateUser(editingUser._id, userDataToSend);
-      console.log("Update user response:", response);
+      if (currentView === "add") {
+        // ✅ Create user API
+        const response = await createUsers(userDataToSend);
+        toast({
+          title: "User Created",
+          description: "User added successfully",
+          status: "success",
+        });
 
-      // Extract user data from response
-      const updatedUser = response.data || response;
+        setUserData([...userData, response.data.user]);
+        setFilteredData([...userData, response.data.user]);
+      } else {
+        // ✅ Update user API
+        const response = await updateUser(editingUser._id, userDataToSend);
 
-      toast({
-        title: "User Updated",
-        description: `User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+        const updatedUser = response.data.user;
 
-      // Update user in the list
-      const updatedUsers = userData.map((user) =>
-        user._id === editingUser._id ? { ...user, ...updatedUser } : user
-      );
-      setUserData(updatedUsers);
-      setFilteredData(updatedUsers);
+        toast({
+          title: "User Updated",
+          description: `User ${updatedUser.name} updated successfully`,
+          status: "success",
+        });
 
-      setSuccess("User updated successfully!");
-      
-      // Reset form and go back to list immediately
-      setFormData({
-        firstName: "",
-        lastName: "",
-        phone: "",
-        email: "",
-        password: "",
-        profileImage: "",
-        role: "user"
-      });
+        const updatedUsers = userData.map((user) =>
+          user._id === editingUser._id ? { ...user, ...updatedUser } : user
+        );
+
+        setUserData(updatedUsers);
+        setFilteredData(updatedUsers);
+      }
+
+      setFormData({ name: "", phone: "", password: "", role: "user" });
       setEditingUser(null);
       setCurrentView("list");
-
     } catch (err) {
-      console.error("API Error:", err);
-      const errorMessage =
-        err.response?.data?.message || err.message || "API error. Try again.";
-      setError(errorMessage);
       toast({
         title: "Error",
-        description: errorMessage,
+        description: err.response?.data?.message || err.message,
         status: "error",
-        duration: 3000,
-        isClosable: true,
       });
     }
+
     setLoading(false);
   };
 
@@ -389,13 +373,13 @@ function UserManagement() {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "active":
-        return { color: "white", bg: "#9d4edd" };
+        return { color: "white", bg: "#FF6B6B" };
       case "inactive":
         return { color: "white", bg: "red.500" };
       case "pending":
         return { color: "white", bg: "yellow.500" };
       default:
-        return { color: "white", bg: "#9d4edd" };
+        return { color: "white", bg: "#FF6B6B" };
     }
   };
 
@@ -452,15 +436,199 @@ function UserManagement() {
                 mr={4}
                 color={customColor}
                 _hover={{ bg: `${customColor}10` }}
-              >
-                {/* Removed "Back to List" text, only icon */}
-              </Button>
-              <Heading size="md">
+              ></Button>
+              <Heading size="md" color="#FF6B6B">
                 Edit User
               </Heading>
             </Flex>
           </CardHeader>
+
           <CardBody bg="white">
+            {error && (
+              <Text
+                color="red.500"
+                mb={4}
+                p={3}
+                border="1px"
+                borderColor="red.200"
+                borderRadius="md"
+                bg="red.50"
+              >
+                {error}
+              </Text>
+            )}
+            {success && (
+              <Text
+                color="green.500"
+                mb={4}
+                p={3}
+                border="1px"
+                borderColor="green.200"
+                borderRadius="md"
+                bg="green.50"
+              >
+                {success}
+              </Text>
+            )}
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl>
+                <FormLabel htmlFor="name" color="gray.700">
+                  Name
+                </FormLabel>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="Name"
+                  onChange={handleInputChange}
+                  value={formData.name}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{
+                    borderColor: customColor,
+                    boxShadow: `0 0 0 1px ${customColor}`,
+                  }}
+                  bg="white"
+                />
+              </FormControl>
+            </SimpleGrid>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl>
+                <FormLabel htmlFor="phone" color="gray.700">
+                  Phone
+                </FormLabel>
+                <Input
+                  id="phone"
+                  name="phone"
+                  placeholder="Phone Number"
+                  onChange={handleInputChange}
+                  value={formData.phone}
+                  borderColor={`${customColor}50`}
+                  _hover={{ borderColor: customColor }}
+                  _focus={{
+                    borderColor: customColor,
+                    boxShadow: `0 0 0 1px ${customColor}`,
+                  }}
+                  bg="white"
+                />
+              </FormControl>
+            </SimpleGrid>
+
+            <FormControl mb="24px">
+              <FormLabel htmlFor="role" color="gray.700">
+                Role
+              </FormLabel>
+              <Select
+                id="role"
+                name="role"
+                onChange={handleInputChange}
+                value={formData.role}
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{
+                  borderColor: customColor,
+                  boxShadow: `0 0 0 1px ${customColor}`,
+                }}
+                bg="white"
+              >
+                <option value="user">User</option>
+              </Select>
+            </FormControl>
+
+            {/* ✅ Updated Password with Eye Toggle */}
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+              <FormControl>
+                <FormLabel htmlFor="password" color="gray.700">
+                  {currentView === "add"
+                    ? "Password"
+                    : "New Password (optional)"}
+                </FormLabel>
+
+                <InputGroup>
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={
+                      currentView === "add" ? "Password" : "New Password"
+                    }
+                    onChange={handleInputChange}
+                    value={formData.password}
+                    borderColor={`${customColor}50`}
+                    _hover={{ borderColor: customColor }}
+                    _focus={{
+                      borderColor: customColor,
+                      boxShadow: `0 0 0 1px ${customColor}`,
+                    }}
+                    bg="white"
+                  />
+                  <InputRightElement width="3rem">
+                    <Button
+                      h="1.75rem"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
+            </SimpleGrid>
+
+            <Flex justify="flex-end" mt={6}>
+              <Button
+                variant="outline"
+                mr={3}
+                onClick={handleBackToList}
+                border="1px"
+                borderColor="gray.300"
+              >
+                Cancel
+              </Button>
+              <Button
+                bg={customColor}
+                _hover={{ bg: customHoverColor }}
+                color="white"
+                onClick={handleSubmit}
+                isLoading={loading}
+              >
+                Update User
+              </Button>
+            </Flex>
+          </CardBody>
+        </Card>
+      </Flex>
+    );
+  }
+
+  // Render Form View (add)
+  // Add User Form Block
+  if (currentView === "add") {
+    return (
+      <Flex
+        flexDirection="column"
+        pt={{ base: "120px", md: "75px" }}
+        px={{ base: 4, md: 8 }}
+      >
+        <Card bg="white" shadow="xl" p={6}>
+          <CardHeader bg="white" p={0} mb={4}>
+            <Flex align="center" justify="flex-start" gap={3}>
+              <Button
+                variant="ghost"
+                leftIcon={<FaArrowLeft />}
+                onClick={handleBackToList}
+                color={customColor}
+                _hover={{ bg: `${customColor}10` }}
+              />
+              <Heading size="md" color="#FF6B6B">
+                Add User
+              </Heading>
+            </Flex>
+          </CardHeader>
+
+          <CardBody bg="white" p={0}>
             {/* Success/Error Message Display */}
             {error && (
               <Text
@@ -488,151 +656,97 @@ function UserManagement() {
                 {success}
               </Text>
             )}
-            
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-              <FormControl>
-                <FormLabel htmlFor="firstName" color="gray.700">First Name</FormLabel>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  placeholder="First Name"
-                  onChange={handleInputChange}
-                  value={formData.firstName}
-                  borderColor={`${customColor}50`}
-                  _hover={{ borderColor: customColor }}
-                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                  bg="white"
-                />
-              </FormControl>
-              
-              <FormControl>
-                <FormLabel htmlFor="lastName" color="gray.700">Last Name</FormLabel>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  placeholder="Last Name"
-                  onChange={handleInputChange}
-                  value={formData.lastName}
-                  borderColor={`${customColor}50`}
-                  _hover={{ borderColor: customColor }}
-                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                  bg="white"
-                />
-              </FormControl>
-            </SimpleGrid>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl>
-                <FormLabel htmlFor="email" color="gray.700">Email</FormLabel>
+                <FormLabel color="gray.700">Name</FormLabel>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Email Address"
+                  name="name"
+                  placeholder="Name"
                   onChange={handleInputChange}
-                  value={formData.email}
+                  value={formData.name}
                   borderColor={`${customColor}50`}
                   _hover={{ borderColor: customColor }}
-                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                  bg="white"
+                  _focus={{
+                    borderColor: customColor,
+                    boxShadow: `0 0 0 1px ${customColor}`,
+                  }}
                 />
               </FormControl>
-              
+
               <FormControl>
-                <FormLabel htmlFor="phone" color="gray.700">Phone</FormLabel>
+                <FormLabel color="gray.700">Phone</FormLabel>
                 <Input
-                  id="phone"
                   name="phone"
                   placeholder="Phone Number"
                   onChange={handleInputChange}
                   value={formData.phone}
                   borderColor={`${customColor}50`}
                   _hover={{ borderColor: customColor }}
-                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                  bg="white"
+                  _focus={{
+                    borderColor: customColor,
+                    boxShadow: `0 0 0 1px ${customColor}`,
+                  }}
                 />
               </FormControl>
             </SimpleGrid>
 
-            <FormControl mb="24px">
-              <FormLabel htmlFor="role" color="gray.700">Role</FormLabel>
+            <FormControl mb={4}>
+              <FormLabel color="gray.700">Role</FormLabel>
               <Select
-                id="role"
                 name="role"
                 onChange={handleInputChange}
                 value={formData.role}
                 borderColor={`${customColor}50`}
                 _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
+                _focus={{
+                  borderColor: customColor,
+                  boxShadow: `0 0 0 1px ${customColor}`,
+                }}
               >
                 <option value="user">User</option>
-                <option value="admin">Admin</option>
-                <option value="super admin">Super Admin</option>
               </Select>
-            </FormControl>
-
-            <FormControl mb="24px">
-              <FormLabel htmlFor="profileImage" color="gray.700">Profile Image URL</FormLabel>
-              <Input
-                id="profileImage"
-                name="profileImage"
-                placeholder="Profile Image URL"
-                onChange={handleInputChange}
-                value={formData.profileImage}
-                borderColor={`${customColor}50`}
-                _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                bg="white"
-              />
             </FormControl>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl>
-                <FormLabel htmlFor="password" color="gray.700">
-                  {currentView === "add" ? "Password" : "New Password (optional)"}
+                <FormLabel color="gray.700">
+                  {currentView === "add"
+                    ? "Password"
+                    : "New Password (optional)"}
                 </FormLabel>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder={currentView === "add" ? "Password" : "New Password"}
-                  onChange={handleInputChange}
-                  value={formData.password}
-                  borderColor={`${customColor}50`}
-                  _hover={{ borderColor: customColor }}
-                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                  bg="white"
-                />
-              </FormControl>
-              
-              {currentView === "add" && (
-                <FormControl>
-                  <FormLabel htmlFor="confirmPassword" color="gray.700">Confirm Password</FormLabel>
+                <InputGroup>
                   <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder="Confirm Password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={
+                      currentView === "add" ? "Password" : "New Password"
+                    }
                     onChange={handleInputChange}
-                    value={formData.confirmPassword}
+                    value={formData.password}
                     borderColor={`${customColor}50`}
                     _hover={{ borderColor: customColor }}
-                    _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                    bg="white"
+                    _focus={{
+                      borderColor: customColor,
+                      boxShadow: `0 0 0 1px ${customColor}`,
+                    }}
                   />
-                </FormControl>
-              )}
+                  <InputRightElement width="3rem">
+                    <Button
+                      h="1.75rem"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
             </SimpleGrid>
 
-            <Flex justify="flex-end" mt={6}>
-              <Button 
-                variant="outline" 
-                mr={3} 
-                onClick={handleBackToList}
-                border="1px"
-                borderColor="gray.300"
-              >
+            <Flex justify="flex-end" mt={6} gap={3}>
+              <Button variant="outline" onClick={handleBackToList}>
                 Cancel
               </Button>
               <Button
@@ -642,7 +756,7 @@ function UserManagement() {
                 onClick={handleSubmit}
                 isLoading={loading}
               >
-                Update User
+                Create User
               </Button>
             </Flex>
           </CardBody>
@@ -666,10 +780,16 @@ function UserManagement() {
           cursor="pointer"
           onClick={() => handleCardClick("all")}
           border={activeFilter === "all" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "all" ? customColor : `${customColor}30`}
+          borderColor={
+            activeFilter === "all" ? customColor : `${customColor}30`
+          }
           transition="all 0.2s"
           bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
+          _hover={{
+            transform: "translateY(-2px)",
+            shadow: "lg",
+            bg: `${customColor}05`,
+          }}
         >
           <CardBody>
             <Flex flexDirection="row" align="center" justify="center" w="100%">
@@ -689,12 +809,7 @@ function UserManagement() {
                 </Flex>
               </Stat>
               <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
-                <Icon
-                  as={FaUsers}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
+                <Icon as={FaUsers} h={"24px"} w={"24px"} color="white" />
               </IconBox>
             </Flex>
           </CardBody>
@@ -706,10 +821,16 @@ function UserManagement() {
           cursor="pointer"
           onClick={() => handleCardClick("active")}
           border={activeFilter === "active" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "active" ? customColor : `${customColor}30`}
+          borderColor={
+            activeFilter === "active" ? customColor : `${customColor}30`
+          }
           transition="all 0.2s"
           bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
+          _hover={{
+            transform: "translateY(-2px)",
+            shadow: "lg",
+            bg: `${customColor}05`,
+          }}
         >
           <CardBody>
             <Flex flexDirection="row" align="center" justify="center" w="100%">
@@ -746,10 +867,16 @@ function UserManagement() {
           cursor="pointer"
           onClick={() => handleCardClick("verified")}
           border={activeFilter === "verified" ? "2px solid" : "1px solid"}
-          borderColor={activeFilter === "verified" ? customColor : `${customColor}30`}
+          borderColor={
+            activeFilter === "verified" ? customColor : `${customColor}30`
+          }
           transition="all 0.2s"
           bg="white"
-          _hover={{ transform: "translateY(-2px)", shadow: "lg", bg: `${customColor}05` }}
+          _hover={{
+            transform: "translateY(-2px)",
+            shadow: "lg",
+            bg: `${customColor}05`,
+          }}
         >
           <CardBody>
             <Flex flexDirection="row" align="center" justify="center" w="100%">
@@ -769,12 +896,7 @@ function UserManagement() {
                 </Flex>
               </Stat>
               <IconBox as="box" h={"45px"} w={"45px"} bg={customColor}>
-                <Icon
-                  as={MdPerson}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
+                <Icon as={MdPerson} h={"24px"} w={"24px"} color="white" />
               </IconBox>
             </Flex>
           </CardBody>
@@ -849,14 +971,18 @@ function UserManagement() {
                 mr={2}
                 borderColor={`${customColor}50`}
                 _hover={{ borderColor: customColor }}
-                _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                _focus={{
+                  borderColor: customColor,
+                  boxShadow: `0 0 0 1px ${customColor}`,
+                }}
+                color="black"
                 bg="white"
               />
-              <Icon as={FaSearch} color="gray.400" />  
+              <Icon as={FaSearch} color="gray.400" />
               {searchTerm && (
-                <Button 
-                  size="sm" 
-                  ml={2} 
+                <Button
+                  size="sm"
+                  ml={2}
                   onClick={handleClearSearch}
                   bg="white"
                   color={customColor}
@@ -878,9 +1004,8 @@ function UserManagement() {
               fontSize="sm"
               borderRadius="8px"
               flexShrink={0}
-              leftIcon={<FaUserPlus />}
             >
-              Add User
+              Add Admin
             </Button>
           </Flex>
         </CardHeader>
@@ -895,22 +1020,41 @@ function UserManagement() {
               {currentItems.length > 0 ? (
                 <>
                   <Table variant="simple" bg="white">
-                    <Thead bg={`${customColor}20`} position="sticky" top={0} zIndex={1}>
+                    <Thead
+                      bg={`${customColor}20`}
+                      position="sticky"
+                      top={0}
+                      zIndex={1}
+                    >
                       <Tr>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>User</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Contact</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Role</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Status</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Verification</Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>Actions</Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>
+                          User
+                        </Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>
+                          Contact
+                        </Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>
+                          Role
+                        </Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>
+                          Status
+                        </Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>
+                          Verification
+                        </Th>
+                        <Th color="gray.700" borderColor={`${customColor}30`}>
+                          Actions
+                        </Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {currentItems.map((user, index) => {
                         const statusColors = getStatusColor(user.status);
-                        const verification = getVerificationBadge(user.isVerified);
+                        const verification = getVerificationBadge(
+                          user.isVerified
+                        );
                         return (
-                          <Tr 
+                          <Tr
                             key={user._id || index}
                             bg="white"
                             _hover={{ bg: `${customColor}10` }}
@@ -940,8 +1084,11 @@ function UserManagement() {
                             <Td borderColor={`${customColor}20`}>
                               <Badge
                                 colorScheme={
-                                  user.role === "super admin" ? "purple" :
-                                  user.role === "admin" ? "blue" : "gray"
+                                  user.role === "super admin"
+                                    ? "purple"
+                                    : user.role === "admin"
+                                    ? "blue"
+                                    : "gray"
                                 }
                                 px={3}
                                 py={1}
@@ -1043,12 +1190,15 @@ function UserManagement() {
                                 currentPage === page ? "solid" : "outline"
                               }
                               bg={currentPage === page ? customColor : "white"}
-                              color={currentPage === page ? "white" : customColor}
+                              color={
+                                currentPage === page ? "white" : customColor
+                              }
                               border="1px"
                               borderColor={customColor}
-                              _hover={currentPage === page ? 
-                                { bg: customHoverColor } : 
-                                { bg: customColor, color: "white" }
+                              _hover={
+                                currentPage === page
+                                  ? { bg: customHoverColor }
+                                  : { bg: customColor, color: "white" }
                               }
                               onClick={() => handlePageClick(page)}
                             >
@@ -1110,5 +1260,3 @@ function IconBox({ children, ...rest }) {
 }
 
 export default UserManagement;
-
-
