@@ -58,8 +58,8 @@ function AdminManagement() {
   const tableHeaderBg = useColorModeValue("gray.100", "gray.700");
 
   // Custom color theme
-  const customColor = "#7b2cbf";
-  const customHoverColor = "#5a189a";
+  const customColor = "#FF6B6B";
+  const customHoverColor = "#B71C1C";
 
   const toast = useToast();
 
@@ -100,11 +100,11 @@ function AdminManagement() {
   const getStatusColor = (status) => {
     switch (String(status || "").toLowerCase()) {
       case "active":
-        return { color: "white", bg: "#9d4edd" };
+        return { color: "white", bg: "#FF6B6B" };
       case "inactive":
         return { color: "white", bg: "red.500" };
       default:
-        return { color: "white", bg: "#9d4edd" };
+        return { color: "white", bg: "#FF6B6B" };
     }
   };
 
@@ -113,7 +113,7 @@ function AdminManagement() {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (
       !storedUser ||
-      (storedUser.role !== "admin" && storedUser.role !== "super admin")
+      (storedUser.role !== "admin" && storedUser.role !== "owner")
     ) {
       toast({
         title: "Access Denied",
@@ -128,87 +128,135 @@ function AdminManagement() {
   }, [toast]);
 
   // Fetch admins from backend
-  useEffect(() => {
-    const fetchAdmins = async () => {
-      if (!currentUser) return;
+ useEffect(() => {
+  const fetchAdmins = async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    setTableLoading(true);
+    setDataLoaded(false);
 
-      setLoading(true);
-      setTableLoading(true);
-      setDataLoaded(false);
-      try {
-        const response = await getAllUsersApi();
-        console.log("Fetched admins response:", response);
+    try {
+      const response = await getAllUsersApi();
+      console.log("Fetched admins response:", response);
 
-        // Normalize response into an array safely:
-        // try several common shapes: response.data.admins | response.data.users | response.data.data | response.data | response
-        let admins =
-          (response?.data &&
-            Array.isArray(response.data.admins) &&
-            response.data.admins) ||
-          (response?.data &&
-            Array.isArray(response.data.users) &&
-            response.data.users) ||
-          (response?.data &&
-            Array.isArray(response.data.data) &&
-            response.data.data) ||
-          (response?.data && Array.isArray(response.data) && response.data) ||
-          (Array.isArray(response) && response) ||
-          [];
+      // 🧩 Normalize response into an array safely
+      let admins =
+        (response?.data &&
+          Array.isArray(response.data.admins) &&
+          response.data.admins) ||
+        (response?.data &&
+          Array.isArray(response.data.users) &&
+          response.data.users) ||
+        (response?.data &&
+          Array.isArray(response.data.data) &&
+          response.data.data) ||
+        (response?.data && Array.isArray(response.data) && response.data) ||
+        (Array.isArray(response) && response) ||
+        [];
 
-        // If backend returned an object keyed by IDs or single object, convert to array:
-        if (
-          !Array.isArray(admins) &&
-          response?.data &&
-          typeof response.data === "object"
-        ) {
-          // try to collect values
-          admins = Object.values(response.data).filter(
-            (v) => v && typeof v === "object"
-          );
-        }
-
-        // fallback: if admins is not an array, make it empty array
-        if (!Array.isArray(admins)) admins = [];
-
-        // Sort admins in descending order (newest first) if there is a createdAt field, else by name
-        const sortedAdmins = admins.slice().sort((a, b) => {
-          const aDate = new Date(a?.createdAt || a?._id || 0).getTime();
-          const bDate = new Date(b?.createdAt || b?._id || 0).getTime();
-          if (!isNaN(aDate) && !isNaN(bDate) && aDate !== bDate)
-            return bDate - aDate;
-          const aName = String(a?.name || "").toLowerCase();
-          const bName = String(b?.name || "").toLowerCase();
-          return aName.localeCompare(bName);
-        });
-
-        setAdminData(sortedAdmins);
-        setFilteredData(sortedAdmins);
-        setDataLoaded(true);
-      } catch (err) {
-        console.error("Error fetching admins:", err);
-        const errorMessage =
-          err.response?.data?.message ||
-          err.message ||
-          "Failed to load admin list.";
-        setError(errorMessage);
-        setDataLoaded(true);
-        toast({
-          title: "Fetch Error",
-          description: errorMessage,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      } finally {
-        setLoading(false);
-        setTableLoading(false);
+      if (
+        !Array.isArray(admins) &&
+        response?.data &&
+        typeof response.data === "object"
+      ) {
+        admins = Object.values(response.data).filter(
+          (v) => v && typeof v === "object"
+        );
       }
-    };
 
-    if (currentUser) {
-      fetchAdmins();
+      if (!Array.isArray(admins)) admins = [];
+
+      // ✅ Role-based filtering
+      // ✅ Role-based filtering
+// ✅ Role-based filtering (case-insensitive)
+// ✅ Role-based filtering
+let filteredAdmins = [];
+const userRole = currentUser?.role?.toLowerCase?.() || "";
+
+if (userRole === "admin") {
+  // Admins see only admins
+  filteredAdmins = admins.filter(
+    (u) => u.role?.toLowerCase?.() === "admin"
+  );
+} else if (userRole === "owner") {
+  // Owners see admins + owners
+  filteredAdmins = admins.filter(
+    (u) =>
+      u.role?.toLowerCase?.() === "admin" ||
+      u.role?.toLowerCase?.() === "owner"
+  );
+} else {
+  filteredAdmins = [];
+}
+
+
+      // ✅ Sort by date (newest first)
+      const sortedAdmins = filteredAdmins.slice().sort((a, b) => {
+        const aDate = new Date(a?.createdAt || a?._id || 0).getTime();
+        const bDate = new Date(b?.createdAt || b?._id || 0).getTime();
+        if (!isNaN(aDate) && !isNaN(bDate) && aDate !== bDate)
+          return bDate - aDate;
+        const aName = String(a?.name || "").toLowerCase();
+        const bName = String(b?.name || "").toLowerCase();
+        return aName.localeCompare(bName);
+      });
+
+      setAdminData(sortedAdmins);
+      setFilteredData(sortedAdmins);
+      setDataLoaded(true);
+    } catch (err) {
+      console.error("Error fetching admins:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to load admin list.";
+      setError(errorMessage);
+      setDataLoaded(true);
+      toast({
+        title: "Fetch Error",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+      setTableLoading(false);
     }
-  }, [currentUser, toast]);
+  };
+
+  fetchAdmins();
+}, [currentUser ,toast]);
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
 
   // Apply filters and search
   useEffect(() => {

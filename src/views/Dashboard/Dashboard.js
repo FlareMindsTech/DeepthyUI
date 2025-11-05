@@ -31,6 +31,10 @@ import {
   getAllFabricProcesses,
 } from "utils/axiosInstance";
 
+// Color constants
+const customColor = "#FF6B6B";
+const customHoverColor = "#B71C1C";
+
 /* ======================================================
    🔹 USER SECTION
    ====================================================== */
@@ -39,9 +43,14 @@ const UsersSection = ({ users }) => (
     p={5}
     borderRadius="15px"
     border="1px solid"
-    borderColor="#C41E3A"
-    bg="rgba(196, 30, 58, 0.85)"
+    borderColor={customColor}
+    bg={`linear-gradient(135deg, ${customColor} 0%, ${customHoverColor} 100%)`}
     color="white"
+    transition="all 0.3s ease"
+    _hover={{
+      transform: "translateY(-2px)",
+      boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+    }}
   >
     <Heading size="md" mb={4}>👤 User Details</Heading>
     <Box overflowX="auto">
@@ -77,9 +86,14 @@ const StaffSection = ({ staff }) => (
     p={5}
     borderRadius="15px"
     border="1px solid"
-    borderColor="#C41E3A"
-    bg="rgba(196, 30, 58, 0.85)"
+    borderColor={customColor}
+    bg={`linear-gradient(135deg, ${customColor} 0%, ${customHoverColor} 100%)`}
     color="white"
+    transition="all 0.3s ease"
+    _hover={{
+      transform: "translateY(-2px)",
+      boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+    }}
   >
     <Heading size="md" mb={4}>👨‍💼 Working Staff</Heading>
     <Box overflowX="auto">
@@ -127,9 +141,14 @@ const SalesSection = ({ sales, getStatusColor }) => (
     p={5}
     borderRadius="15px"
     border="1px solid"
-    borderColor="#C41E3A"
-    bg="rgba(196, 30, 58, 0.85)"
+    borderColor={customColor}
+    bg={`linear-gradient(135deg, ${customColor} 0%, ${customHoverColor} 100%)`}
     color="white"
+    transition="all 0.3s ease"
+    _hover={{
+      transform: "translateY(-2px)",
+      boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+    }}
   >
     <Heading size="md" mb={4}>💰 Process Details</Heading>
     <Box overflowX="auto">
@@ -308,9 +327,15 @@ export default function Dashboard() {
             p={4}
             borderRadius="15px"
             border="1px solid"
-            borderColor="#C41E3A"
-            bg="rgba(196, 30, 58, 0.85)"
+            borderColor={customColor}
+            bg={`linear-gradient(135deg, ${customColor} 0%, ${customHoverColor} 100%)`}
             color="white"
+            transition="all 0.3s ease"
+            _hover={{
+              transform: "translateY(-5px)",
+              boxShadow: "0 15px 30px rgba(0,0,0,0.3)",
+              bg: `linear-gradient(135deg, ${customHoverColor} 0%, ${customColor} 100%)`,
+            }}
           >
             <Stat>
               <StatLabel color="whiteAlpha.800">{card.label}</StatLabel>
@@ -321,6 +346,11 @@ export default function Dashboard() {
               colorScheme="whiteAlpha"
               leftIcon={<FaChartLine />}
               onClick={() => setActiveSection(card.section)}
+              _hover={{
+                bg: "rgba(255,255,255,0.3)",
+                transform: "scale(1.05)",
+              }}
+              transition="all 0.2s ease"
             >
               {card.section === "sales"
                 ? "Show Process Details"
@@ -336,21 +366,21 @@ export default function Dashboard() {
       <Box mt={6}>
         {activeSection === "users" &&
           (loadingUsers ? (
-            <Center h="200px"><Spinner color="#C41E3A" size="xl" /></Center>
+            <Center h="200px"><Spinner color={customColor} size="xl" /></Center>
           ) : (
             <UsersSection users={users} />
           ))}
 
         {activeSection === "staffs" &&
           (loadingStaff ? (
-            <Center h="200px"><Spinner color="#C41E3A" size="xl" /></Center>
+            <Center h="200px"><Spinner color={customColor} size="xl" /></Center>
           ) : (
             <StaffSection staff={staff} />
           ))}
 
         {activeSection === "sales" &&
           (loadingSales ? (
-            <Center h="200px"><Spinner color="#C41E3A" size="xl" /></Center>
+            <Center h="200px"><Spinner color={customColor} size="xl" /></Center>
           ) : (
             <SalesSection sales={sales} getStatusColor={getStatusColor} />
           ))}
