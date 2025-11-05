@@ -1,5 +1,6 @@
 // 📌 Imports
 import React from "react";
+
 import Dashboard from "views/Dashboard/Dashboard.js";
 import Tables from "views/Dashboard/Tables.js";
 import Billing from "views/Dashboard/Billing.js";
@@ -14,6 +15,7 @@ import FabricProcessPage from "./components/FabricProcessForm/FabricProcessForm"
 import FabricProcessWatercost from "./components/FabricProcessForm/FabricProcessWatercost";
 import FabricManagement from "./components/FabricProcessForm/FabricProcessList";
 
+// ✅ Sidebar Icons
 import {
   HomeIcon,
   StatsIcon,
@@ -21,7 +23,10 @@ import {
   PersonIcon,
   DocumentIcon,
   RocketIcon,
+  SettingsIcon,
+  CartIcon,  
 } from "components/Icons/Icons";
+
 
 // 🌟 Admin & Owner Routes
 export const adminRoutes = [
@@ -31,96 +36,101 @@ export const adminRoutes = [
     icon: <HomeIcon color="inherit" />,
     element: <Dashboard />,
     layout: "/admin",
-    roles: ["admin","owner"], // ✅ Added owner
+    roles: ["admin", "owner"],
   },
-  
-  
 
   {
     path: "/users-manage",
     name: "User Management",
-    icon: <StatsIcon color="inherit" />, // ✅ change icon later
+    icon: <PersonIcon color="inherit" />,
     element: <UserManage />,
     layout: "/admin",
-    roles: ["admin", "owner"], // ✅ only admin/owner
+    roles: ["admin", "owner"],
   },
+
   {
     path: "/admin-manage",
     name: "Admin Management",
-    icon: <StatsIcon color="inherit" />, // ✅ change icon later
+    icon: <SettingsIcon color="inherit" />,
     element: <AdminManage />,
     layout: "/admin",
-    roles: ["owner","admin"], // ✅ only admin/owner
+    roles: ["owner"],
   },
+
   {
     path: "/tables",
     name: "Tables",
     icon: <StatsIcon color="inherit" />,
     element: <Tables />,
     layout: "/admin",
-    roles: ["admin", "owner"], // ✅ Added owner
+    roles: ["admin", "owner"],
   },
+
   {
     path: "/billing",
     name: "Billing",
     icon: <CreditIcon color="inherit" />,
     element: <Billing />,
     layout: "/admin",
-    roles: ["admin", "owner"], // ✅ Added owner
+    roles: ["admin", "owner"],
   },
- {
-  name: "ACCOUNT PAGES",
-  category: "account",
-  state: "pageCollapse",
-  views: [
-    {
-      path: "/profile",
-      name: "Profile",
-      icon: <PersonIcon color="inherit" />,
-      element: <Profile />,
-      layout: "/admin",
-      roles: ["admin"], // ✅ Added owner
-    },
-  ],
-},
 
+  {
+    name: "ACCOUNT PAGES",
+    category: "account",
+    state: "pageCollapse",
+    views: [
+      {
+        path: "/profile",
+        name: "Profile",
+        icon: <PersonIcon color="inherit" />,
+        element: <Profile />,
+        layout: "/admin",
+        roles: ["admin", "owner"],
+      },
+    ],
+  },
 ];
 
-// 🌟 User Routes (Separate)
+
+// 🌟 User Routes
 export const userRoutes = [
   {
     path: "/dashboard",
-    name: "User Dashboard",
+    name: "Dashboard",
     icon: <HomeIcon color="inherit" />,
     element: <UserDashboard />,
     layout: "/user",
     roles: ["user"],
   },
-   {
-  path: "/fabric-watercost",
-  name: "Fabric Watercost",
-  icon: <StatsIcon color="inherit" />,
-  element: <FabricProcessWatercost />,
-  layout: "/user",
-  roles: ["user","owner","admin"],
-},
-{
-  path: "/fabric-mangement",
-  name: "Fabric Management",
-  icon: <StatsIcon color="inherit" />,
-  element: <FabricManagement/>,
-  layout: "/user",
-  roles: ["user","owner","admin"],
-},
+
+  {
+    path: "/fabric-watercost",
+    name: "Water Cost",
+    icon: <StatsIcon color="inherit" />,
+    element: <FabricProcessWatercost />,
+    layout: "/user",
+    roles: ["user","owner","admin"],
+  },
+
+  {
+    path: "/fabric-mangement",
+    name: "Fabric List",
+    icon: <CartIcon color="inherit" />,
+    element: <FabricManagement />,
+    layout: "/user",
+    roles: ["user","owner","admin"],
+  },
 
   {
     path: "/fabric-process",
     name: "Fabric Process",
-    icon: <StatsIcon color="inherit" />,
+    icon: <RocketIcon color="inherit" />,
     element: <FabricProcessPage />,
     layout: "/user",
     roles: ["user","owner","admin"],
   },
+
   {
     path: "/billing",
     name: "Billing",
@@ -129,6 +139,7 @@ export const userRoutes = [
     layout: "/user",
     roles: ["user"],
   },
+
   {
     name: "ACCOUNT PAGES",
     category: "account",
@@ -138,7 +149,7 @@ export const userRoutes = [
         path: "/user-profile",
         name: "Profile",
         icon: <PersonIcon color="inherit" />,
-        element: <UserProfile />, // 👈 Using UserProfile for user
+        element: <UserProfile />,
         layout: "/user",
         roles: ["user"],
       },
@@ -146,7 +157,8 @@ export const userRoutes = [
   },
 ];
 
-// 🌟 Auth Routes
+
+// ✅ Auth Routes
 export const authRoutes = [
   {
     path: "/signin",
@@ -162,10 +174,10 @@ export const authRoutes = [
     icon: <RocketIcon color="inherit" />,
     element: <SignUp />,
     layout: "/admin",
-    roles: ["admin", "owner"], // only admin/owner can see it
+    roles: [],
   },
 ];
 
-// ✅ Combine all routes if needed
+// ✅ Export all
 const allRoutes = [...adminRoutes, ...userRoutes, ...authRoutes];
 export default allRoutes;

@@ -1005,7 +1005,7 @@ function UserManagement() {
               borderRadius="8px"
               flexShrink={0}
             >
-              Add Admin
+              Add User
             </Button>
           </Flex>
         </CardHeader>

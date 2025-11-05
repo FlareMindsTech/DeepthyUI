@@ -48,7 +48,7 @@ export const getUserById = async (id) => {
 
 // ✅ Update user
 export const updateUser = async (id, data) => {
-  return await axiosInstance.put(`/users/update/${id}`, data);
+  return await axiosInstance.put(`/users/${id}`, data);
 };
 
 // ✅ Delete user

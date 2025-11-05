@@ -180,7 +180,7 @@ export default function Dashboard(props) {
             </PanelContent>
           ) : null}
 
-          <Footer />
+          {/* <Footer /> */}
         </Box>
       </MainPanel>
     </>
