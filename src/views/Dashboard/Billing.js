@@ -22,9 +22,12 @@ import {
   ModalContent,
   ModalBody,
   ModalCloseButton,
+  Input,
 } from "@chakra-ui/react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { InputGroup, InputLeftElement } from "@chakra-ui/react";
+import { SearchIcon } from "@chakra-ui/icons";
 
 export default function Billing() {
   const [bills] = useState([
@@ -47,15 +50,34 @@ export default function Billing() {
   const [tabIndex, setTabIndex] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
   const invoiceRef = useRef();
-
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // ✅ Load logged-in user from localStorage
+  // ✅ Search
+  const [search, setSearch] = useState("");
+
+  const filteredBills = bills.filter((b) => {
+    const s = search.toLowerCase();
+    return (
+      b.user.toLowerCase().includes(s) ||
+      b.worker.toLowerCase().includes(s) ||
+      b.items.some((item) => item.product.toLowerCase().includes(s))
+    );
+  });
+
+  // ✅ Pagination
+  const rowsPerPage = 5;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(filteredBills.length / rowsPerPage);
+  const startIndex = (page - 1) * rowsPerPage;
+  const visibleBills = filteredBills.slice(
+    startIndex,
+    startIndex + rowsPerPage
+  );
+
+  // ✅ Load user
   useEffect(() => {
     const userData = localStorage.getItem("user");
-    if (userData) {
-      setCurrentUser(JSON.parse(userData));
-    }
+    if (userData) setCurrentUser(JSON.parse(userData));
   }, []);
 
   const openModal = (bill) => {
@@ -65,14 +87,14 @@ export default function Billing() {
 
   const calculateTotal = (items) =>
     items.reduce(
-      (acc, item) => ({
-        totalCost: acc.totalCost + item.cost,
-        totalHours: acc.totalHours + item.hours,
+      (acc, i) => ({
+        totalCost: acc.totalCost + i.cost,
+        totalHours: acc.totalHours + i.hours,
       }),
       { totalCost: 0, totalHours: 0 }
     );
 
-  // ---------------- PDF Download ----------------
+  // ✅ PDF
   const downloadBill = async (bill) => {
     if (!invoiceRef.current) return;
 
@@ -111,250 +133,280 @@ export default function Billing() {
     document.body.removeChild(tempDiv);
 
     if (currentUser?.role === "admin") {
-      setHistory((prev) => [...prev, { ...bill, date: new Date().toLocaleString() }]);
+      setHistory((prev) => [
+        ...prev,
+        { ...bill, date: new Date().toLocaleString() },
+      ]);
       setTabIndex(1);
     }
-
     onClose();
   };
 
-  // ---------------- Print ----------------
+  // ✅ Print
   const printBill = () => {
-    if (!invoiceRef.current) return;
-
     const printWindow = window.open("", "_blank", "width=800,height=1000");
     printWindow.document.write(`
       <html>
-        <head>
-          <title>Invoice - ${selectedBill.id}</title>
-          <style>
-            @page { size: A4; margin: 15mm; }
-            body { font-family: Arial, sans-serif; -webkit-print-color-adjust: exact; background: white; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #C41E3A; padding: 5px; font-size: 12px; }
-            th { background-color: #FDE2E5; }
-            .header-title { font-size: 22px; font-weight: bold; color: #b91c1c; }
-          </style>
-        </head>
-        <body>
-          ${invoiceRef.current.outerHTML}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = () => window.close();
-            }
-          </script>
-        </body>
+      <head><title>${selectedBill.id}</title></head>
+      <body>${invoiceRef.current.outerHTML}
+      <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
+      </body>
       </html>
     `);
     printWindow.document.close();
   };
 
   return (
-    <Center minH="100vh" px={3} py={5} marginTop={-220} zIndex={5}>
+    <Center px={3} py={5}>
       <Box w={{ base: "100%", md: "95%", lg: "90%" }}>
         <Tabs
           isFitted
           variant="enclosed"
-          w="100%"
           index={tabIndex}
-          onChange={(index) => setTabIndex(index)}
+          onChange={setTabIndex}
         >
           <TabList mb="1em" borderBottom="2px solid #C41E3A">
-            <Tab _selected={{ bg: "#C41E3A", color: "white" }}>Billing Printout</Tab>
+            <Tab _selected={{ bg: "#C41E3A", color: "white" }}>
+              Billing Printout
+            </Tab>
             {currentUser?.role === "admin" && (
-              <Tab _selected={{ bg: "#C41E3A", color: "white" }}>Printout History</Tab>
+              <Tab _selected={{ bg: "#C41E3A", color: "white" }}>
+                Printout History
+              </Tab>
             )}
           </TabList>
 
           <TabPanels>
+            {/* ✅ Billing Screen */}
             <TabPanel>
-              <Table size="sm" variant="simple" textAlign="center" w="100%">
-                <Thead bg="#FDE2E5">
-                  <Tr>
-                    <Th>No</Th>
-                    <Th>User Name</Th>
-                    <Th>Worker Name</Th>
-                    <Th>Products</Th>
-                    <Th>Total Cost</Th>
-                    <Th>Total Hours</Th>
-                    <Th>Printout</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {bills.map((bill, idx) => {
-                    const { totalCost, totalHours } = calculateTotal(bill.items);
-                    return (
-                      <Tr key={idx}>
-                        <Td>{idx + 1}</Td>
-                        <Td>{bill.user}</Td>
-                        <Td>{bill.worker}</Td>
-                        <Td>
-                          {bill.items.map((it, i) => (
-                            <Box key={i}>{it.product} (₹{it.cost})</Box>
-                          ))}
-                        </Td>
-                        <Td>₹{totalCost}</Td>
-                        <Td>{totalHours}</Td>
-                        <Td>
-                          <Button
-                            size="sm"
-                            bg="#C41E3A"
-                            color="white"
-                            _hover={{ bg: "#A01830" }}
-                            onClick={() => openModal(bill)}
-                          >
-                            Printout
-                          </Button>
-                        </Td>
-                      </Tr>
-                    );
-                  })}
-                </Tbody>
-              </Table>
-            </TabPanel>
+              {/* ✅ Search Input */}
+              {/* ✅ Search Input With Icon */}
+              <InputGroup mb={2}>
+                <InputLeftElement pointerEvents="none">
+                  <SearchIcon color="#C41E3A" />
+                </InputLeftElement>
 
-            {currentUser?.role === "admin" && (
-              <TabPanel>
-                <Table size="sm" variant="simple" textAlign="center" w="100%">
-                  <Thead bg="#FDE2E5">
+                <Input
+                  placeholder="Search user / worker / product"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  borderColor="#C41E3A"
+                  focusBorderColor="#C41E3A"
+                />
+              </InputGroup>
+
+              {/* ✅ Scrollable table with reduced height */}
+              <Box
+                maxH="220px"
+                overflowY="auto"
+                border="1px solid #C41E3A"
+                borderRadius="md"
+              >
+                <Table size="sm">
+                  <Thead bg="#FDE2E5" position="sticky" top={0} zIndex={1}>
                     <Tr>
                       <Th>No</Th>
-                      <Th>User Name</Th>
-                      <Th>Worker Name</Th>
+                      <Th>User</Th>
+                      <Th>Worker</Th>
                       <Th>Products</Th>
-                      <Th>Total Cost</Th>
-                      <Th>Total Hours</Th>
-                      <Th>Date</Th>
+                      <Th>Cost</Th>
+                      <Th>Hours</Th>
+                      <Th>Action</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {history.map((bill, idx) => {
-                      const { totalCost, totalHours } = calculateTotal(bill.items);
+                    {visibleBills.map((bill, i) => {
+                      const { totalCost, totalHours } = calculateTotal(
+                        bill.items
+                      );
                       return (
-                        <Tr key={idx}>
-                          <Td>{idx + 1}</Td>
+                        <Tr key={i}>
+                          <Td>{startIndex + i + 1}</Td>
                           <Td>{bill.user}</Td>
                           <Td>{bill.worker}</Td>
-                          <Td>
-                            {bill.items.map((it, i) => (
-                              <Box key={i}>{it.product} (₹{it.cost})</Box>
-                            ))}
-                          </Td>
+                          <Td>{bill.items.map((it) => it.product)}</Td>
                           <Td>₹{totalCost}</Td>
                           <Td>{totalHours}</Td>
-                          <Td>{bill.date}</Td>
+                          <Td>
+                            <Button
+                              size="xs"
+                              bg="#C41E3A"
+                              color="white"
+                              onClick={() => openModal(bill)}
+                            >
+                              Print
+                            </Button>
+                          </Td>
                         </Tr>
                       );
                     })}
                   </Tbody>
                 </Table>
+              </Box>
+
+              {/* ✅ Pagination */}
+              <Flex mt={2} justify="center" gap={3}>
+                <Button
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  isDisabled={page === 1}
+                >
+                  Prev
+                </Button>
+                <Box fontWeight="bold">
+                  Page {page} / {totalPages}
+                </Box>
+                <Button
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                  isDisabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </Flex>
+            </TabPanel>
+
+            {/* ✅ Admin History */}
+            {currentUser?.role === "admin" && (
+              <TabPanel>
+                <Box
+                  maxH="220px"
+                  overflowY="auto"
+                  border="1px solid #C41E3A"
+                  borderRadius="md"
+                >
+                  <Table size="sm">
+                    <Thead bg="#FDE2E5">
+                      <Tr>
+                        <Th>No</Th>
+                        <Th>User</Th>
+                        <Th>Worker</Th>
+                        <Th>Products</Th>
+                        <Th>Cost</Th>
+                        <Th>Hours</Th>
+                        <Th>Date</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {history.map((bill, i) => {
+                        const { totalCost, totalHours } = calculateTotal(
+                          bill.items
+                        );
+                        return (
+                          <Tr key={i}>
+                            <Td>{i + 1}</Td>
+                            <Td>{bill.user}</Td>
+                            <Td>{bill.worker}</Td>
+                            <Td>{bill.items.map((it) => it.product)}</Td>
+                            <Td>₹{totalCost}</Td>
+                            <Td>{totalHours}</Td>
+                            <Td>{bill.date}</Td>
+                          </Tr>
+                        );
+                      })}
+                    </Tbody>
+                  </Table>
+                </Box>
               </TabPanel>
             )}
           </TabPanels>
         </Tabs>
       </Box>
 
-      {/* ✅ Chakra Modal replaces manual overlay */}
+      {/* ✅ Invoice Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
         <ModalOverlay />
-        <ModalContent p={4} borderRadius="md" maxW="900px">
+        <ModalContent p={4}>
           <ModalCloseButton />
           <ModalBody>
-            {selectedBill && (
-              <Box ref={invoiceRef} fontSize="12px">
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  borderBottom="1px solid #C41E3A"
-                  pb={2}
-                >
-                  <Box>
-                    <Box fontSize="22px" fontWeight="bold" color="#b91c1c">
-                      DEEPTHY FENISHERS
-                    </Box>
-                    <Box fontSize="xs">
-                      1/153G, Semmedu Thottam, Somanur Road, Mangalam<br />
-                      Tirupur - 641663, Mobile: 7494009099<br />
-                      GSTIN NO: 33AAACF3127H1ZY
-                    </Box>
+            <Box ref={invoiceRef} fontSize="12px">
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                pb={2}
+                borderBottom="1px solid #C41E3A"
+              >
+                <Box>
+                  <Box fontSize="22px" fontWeight="bold" color="#b91c1c">
+                    DEEPTHY FENISHERS
                   </Box>
-                  <Box textAlign="right" fontSize="sm">
-                    <Box border="1px solid" p={1}>
-                      <Box fontWeight="semibold">DUPLICATE</Box>
-                      <Box>INVOICE</Box>
-                    </Box>
-                    <Box mt={2}>
-                      <Box>Inv No: {selectedBill.id}</Box>
-                      <Box>Date: {new Date().toLocaleDateString()}</Box>
-                    </Box>
+                  <Box fontSize="xs">
+                    1/153G, Semmedu Thottam, Somanur Road, Mangalam
+                    <br />
+                    Tirupur - 641663
+                    <br />
+                    Mobile: 7494009099
+                    <br />
+                    GSTIN NO: 33AAACF3127H1ZY
                   </Box>
                 </Box>
-
-                <Box mt={4} border="1px solid #C41E3A" p={2}>
-                  <Box fontWeight="semibold">To: {selectedBill.user}</Box>
-                  <Box mt={1}>Party GST No: 33AAEFV2662B1ZK</Box>
-                </Box>
-
-                <Table mt={4} size="sm" border="1px solid #C41E3A">
-                  <Thead bg="#FDE2E5">
-                    <Tr>
-                      <Th>S.No</Th>
-                      <Th>Product</Th>
-                      <Th textAlign="right">Cost</Th>
-                      <Th textAlign="right">Hours</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {selectedBill.items.map((item, idx) => (
-                      <Tr key={idx}>
-                        <Td>{idx + 1}</Td>
-                        <Td>{item.product}</Td>
-                        <Td textAlign="right">₹{item.cost.toFixed(2)}</Td>
-                        <Td textAlign="right">{item.hours}</Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-
-                <Flex mt={4} justify="space-between">
-                  <Box>
-                    <Box>Bank: The Federal Bank LTD</Box>
-                    <Box>ACNO: 13590200001050</Box>
-                    <Box>IFSC: FDRL0001359</Box>
+                <Box textAlign="right">
+                  <Box border="1px solid" p={1}>
+                    DUPLICATE
+                    <br />
+                    INVOICE
                   </Box>
-                  <Box fontWeight="bold">
-                    Total: ₹
-                    {selectedBill.items
-                      .reduce((acc, i) => acc + i.cost, 0)
-                      .toFixed(2)}
-                  </Box>
-                </Flex>
-
-                <Box mt={10} textAlign="right">
-                  For DEEPTHY FENISHERS
-                  <Box mt={12}>Authorised Signature</Box>
+                  <Box mt={2}>Inv No: {selectedBill?.id}</Box>
+                  <Box>Date: {new Date().toLocaleDateString()}</Box>
                 </Box>
               </Box>
-            )}
 
-            {/* ✅ Buttons */}
+              <Table size="sm" mt={4} border="1px solid #C41E3A">
+                <Thead bg="#FDE2E5">
+                  <Tr>
+                    <Th>S.No</Th>
+                    <Th>Product</Th>
+                    <Th textAlign="right">Cost</Th>
+                    <Th textAlign="right">Hours</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {selectedBill?.items.map((item, i) => (
+                    <Tr key={i}>
+                      <Td>{i + 1}</Td>
+                      <Td>{item.product}</Td>
+                      <Td textAlign="right">₹{item.cost.toFixed(2)}</Td>
+                      <Td textAlign="right">{item.hours}</Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+
+              <Flex mt={4} justify="space-between">
+                <Box>
+                  Bank: The Federal Bank LTD
+                  <br />
+                  ACNO: 13590200001050
+                  <br />
+                  IFSC: FDRL0001359
+                </Box>
+                <Box fontWeight="bold">
+                  Total: ₹
+                  {selectedBill?.items
+                    .reduce((acc, i) => acc + i.cost, 0)
+                    .toFixed(2)}
+                </Box>
+              </Flex>
+
+              <Box mt={10} textAlign="right">
+                For DEEPTHY FENISHERS
+                <Box mt={10}>Authorised Signature</Box>
+              </Box>
+            </Box>
+
             <Flex justify="center" mt={6} gap={3}>
               <Button
                 size="sm"
                 bg="#C41E3A"
                 color="white"
-                _hover={{ bg: "#A01830" }}
                 onClick={() => downloadBill(selectedBill)}
               >
                 Download PDF
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                colorScheme="gray"
-                onClick={printBill}
-              >
+              <Button size="sm" onClick={printBill}>
                 Print
               </Button>
             </Flex>

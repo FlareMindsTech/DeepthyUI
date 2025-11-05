@@ -1,3 +1,4 @@
+/* eslint-disable */
 import {
   Box,
   Table,
@@ -10,10 +11,15 @@ import {
   Center,
   Flex,
   Tooltip,
-  useColorModeValue,
+  Button,
   Badge,
+  InputGroup,
+  InputLeftElement,
+  Input,
+  useColorModeValue
 } from "@chakra-ui/react";
-import React from "react";
+import { SearchIcon } from "@chakra-ui/icons";
+import React, { useState } from "react";
 
 export default function WorkHoursTable() {
   const workData = [
@@ -21,7 +27,27 @@ export default function WorkHoursTable() {
     { user: "Emily Carter", material: "Cloths - Casual Wear", customer: "Priya Sharma", start: "10:00 AM", end: "04:00 PM", total: "6h", cost: 3000, status: "In Progress" },
     { user: "Michael Brown", material: "Dress - Party Wear", customer: "Arun Raj", start: "08:30 AM", end: "03:30 PM", total: "7h", cost: 2500, status: "Pending" },
     { user: "Sarah Lee", material: "Cloths - Formal Wear", customer: "Meena Devi", start: "06:00 PM", end: "02:00 AM", total: "8h", cost: 4000, status: "Completed" },
+    { user: "Rohit Sharma", material: "Kids Wear", customer: "Kavin Kumar", start: "02:00 PM", end: "08:00 PM", total: "6h", cost: 2800, status: "In Progress" },
+    { user: "Ananya Singh", material: "Bridal Dress", customer: "Swathi Rao", start: "07:00 AM", end: "01:00 PM", total: "6h", cost: 5500, status: "Pending" },
   ];
+
+  /** ✅ Search **/
+  const [search, setSearch] = useState("");
+  const filteredData = workData.filter((row) => {
+    const s = search.toLowerCase();
+    return (
+      row.user.toLowerCase().includes(s) ||
+      row.customer.toLowerCase().includes(s) ||
+      row.material.toLowerCase().includes(s) ||
+      row.status.toLowerCase().includes(s)
+    );
+  });
+
+  /** ✅ Pagination */
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const currentItems = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const parseTime = (time) => {
     const [hourMin, period] = time.split(" ");
@@ -42,12 +68,11 @@ export default function WorkHoursTable() {
     let startHour = parseTime(start);
     let endHour = parseTime(end);
     if (endHour <= startHour) endHour += 24;
-    const segments = [];
-    shifts.forEach((shift) => {
+    return shifts.reduce((acc, shift) => {
       const overlapStart = Math.max(startHour, shift.start);
       const overlapEnd = Math.min(endHour, shift.end);
       if (overlapEnd > overlapStart) {
-        segments.push({
+        acc.push({
           name: shift.name,
           width: overlapEnd - overlapStart,
           color: shift.color,
@@ -55,8 +80,8 @@ export default function WorkHoursTable() {
           endTime: overlapEnd % 24,
         });
       }
-    });
-    return segments;
+      return acc;
+    }, []);
   };
 
   const formatHour = (decimal) => {
@@ -67,10 +92,7 @@ export default function WorkHoursTable() {
     return `${displayHour}:${min.toString().padStart(2, "0")} ${period}`;
   };
 
-  const tableBg = useColorModeValue(
-    "rgba(255,255,255,0.8)",
-    "rgba(32,32,32,0.7)"
-  );
+  const tableBg = useColorModeValue("rgba(255,255,255,0.85)", "rgba(32,32,32,0.75)");
 
   const getStatusColor = (status) => {
     const colors = { Completed: "green", "In Progress": "orange", Pending: "red" };
@@ -78,112 +100,84 @@ export default function WorkHoursTable() {
   };
 
   return (
-    <Center minH="100vh">
+    <Center mt="5">
       <Box
-        p="6"
-        borderRadius="25px"
-        w={{ base: "95%", md: "90%", lg: "100%" }}
-        backdropFilter="blur(20px)"
+        p="4"
+        borderRadius="15px"
+        w="100%"
+        maxW="100%"
+        maxH="520px"
+        overflow="auto"
         bg={tableBg}
-        boxShadow="0 8px 32px rgba(0,0,0,0.2)"
-        border="1px solid rgba(255,255,255,0.18)"
-        transition="0.3s"
-        _hover={{ transform: "scale(1.01)" }}
+        backdropFilter="blur(20px)"
+        boxShadow="0 6px 25px rgba(0,0,0,0.15)"
       >
-        {/* Gradient Heading */}
-        <Text
-          fontSize="2xl"
-          fontWeight="bold"
-          mb="4"
-          textAlign="center"
-          bgGradient="linear(to-r, #C41E3A, #ff6b6b)"
-          color="white"
-          py="3"
-          borderRadius="lg"
-          shadow="md"
-        >
+        <Text fontSize="xl" fontWeight="bold" mb="3" textAlign="center" bgGradient="linear(to-r,#C41E3A,#ff6b6b)"
+          color="white" py="2" borderRadius="md">
           👔 Tailoring Work Hours Summary
         </Text>
 
-        <Box borderRadius="lg" overflow="hidden">
-          <Table variant="simple" size="md">
-            <Thead bg="#C41E3A">
-              <Tr>
-                {[
-                  "User Name",
-                  "Customer Name",
-                  "Material",
-                  "Start Hours",
-                  "End Hours",
-                  "Total Work",
-                  "Total Cost",
-                  "Status",
-                  "Work Timeline"
-                ].map((h, i) => (
-                  <Th key={i} color="white" textAlign="center">{h}</Th>
-                ))}
-              </Tr>
-            </Thead>
+        {/* ✅ Search Bar */}
+        <InputGroup mb={3}>
+          <InputLeftElement pointerEvents="none">
+            <SearchIcon color="#C41E3A" />
+          </InputLeftElement>
+          <Input
+            placeholder="Search Worker / Customer / Material / Status"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            borderColor="#C41E3A"
+            focusBorderColor="#C41E3A"
+          />
+        </InputGroup>
 
-            <Tbody>
-              {workData.map((row, idx) => {
-                const segments = getShiftSegments(row.start, row.end);
+        <Table variant="simple" size="sm">
+          <Thead bg="#C41E3A">
+            <Tr>
+              {["User Name","Customer Name","Material","Start","End","Total","Cost","Status","Timeline"].map((h,i)=>
+                <Th key={i} color="white" textAlign="center">{h}</Th>
+              )}
+            </Tr>
+          </Thead>
+          <Tbody>
+            {currentItems.map((row, idx) => {
+              const segments = getShiftSegments(row.start, row.end);
+              return (
+                <Tr key={idx} _hover={{ bg: "rgba(255,0,0,0.05)" }}>
+                  <Td textAlign="center">{row.user}</Td>
+                  <Td textAlign="center">{row.customer}</Td>
+                  <Td textAlign="center">{row.material}</Td>
+                  <Td textAlign="center">{row.start}</Td>
+                  <Td textAlign="center">{row.end}</Td>
+                  <Td textAlign="center">{row.total}</Td>
+                  <Td textAlign="center">₹{row.cost}</Td>
+                  <Td textAlign="center">
+                    <Badge colorScheme={getStatusColor(row.status)}>{row.status}</Badge>
+                  </Td>
+                  <Td>
+                    <Flex h="18px" w="100px" bg="gray.200" borderRadius="md" overflow="hidden">
+                      {segments.map((seg,i)=>(
+                        <Tooltip key={i} label={`${formatHour(seg.startTime)} - ${formatHour(seg.endTime)}`}>
+                          <Box bg={seg.color} width={`${seg.width * 10}px`} />
+                        </Tooltip>
+                      ))}
+                    </Flex>
+                  </Td>
+                </Tr>
+              );
+            })}
+          </Tbody>
+        </Table>
 
-                return (
-                  <Tr
-                    key={idx}
-                    _hover={{ bg: "rgba(255,0,0,0.05)" }}
-                    transition="0.2s"
-                  >
-                    <Td textAlign="center">{row.user}</Td>
-                    <Td textAlign="center">{row.customer}</Td>
-                    <Td textAlign="center">{row.material}</Td>
-                    <Td textAlign="center">{row.start}</Td>
-                    <Td textAlign="center">{row.end}</Td>
-                    <Td textAlign="center">{row.total}</Td>
-                    <Td textAlign="center">₹{row.cost}</Td>
-
-                    <Td textAlign="center">
-                      <Badge
-                        colorScheme={getStatusColor(row.status)}
-                        p="1"
-                        px="2"
-                        borderRadius="md"
-                        shadow="sm"
-                      >
-                        {row.status}
-                      </Badge>
-                    </Td>
-
-                    <Td>
-                      <Flex
-                        h="25px"
-                        w="120px"
-                        bg="gray.200"
-                        borderRadius="md"
-                        overflow="hidden"
-                      >
-                        {segments.map((seg, i) => (
-                          <Tooltip
-                            key={i}
-                            label={`${formatHour(seg.startTime)} - ${formatHour(seg.endTime)}`}
-                          >
-                            <Box
-                              bg={seg.color}
-                              width={`${seg.width * 12}px`}
-                              transition="0.3s"
-                              _hover={{ filter: "brightness(1.3)" }}
-                            />
-                          </Tooltip>
-                        ))}
-                      </Flex>
-                    </Td>
-                  </Tr>
-                );
-              })}
-            </Tbody>
-          </Table>
-        </Box>
+        {/* Pagination */}
+        <Flex justify="center" mt="3" gap="2">
+          <Button size="xs" disabled={currentPage === 1} onClick={()=>setCurrentPage(currentPage-1)}>⬅ Prev</Button>
+          <Text fontWeight="bold">{currentPage} / {totalPages}</Text>
+          <Button size="xs" disabled={currentPage === totalPages} onClick={()=>setCurrentPage(currentPage+1)}>Next ➡</Button>
+        </Flex>
       </Box>
     </Center>
   );
