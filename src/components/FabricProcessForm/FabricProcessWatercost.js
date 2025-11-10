@@ -179,216 +179,181 @@ function FabricProcessPage() {
   };
 
   return (
-    <Box
-      minH="100vh"
-      bg="white"
-      color="gray.800"
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      p={5}
-    >
-      <ScaleFade in={true} initialScale={0.9}>
-        <VStack spacing={6} w="full" maxW="600px">
-          {/* Header Section */}
-          <Box
-            bg="white"
-            w="full"
-            border="2px"
-            borderColor={primaryColor}
-            boxShadow="0 10px 30px -10px rgba(255, 107, 107, 0.2)"
-            borderRadius="2xl"
-            overflow="hidden"
-          >
-            <Box bg={gradient} p={6} textAlign="center">
-              <HStack spacing={3} justify="center">
-                <Icon as={FaIndustry} boxSize={8} color="white" />
-                <Text fontSize="3xl" fontWeight="bold" color="white">
-                  🧵 Water Cost Calculation
-                </Text>
-              </HStack>
-              <Text mt={2} color="whiteAlpha.900" fontSize="lg">
-                Monitor and Control Fabric Processing Operations
+  <Box
+    minH="100vh"
+    bg="white"
+    color="gray.800"
+    display="flex"
+    justifyContent="center"
+    alignItems="center"
+    p={5}
+  >
+    <ScaleFade in={true} initialScale={0.9}>
+      <VStack spacing={6} w="full" maxW="600px">
+        {/* Header Section */}
+        <Box
+          bg="white"
+          w="full"
+          border="2px"
+          borderColor={primaryColor}
+          boxShadow="0 10px 30px -10px rgba(255, 107, 107, 0.2)"
+          borderRadius="2xl"
+          overflow="hidden"
+        >
+          <Box bg={gradient} p={6} textAlign="center">
+            <HStack spacing={3} justify="center">
+              <Icon as={FaIndustry} boxSize={8} color="white" />
+              <Text fontSize="3xl" fontWeight="bold" color="white">
+                🧵 Water Cost Calculation
               </Text>
-            </Box>
+            </HStack>
+            <Text mt={2} color="whiteAlpha.900" fontSize="lg">
+              Monitor and Control Fabric Processing Operations
+            </Text>
           </Box>
+        </Box>
 
-          {/* Main Content Section */}
-          <Box
-            bg="white"
-            w="full"
-            border="1px"
-            borderColor="gray.200"
-            borderRadius="2xl"
-            boxShadow="lg"
-            p={8}
-          >
-            {!fabric && (
-              <VStack spacing={6}>
-                <Alert status="info" borderRadius="lg" variant="left-accent" bg="blue.50" borderColor="blue.200">
-                  <AlertIcon color="blue.500" />
-                  <Box>
-                    <AlertTitle color="blue.800">Ready to Start</AlertTitle>
-                    <AlertDescription color="blue.700">
-                      Enter DC number to begin fabric processing
-                    </AlertDescription>
-                  </Box>
-                </Alert>
+        {/* Main Content Section */}
+        <Box
+          bg="white"
+          w="full"
+          border="1px"
+          borderColor="gray.200"
+          borderRadius="2xl"
+          boxShadow="lg"
+          p={8}
+        >
+          {/* 🟢 Step 1: Get DC No + Opening Reading */}
+          {!fabric && !completed && (
+            <VStack spacing={5}>
+              <InputGroup size="lg">
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={FaSearch} color="gray.500" />
+                </InputLeftElement>
+                <Input
+                  placeholder="Enter DC Number"
+                  value={dcNo}
+                  onChange={(e) => setDcNo(e.target.value)}
+                  bg="gray.50"
+                />
+              </InputGroup>
 
-                <InputGroup size="lg">
-                  <InputLeftElement pointerEvents="none">
-                    <Icon as={FaSearch} color="gray.500" />
-                  </InputLeftElement>
-                  <Input
-                    placeholder="Enter DC Number"
-                    value={dcNo}
-                    onChange={(e) => setDcNo(e.target.value)}
-                    bg="gray.50"
-                    border="1px"
-                    borderColor="gray.300"
-                    _placeholder={{ color: "gray.500" }}
-                    _focus={{
-                      border: "2px solid",
-                      borderColor: primaryColor,
-                      boxShadow: `0 0 0 1px ${primaryColor}`,
-                      bg: "white",
-                    }}
-                    fontSize="lg"
-                    py={6}
-                    color="gray.800"
-                  />
-                </InputGroup>
+              <InputGroup size="lg">
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={FaTachometerAlt} color="gray.500" />
+                </InputLeftElement>
+                <Input
+                  placeholder="Enter Opening Reading"
+                  type="number"
+                  value={openingReading}
+                  onChange={(e) => setOpeningReading(e.target.value)}
+                  bg="gray.50"
+                />
+              </InputGroup>
 
-                <Button
+              <Button
+                bg={gradient}
+                color="white"
+                w="full"
+                size="lg"
+                onClick={handleStart}
+                leftIcon={<FaPlay />}
+              >
+                Start Fabric Process
+              </Button>
+            </VStack>
+          )}
+
+          {/* 🟠 Step 2: Running Process (Timer Running) */}
+          {fabric && fabric.status === "Running" && !completed && (
+            <VStack spacing={6}>
+              <Box textAlign="center">
+                <Badge
+                  colorScheme="red"
+                  fontSize="lg"
+                  px={4}
+                  py={2}
+                  borderRadius="full"
                   bg={gradient}
                   color="white"
-                  w="full"
-                  size="lg"
-                  onClick={handleStart}
-                  _hover={{
-                    transform: "translateY(-2px)",
-                    boxShadow: "0 10px 25px -5px rgba(255, 107, 107, 0.4)",
-                  }}
-                  _active={{
-                    transform: "translateY(0)",
-                  }}
-                  transition="all 0.3s ease"
-                  py={6}
-                  fontSize="lg"
-                  fontWeight="bold"
-                  leftIcon={<FaPlay />}
                 >
-                  Start Fabric Process
-                </Button>
-              </VStack>
-            )}
-
-            {fabric && fabric.status === "Running" && (
-              <VStack spacing={6}>
-                {/* Process Status Header */}
-                <Box w="full" textAlign="center">
-                  <Badge
-                    colorScheme="red"
-                    fontSize="lg"
-                    px={4}
-                    py={2}
-                    borderRadius="full"
-                    bg={gradient}
-                    color="white"
-                  >
-                    <HStack spacing={2}>
-                      <Icon as={FaRunning} />
-                      <Text>PROCESS RUNNING</Text>
-                    </HStack>
-                  </Badge>
-                  <Text mt={3} fontSize="sm" color="gray.600">
-                    DC Number: {dcNo}
-                  </Text>
-                </Box>
-
-                {/* Timer Display */}
-                <Box
-                  bg="gray.50"
-                  w="full"
-                  borderRadius="xl"
-                  p={6}
-                  textAlign="center"
-                  border="1px"
-                  borderColor="gray.200"
-                >
-                  <HStack justify="center" spacing={3} mb={2}>
-                    <Icon as={FaClock} color={primaryColor} boxSize={5} />
-                    <Text fontSize="lg" color="gray.700" fontWeight="medium">
-                      Running Time
-                    </Text>
+                  <HStack spacing={2}>
+                    <Icon as={FaRunning} />
+                    <Text>PROCESS RUNNING</Text>
                   </HStack>
-                  <Text
-                    fontSize="4xl"
-                    fontWeight="bold"
-                    bgGradient={`linear(to-r, ${primaryColor}, ${secondaryColor})`}
-                    bgClip="text"
-                    fontFamily="monospace"
-                  >
-                    {timer}
+                </Badge>
+                <Text mt={3} fontSize="sm" color="gray.600">
+                  DC Number: {dcNo}
+                </Text>
+              </Box>
+
+              {/* Timer */}
+              <Box
+                bg="gray.50"
+                w="full"
+                borderRadius="xl"
+                p={6}
+                textAlign="center"
+                border="1px"
+                borderColor="gray.200"
+              >
+                <HStack justify="center" spacing={3} mb={2}>
+                  <Icon as={FaClock} color={primaryColor} boxSize={5} />
+                  <Text fontSize="lg" color="gray.700" fontWeight="medium">
+                    Running Time
                   </Text>
-                </Box>
+                </HStack>
+                <Text
+                  fontSize="4xl"
+                  fontWeight="bold"
+                  bgGradient={`linear(to-r, ${primaryColor}, ${secondaryColor})`}
+                  bgClip="text"
+                  fontFamily="monospace"
+                >
+                  {timer}
+                </Text>
+              </Box>
 
-                <Divider borderColor="gray.300" />
+              {/* STOP Button */}
+              <Button
+                colorScheme="red"
+                w="full"
+                size="lg"
+                onClick={() => {
+                  // Stop timer display (don’t clear readings yet)
+                  setFabric({ ...fabric, status: "Stopped" });
+                }}
+                leftIcon={<FaStop />}
+              >
+                Stop Process
+              </Button>
+            </VStack>
+          )}
 
-                {/* Readings Input Section */}
-                <VStack spacing={4} w="full">
-                  <Text fontSize="xl" fontWeight="bold" color="gray.800">
-                    Process Readings
-                  </Text>
+          {/* 🔵 Step 3: After Stop — Ask Closing Reading + Weight */}
+          {fabric && fabric.status === "Stopped" && !completed && (
+            <VStack spacing={6}>
+              <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                Enter Final Details
+              </Text>
 
-                  <Grid templateColumns="repeat(2, 1fr)" gap={4} w="full">
-                    <GridItem>
-                      <InputGroup>
-                        <InputLeftElement pointerEvents="none">
-                          <Icon as={FaTachometerAlt} color="gray.500" />
-                        </InputLeftElement>
-                        <Input
-                          placeholder="Opening"
-                          type="number"
-                          value={openingReading}
-                          onChange={(e) => setOpeningReading(e.target.value)}
-                          bg="gray.50"
-                          border="1px"
-                          borderColor="gray.300"
-                          _focus={{
-                            border: "2px solid",
-                            borderColor: primaryColor,
-                            bg: "white",
-                          }}
-                          color="gray.800"
-                        />
-                      </InputGroup>
-                    </GridItem>
+              <Grid templateColumns="repeat(2, 1fr)" gap={4} w="full">
+                <GridItem>
+                  <InputGroup>
+                    <InputLeftElement pointerEvents="none">
+                      <Icon as={FaTachometerAlt} color="gray.500" />
+                    </InputLeftElement>
+                    <Input
+                      placeholder="Closing Reading"
+                      type="number"
+                      value={closingReading}
+                      onChange={(e) => setClosingReading(e.target.value)}
+                      bg="gray.50"
+                    />
+                  </InputGroup>
+                </GridItem>
 
-                    <GridItem>
-                      <InputGroup>
-                        <InputLeftElement pointerEvents="none">
-                          <Icon as={FaTachometerAlt} color="gray.500" />
-                        </InputLeftElement>
-                        <Input
-                          placeholder="Closing"
-                          type="number"
-                          value={closingReading}
-                          onChange={(e) => setClosingReading(e.target.value)}
-                          bg="gray.50"
-                          border="1px"
-                          borderColor="gray.300"
-                          _focus={{
-                            border: "2px solid",
-                            borderColor: primaryColor,
-                            bg: "white",
-                          }}
-                          color="gray.800"
-                        />
-                      </InputGroup>
-                    </GridItem>
-                  </Grid>
-
+                <GridItem>
                   <InputGroup>
                     <InputLeftElement pointerEvents="none">
                       <Icon as={FaWeight} color="gray.500" />
@@ -399,147 +364,64 @@ function FabricProcessPage() {
                       value={lotWeight}
                       onChange={(e) => setLotWeight(e.target.value)}
                       bg="gray.50"
-                      border="1px"
-                      borderColor="gray.300"
-                      _focus={{
-                        border: "2px solid",
-                        borderColor: primaryColor,
-                        bg: "white",
-                      }}
-                      color="gray.800"
                     />
                   </InputGroup>
-                </VStack>
+                </GridItem>
+              </Grid>
+
+              <Button
+                colorScheme="green"
+                w="full"
+                size="lg"
+                onClick={handleEnd}
+                leftIcon={<FaCheckCircle />}
+              >
+                Complete Process
+              </Button>
+            </VStack>
+          )}
+
+          {/* ✅ Step 4: Completed */}
+          <Collapse in={completed} animateOpacity>
+            {completed && (
+              <VStack spacing={6}>
+                <Icon as={FaCheckCircle} boxSize={12} color="green.500" />
+                <Text fontSize="2xl" fontWeight="bold" color="green.600">
+                  Process Completed Successfully!
+                </Text>
+
+                <Stat bg="gray.50" p={4} borderRadius="lg" textAlign="center">
+                  <StatLabel>Total Cost</StatLabel>
+                  <StatNumber color={primaryColor}>
+                    ₹{fabric.totalCost}
+                  </StatNumber>
+                </Stat>
+
+                <Stat bg="gray.50" p={4} borderRadius="lg" textAlign="center">
+                  <StatLabel>Water Cost</StatLabel>
+                  <StatNumber color="blue.600">
+                    ₹{fabric.waterCost}
+                  </StatNumber>
+                </Stat>
 
                 <Button
-                  colorScheme="red"
+                  colorScheme="gray"
                   w="full"
-                  size="lg"
-                  onClick={handleEnd}
-                  _hover={{
-                    transform: "translateY(-2px)",
-                    boxShadow: "0 10px 25px -5px rgba(183, 28, 28, 0.4)",
-                  }}
-                  _active={{
-                    transform: "translateY(0)",
-                  }}
-                  transition="all 0.3s ease"
-                  py={6}
-                  fontSize="lg"
-                  fontWeight="bold"
-                  leftIcon={<FaStop />}
+                  onClick={handleReset}
+                  leftIcon={<FaRedo />}
+                  variant="outline"
                 >
-                  Complete Process
+                  Start New Process
                 </Button>
               </VStack>
             )}
+          </Collapse>
+        </Box>
+      </VStack>
+    </ScaleFade>
+  </Box>
+);
 
-            <Collapse in={completed} animateOpacity>
-              {completed && (
-                <VStack spacing={6}>
-                  {/* Success Header */}
-                  <Box textAlign="center">
-                    <Icon
-                      as={FaCheckCircle}
-                      boxSize={12}
-                      color="green.500"
-                      mb={3}
-                    />
-                    <Text fontSize="2xl" fontWeight="bold" color="green.600">
-                      Process Completed Successfully!
-                    </Text>
-                  </Box>
-
-                  {/* Cost Statistics */}
-                  <Grid templateColumns="repeat(2, 1fr)" gap={4} w="full">
-                    <Stat
-                      bg="gray.50"
-                      p={4}
-                      borderRadius="lg"
-                      textAlign="center"
-                      border="1px"
-                      borderColor="gray.200"
-                    >
-                      <StatLabel color="gray.600" fontWeight="medium">
-                        <HStack justify="center">
-                          <Icon as={FaDollarSign} />
-                          <Text>Total Cost</Text>
-                        </HStack>
-                      </StatLabel>
-                      <StatNumber color={primaryColor} fontSize="2xl">
-                        ₹{fabric.totalCost}
-                      </StatNumber>
-                    </Stat>
-
-                    <Stat
-                      bg="gray.50"
-                      p={4}
-                      borderRadius="lg"
-                      textAlign="center"
-                      border="1px"
-                      borderColor="gray.200"
-                    >
-                      <StatLabel color="gray.600" fontWeight="medium">
-                        <HStack justify="center">
-                          <Icon as={FaWater} />
-                          <Text>Water Cost</Text>
-                        </HStack>
-                      </StatLabel>
-                      <StatNumber color="blue.600" fontSize="2xl">
-                        ₹{fabric.waterCost}
-                      </StatNumber>
-                    </Stat>
-                  </Grid>
-
-                  {/* Additional Details */}
-                  <Box bg="gray.50" w="full" borderRadius="xl" p={6} border="1px" borderColor="gray.200">
-                    <VStack spacing={3} align="stretch">
-                      <HStack justify="space-between">
-                        <Text color="gray.600" fontWeight="medium">Running Time:</Text>
-                        <Text fontWeight="bold" color="gray.800">{fabric.runningTime} hrs</Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text color="gray.600" fontWeight="medium">Status:</Text>
-                        <Badge colorScheme="green" fontSize="sm">
-                          {fabric.status}
-                        </Badge>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text color="gray.600" fontWeight="medium">DC Number:</Text>
-                        <Text fontWeight="bold" color="gray.800">{dcNo}</Text>
-                      </HStack>
-                    </VStack>
-                  </Box>
-
-                  <Button
-                    colorScheme="gray"
-                    w="full"
-                    onClick={handleReset}
-                    leftIcon={<FaRedo />}
-                    variant="outline"
-                    borderColor="gray.300"
-                    _hover={{
-                      bg: "gray.100",
-                    }}
-                  >
-                    Start New Process
-                  </Button>
-                </VStack>
-              )}
-            </Collapse>
-          </Box>
-
-          {/* Footer Info */}
-          {fabric && (
-            <Text textAlign="center" color="gray.500" fontSize="sm">
-              Fabric processing started at{" "}
-              {new Date(fabric.startTime).toLocaleTimeString()}
-            </Text>
-          )}
-        </VStack>
-      </ScaleFade>
-    </Box>
-  );
 }
 
 export default function App() {

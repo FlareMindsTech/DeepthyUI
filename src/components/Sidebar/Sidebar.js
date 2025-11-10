@@ -23,7 +23,6 @@ import { NavLink } from "react-router-dom";
 function Sidebar({ routes }) {
   const mainPanel = React.useRef();
   const [role, setRole] = useState(null);
-
   useEffect(() => {
     const currentUser = localStorage.getItem("user");
     if (currentUser) {
@@ -31,7 +30,6 @@ function Sidebar({ routes }) {
       setRole(parsedUser.role);
     }
   }, []);
-
   const activeBg = "#C41E3A";
   const inactiveBg = useColorModeValue("white", "#1A202C");
   const activeColor = "white";
@@ -112,9 +110,7 @@ function Sidebar({ routes }) {
         );
       });
   };
-
   const links = <>{filterRoutes(routes)}</>;
-
   const brand = (
     <Flex direction="column" justify="center" align="center" py="4" mb="4">
       <Text fontWeight="extrabold" fontSize="lg">
@@ -122,7 +118,6 @@ function Sidebar({ routes }) {
       </Text>
     </Flex>
   );
-
   const footer = (
     <Flex justify="center" align="center" py="4">
       <Text fontSize="sm" color={inactiveColor}>
