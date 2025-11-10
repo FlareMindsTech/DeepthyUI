@@ -22,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 function Login() {
   const bgForm = useColorModeValue("white", "gray.800");
   const redColor = "#C41E3A";
-  const lightRed = "#FF6B6B";
+  const lightRed = "#FF6B6B"; // This is the color you referenced
   const darkRed = "#B71C1C";
   const fabricBlue = "#2D3748";
   const fabricLight = "#4A5568";
@@ -33,8 +33,11 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState({ identifier: false, password: false });
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 }); // State for parallax
   const toast = useToast();
   const navigate = useNavigate();
+
+  // --- Keyframe Animations ---
 
   const floatAnimation = keyframes`
     0% { transform: translateY(0px) rotate(0deg); }
@@ -53,10 +56,23 @@ function Login() {
   `;
 
   const pulseAnimation = keyframes`
-    0% { transform: scale(1); opacity: 0.6; }
-    50% { transform: scale(1.05); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 0.6; }
+    0% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.05); opacity: 0.9; }
+    100% { transform: scale(1); opacity: 0.7; }
   `;
+
+  // New animated stitching
+  const stitchingAnimationX = keyframes`
+    from { background-position: 0 0; }
+    to { background-position: 50px 0; }
+  `;
+
+  const stitchingAnimationY = keyframes`
+    from { background-position: 0 0; }
+    to { background-position: 0 50px; }
+  `;
+
+  // --- Hooks ---
 
   const isMounted = useRef(true);
   useEffect(() => {
@@ -73,6 +89,24 @@ function Login() {
     };
   }, []);
 
+  // Effect for Parallax Mouse Tracking
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (isMounted.current) {
+        // Calculate deviation from the center
+        const x = (e.clientX - window.innerWidth / 2) / window.innerWidth;
+        const y = (e.clientY - window.innerHeight / 2) / window.innerHeight;
+        setMousePos({ x, y });
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
+
+  // --- Login Handler (Unchanged) ---
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -133,7 +167,7 @@ function Login() {
       if (isMounted.current) setLoading(false);
     }
   };
-
+  // --- Render ---
   return (
     <Flex
       position="fixed"
@@ -145,7 +179,7 @@ function Login() {
       justify="center"
       overflow="hidden"
       bg={useColorModeValue("#f8f9fa", "#0f1419")}
-    
+      perspective="1500px" // Creates the 3D stage for parallax
       _before={{
         content: '""',
         position: "absolute",
@@ -166,108 +200,147 @@ function Login() {
         zIndex: 1,
       }}
     >
-      {/* Fabric-themed decorative elements */}
+      {/* --- Parallax Background Elements --- */}
+      {/* We wrap them in a Box to apply the parallax transform separately from their animation */}
+
+      {/* Blurred Blob 1 (Moves *away* from mouse) */}
       <Box
         position="absolute"
-        w="200px"
-        h="200px"
-        borderRadius="50%"
-        bg={`linear-gradient(135deg, ${redColor}20, ${lightRed}30)`}
         top="15%"
         left="10%"
-        filter="blur(40px)"
-        animation={`${floatAnimation} 8s ease-in-out infinite`}
         zIndex={1}
-      />
-      
+        transform={`translateX(${mousePos.x * -30}px) translateY(${
+          mousePos.y * -30
+        }px)`}
+        transition="transform 0.1s linear"
+      >
+        <Box
+          w="200px"
+          h="200px"
+          borderRadius="50%"
+          bg={`linear-gradient(135deg, ${redColor}20, ${lightRed}30)`}
+          filter="blur(40px)"
+          animation={`${floatAnimation} 8s ease-in-out infinite`}
+        />
+      </Box>
+
+      {/* Blurred Blob 2 (Moves *with* mouse, faster) */}
       <Box
         position="absolute"
-        w="300px"
-        h="300px"
-        borderRadius="50%"
-        bg={`linear-gradient(135deg, ${fabricBlue}15, ${fabricDark}25)`}
         bottom="10%"
         right="15%"
-        filter="blur(50px)"
-        animation={`${floatAnimation} 12s ease-in-out infinite`}
         zIndex={1}
-      />
+        transform={`translateX(${mousePos.x * 50}px) translateY(${
+          mousePos.y * 50
+        }px)`}
+        transition="transform 0.1s linear"
+      >
+        <Box
+          w="300px"
+          h="300px"
+          borderRadius="50%"
+          bg={`linear-gradient(135deg, ${fabricBlue}15, ${fabricDark}25)`}
+          filter="blur(50px)"
+          animation={`${floatAnimation} 12s ease-in-out infinite`}
+        />
+      </Box>
 
-      {/* Fabric roll elements */}
+      {/* Thread Spool 1 (Restyled) */}
       <Box
         position="absolute"
-        w="120px"
-        h="60px"
-        bg={useColorModeValue("#e2e8f0", "#2d3748")}
-        borderRadius="30px 8px 8px 30px"
         top="20%"
         right="20%"
-        transform="rotate(45deg)"
-        boxShadow="0 4px 12px rgba(0,0,0,0.1)"
-        animation={`${pulseAnimation} 4s ease-in-out infinite`}
         zIndex={1}
-        _before={{
-          content: '""',
-          position: "absolute",
-          top: "10px",
-          left: "10px",
-          right: "10px",
-          bottom: "10px",
-          bg: redColor,
-          borderRadius: "20px 4px 4px 20px",
-          opacity: 0.7,
-        }}
-      />
+        transform={`translateX(${mousePos.x * -60}px) translateY(${
+          mousePos.y * -60
+        }px) rotate(45deg)`}
+        transition="transform 0.1s linear"
+      >
+        <Box
+          w="120px"
+          h="60px"
+          bg={useColorModeValue("#e2e8f0", "#2d3748")}
+          borderRadius="30px" // Simplified to a spool shape
+          boxShadow="0 4px 12px rgba(0,0,0,0.1)"
+          animation={`${pulseAnimation} 4s ease-in-out infinite`}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          overflow="hidden"
+        >
+          {/* The "thread" */}
+          <Box
+            w="80px"
+            h="40px"
+            bg={redColor}
+            borderRadius="20px"
+            opacity={0.8}
+          />
+        </Box>
+      </Box>
 
+      {/* Thread Spool 2 (Restyled) */}
       <Box
         position="absolute"
-        w="100px"
-        h="50px"
-        bg={useColorModeValue("#edf2f7", "#4a5568")}
-        borderRadius="25px 6px 6px 25px"
         bottom="25%"
         left="15%"
-        transform="rotate(-30deg)"
-        boxShadow="0 4px 12px rgba(0,0,0,0.1)"
-        animation={`${pulseAnimation} 5s ease-in-out infinite`}
         zIndex={1}
-        _before={{
-          content: '""',
-          position: "absolute",
-          top: "8px",
-          left: "8px",
-          right: "8px",
-          bottom: "8px",
-          bg: fabricLight,
-          borderRadius: "17px 3px 3px 17px",
-          opacity: 0.6,
-        }}
-      />
+        transform={`translateX(${mousePos.x * 40}px) translateY(${
+          mousePos.y * 40
+        }px) rotate(-30deg)`}
+        transition="transform 0.1s linear"
+      >
+        <Box
+          w="100px"
+          h="50px"
+          bg={useColorModeValue("#edf2f7", "#4a5568")}
+          borderRadius="25px"
+          boxShadow="0 4px 12px rgba(0,0,0,0.1)"
+          animation={`${pulseAnimation} 5s ease-in-out infinite`}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          overflow="hidden"
+        >
+          <Box
+            w="70px"
+            h="30px"
+            bg={fabricLight}
+            borderRadius="15px"
+            opacity={0.7}
+          />
+        </Box>
+      </Box>
 
-      {/* Stitching lines */}
+      {/* --- Animated Stitching lines (Replaced static lines) --- */}
       <Box
         position="absolute"
         top="50%"
-        left="0"
-        right="0"
+        left="10%"
+        right="10%"
         height="2px"
-        bg={`linear-gradient(90deg, transparent, ${redColor}40, transparent)`}
-        transform="translateY(-1px)"
         zIndex={1}
+        backgroundImage={`linear-gradient(90deg, ${redColor} 60%, transparent 40%)`}
+        backgroundSize="10px 2px"
+        backgroundRepeat="repeat-x"
+        opacity={0.3}
+        animation={`${stitchingAnimationX} 1s linear infinite`}
       />
-      
       <Box
         position="absolute"
         left="50%"
-        top="0"
-        bottom="0"
+        top="10%"
+        bottom="10%"
         width="2px"
-        bg={`linear-gradient(180deg, transparent, ${redColor}40, transparent)`}
-        transform="translateX(-1px)"
         zIndex={1}
+        backgroundImage={`linear-gradient(180deg, ${redColor} 60%, transparent 40%)`}
+        backgroundSize="2px 10px"
+        backgroundRepeat="repeat-y"
+        opacity={0.3}
+        animation={`${stitchingAnimationY} 1s linear infinite`}
       />
 
-      {/* Login Card */}
+      {/* --- Login Card (with 3D Tilt) --- */}
       <ScaleFade in={true} initialScale={0.9}>
         <Flex
           direction="column"
@@ -285,9 +358,16 @@ function Login() {
           )}
           animation={`${slideIn} 0.6s ease-out`}
           position="relative"
-          transition="all 0.3s ease"
+          // Apply the 3D tilt transform
+          transform={`rotateY(${mousePos.x * 15}deg) rotateX(${
+            -mousePos.y * 15
+          }deg)`}
+          // Add 'transform' to the transition property
+          transition="all 0.3s ease, transform 0.1s ease-out"
           _hover={{
-            transform: "scale(1.02)",
+            transform: `scale(1.02) rotateY(${mousePos.x * 10}deg) rotateX(${
+              -mousePos.y * 10
+            }deg)`, // Tone down tilt on hover/scale
             boxShadow: useColorModeValue(
               "0 25px 50px rgba(0,0,0,0.15), 0 12px 30px rgba(196,30,58,0.15)",
               "0 25px 50px rgba(0,0,0,0.4), 0 12px 30px rgba(196,30,58,0.25)"
@@ -302,7 +382,10 @@ function Login() {
             right: "2px",
             bottom: "2px",
             borderRadius: "18px",
-            border: `1px solid ${useColorModeValue(`${redColor}10`, `${redColor}15`)}`,
+            border: `1px solid ${useColorModeValue(
+              `${redColor}10`,
+              `${redColor}15`
+            )}`,
             pointerEvents: "none",
           }}
         >
@@ -356,10 +439,16 @@ function Login() {
             </VStack>
           </VStack>
 
+          {/* --- Form (Unchanged) --- */}
           <form onSubmit={handleLogin} style={{ width: "100%" }}>
             <VStack spacing={6} w="100%">
               <FormControl>
-                <FormLabel fontSize="sm" fontWeight="semibold" mb={2} color={useColorModeValue("gray.700", "gray.300")}>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="semibold"
+                  mb={2}
+                  color={useColorModeValue("gray.700", "gray.300")}
+                >
                   Username or Phone
                 </FormLabel>
                 <Input
@@ -370,7 +459,9 @@ function Login() {
                   borderRadius="12px"
                   focusBorderColor={redColor}
                   border="2px solid"
-                  borderColor={isFocused.identifier ? `${redColor}40` : "transparent"}
+                  borderColor={
+                    isFocused.identifier ? `${redColor}40` : "transparent"
+                  }
                   bg={useColorModeValue("gray.50", "gray.700")}
                   _hover={{
                     bg: useColorModeValue("gray.100", "gray.600"),
@@ -384,13 +475,22 @@ function Login() {
                   transition="all 0.2s ease"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  onFocus={() => setIsFocused((prev) => ({ ...prev, identifier: true }))}
-                  onBlur={() => setIsFocused((prev) => ({ ...prev, identifier: false }))}
+                  onFocus={() =>
+                    setIsFocused((prev) => ({ ...prev, identifier: true }))
+                  }
+                  onBlur={() =>
+                    setIsFocused((prev) => ({ ...prev, identifier: false }))
+                  }
                 />
               </FormControl>
 
               <FormControl>
-                <FormLabel fontSize="sm" fontWeight="semibold" mb={2} color={useColorModeValue("gray.700", "gray.300")}>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="semibold"
+                  mb={2}
+                  color={useColorModeValue("gray.700", "gray.300")}
+                >
                   Password
                 </FormLabel>
                 <InputGroup size="lg">
@@ -401,7 +501,9 @@ function Login() {
                     borderRadius="12px"
                     focusBorderColor={redColor}
                     border="2px solid"
-                    borderColor={isFocused.password ? `${redColor}40` : "transparent"}
+                    borderColor={
+                      isFocused.password ? `${redColor}40` : "transparent"
+                    }
                     bg={useColorModeValue("gray.50", "gray.700")}
                     _hover={{
                       bg: useColorModeValue("gray.100", "gray.600"),
@@ -415,8 +517,12 @@ function Login() {
                     transition="all 0.2s ease"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setIsFocused((prev) => ({ ...prev, password: true }))}
-                    onBlur={() => setIsFocused((prev) => ({ ...prev, password: false }))}
+                    onFocus={() =>
+                      setIsFocused((prev) => ({ ...prev, password: true }))
+                    }
+                    onBlur={() =>
+                      setIsFocused((prev) => ({ ...prev, password: false }))
+                    }
                   />
                   <InputRightElement width="4rem" mr={1}>
                     <IconButton
@@ -425,7 +531,9 @@ function Login() {
                       borderRadius="8px"
                       icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                       bg="transparent"
                       color="gray.500"
                       _hover={{
@@ -466,7 +574,12 @@ function Login() {
             </VStack>
           </form>
 
-          <Text fontSize="xs" color={useColorModeValue("gray.500", "gray.400")} textAlign="center" mt={6}>
+          <Text
+            fontSize="xs"
+            color={useColorModeValue("gray.500", "gray.400")}
+            textAlign="center"
+            mt={6}
+          >
             Secure fabric inventory management system • v2.4.1
           </Text>
         </Flex>

@@ -16,12 +16,15 @@ import {
   InputGroup,
   InputLeftElement,
   Input,
-  useColorModeValue
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import React, { useState } from "react";
 
 export default function WorkHoursTable() {
+  // Use the custom color constant
+  const customColor = "#FF6B6B";
+
   const workData = [
     { user: "John Doe", material: "Dress - Summer Collection", customer: "Sanjay Kumar", start: "09:00 AM", end: "05:00 PM", total: "8h", cost: 5000, status: "Completed" },
     { user: "Emily Carter", material: "Cloths - Casual Wear", customer: "Priya Sharma", start: "10:00 AM", end: "04:00 PM", total: "6h", cost: 3000, status: "In Progress" },
@@ -112,15 +115,17 @@ export default function WorkHoursTable() {
         backdropFilter="blur(20px)"
         boxShadow="0 6px 25px rgba(0,0,0,0.15)"
       >
-        <Text fontSize="xl" fontWeight="bold" mb="3" textAlign="center" bgGradient="linear(to-r,#C41E3A,#ff6b6b)"
+        {/* Updated: Heading uses the custom color in the gradient */}
+        <Text fontSize="xl" fontWeight="bold" mb="3" textAlign="center" bgGradient={`linear(to-r,${customColor},#ff914d)`}
           color="white" py="2" borderRadius="md">
           👔 Tailoring Work Hours Summary
         </Text>
 
         {/* ✅ Search Bar */}
         <InputGroup mb={3}>
+          {/* Updated: SearchIcon color */}
           <InputLeftElement pointerEvents="none">
-            <SearchIcon color="#C41E3A" />
+            <SearchIcon color={customColor} />
           </InputLeftElement>
           <Input
             placeholder="Search Worker / Customer / Material / Status"
@@ -129,13 +134,15 @@ export default function WorkHoursTable() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            borderColor="#C41E3A"
-            focusBorderColor="#C41E3A"
+            // Updated: Border colors
+            borderColor={customColor}
+            focusBorderColor={customColor}
           />
         </InputGroup>
 
         <Table variant="simple" size="sm">
-          <Thead bg="#C41E3A">
+          {/* Updated: Thead background color */}
+          <Thead bg={customColor}>
             <Tr>
               {["User Name","Customer Name","Material","Start","End","Total","Cost","Status","Timeline"].map((h,i)=>
                 <Th key={i} color="white" textAlign="center">{h}</Th>
@@ -146,7 +153,7 @@ export default function WorkHoursTable() {
             {currentItems.map((row, idx) => {
               const segments = getShiftSegments(row.start, row.end);
               return (
-                <Tr key={idx} _hover={{ bg: "rgba(255,0,0,0.05)" }}>
+                <Tr key={idx} _hover={{ bg: "rgba(255,107,107,0.05)" }}> {/* Used a lighter transparent version of the color for hover */}
                   <Td textAlign="center">{row.user}</Td>
                   <Td textAlign="center">{row.customer}</Td>
                   <Td textAlign="center">{row.material}</Td>
@@ -174,9 +181,14 @@ export default function WorkHoursTable() {
 
         {/* Pagination */}
         <Flex justify="center" mt="3" gap="2">
-          <Button size="xs" disabled={currentPage === 1} onClick={()=>setCurrentPage(currentPage-1)}>⬅ Prev</Button>
+          {/* Note: Disabling state will prevent the color from showing fully on disabled buttons. */}
+          <Button size="xs" disabled={currentPage === 1} onClick={()=>setCurrentPage(currentPage-1)} colorScheme="red" variant="outline" borderColor={customColor}>
+            ⬅ Prev
+          </Button>
           <Text fontWeight="bold">{currentPage} / {totalPages}</Text>
-          <Button size="xs" disabled={currentPage === totalPages} onClick={()=>setCurrentPage(currentPage+1)}>Next ➡</Button>
+          <Button size="xs" disabled={currentPage === totalPages} onClick={()=>setCurrentPage(currentPage+1)} colorScheme="red" variant="outline" borderColor={customColor}>
+            Next ➡
+          </Button>
         </Flex>
       </Box>
     </Center>
