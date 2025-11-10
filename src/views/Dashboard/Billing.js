@@ -1,312 +1,270 @@
 /* eslint-disable */
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Box,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  Button,
-  Flex,
-  Tabs,
-  Tab,
-  TabList,
-  TabPanels,
-  TabPanel,
-  Center,
-  useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalBody,
-  ModalCloseButton,
-  Input,
+  Box, Table, Thead, Tbody, Image, Text, Tr, Th, Td, Button,
+  Flex, Tabs, Tab, TabList, TabPanels, TabPanel, Center,
+  useDisclosure, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton,
+  Input, InputGroup, InputLeftElement, useToast
 } from "@chakra-ui/react";
+
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { InputGroup, InputLeftElement } from "@chakra-ui/react";
+import * as XLSX from "xlsx";
+import axios from "axios";
 import { SearchIcon } from "@chakra-ui/icons";
 
-export default function Billing() {
-  const [bills] = useState([
-    {
-      id: "D/1438",
-      user: "Victorious Clothing Company",
-      worker: "Alex Smith",
-      items: [
-        {
-          product: "NAVY - LY/DURBY - DYEING/BIO WASH/STENTER",
-          cost: 122353,
-          hours: 5,
-        },
-      ],
-    },
-  ]);
+/* ✅ Number to Words (Indian System) */
+function numberToWords(num) {
+  const a = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve",
+  "Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const b = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
 
+  const convert = (n) => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n/10)] + " " + a[n%10];
+    if (n < 1000) return a[Math.floor(n/100)] + " Hundred " + convert(n%100);
+    if (n < 100000) return convert(Math.floor(n/1000)) + " Thousand " + convert(n%1000);
+    if (n < 10000000) return convert(Math.floor(n/100000)) + " Lakh " + convert(n%100000);
+    return convert(Math.floor(n/10000000)) + " Crore " + convert(n%10000000);
+  };
+  return convert(num).trim() + " Only";
+}
+
+export default function Billing() {
+  const toast = useToast();
+  const [bills, setBills] = useState([]);
   const [history, setHistory] = useState([]);
-  const [selectedBill, setSelectedBill] = useState(null);
   const [tabIndex, setTabIndex] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
+  const [search, setSearch] = useState("");
+  const [invoiceId, setInvoiceId] = useState("");
+
+  const demoBill = {
+    id: "D/0000",
+    user: "Demo Customer",
+    worker: "Demo Worker",
+    items: [
+      { product: "Cotton Fabric Dyeing", weight: 50, rate: 12 },
+      { product: "Polyester Fabric Dyeing", weight: 75, rate: 18 },
+    ],
+  };
+
+  const [selectedBill, setSelectedBill] = useState(demoBill);
+  const [form, setForm] = useState({
+    user: "",
+    worker: "",
+    items: [{ product: "", weight: 0, rate: 0 }],
+  });
+
   const invoiceRef = useRef();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // ✅ Search
-  const [search, setSearch] = useState("");
+  /* ✅ Load Invoice ID + User */
+  useEffect(() => {
+    const u = localStorage.getItem("user");
+    if (u) setCurrentUser(JSON.parse(u));
 
+    axios.get("/api/invoices/count")
+      .then(res => setInvoiceId(`D/${String(res.data.count + 1).padStart(4,"0")}`))
+      .catch(() => setInvoiceId("D/0001"));
+  }, []);
+
+  /* ✅ Add item row */
+  const addRow = () =>
+    setForm({ ...form, items: [...form.items, { product: "", weight: 0, rate: 0 }] });
+
+  const handleItemChange = (i, key, val) => {
+    const copy = [...form.items];
+    copy[i][key] = key !== "product" ? Number(val) || 0 : val;
+    setForm({ ...form, items: copy });
+  };
+
+  /* ✅ Save Invoice */
+  const saveInvoice = async () => {
+    try {
+      const payload = { ...form, id: invoiceId };
+      await axios.post("/api/invoices/create", payload);
+
+      toast({ title: "Invoice Saved ✅", status: "success" });
+      setBills([...bills, payload]);
+
+      setForm({ user: "", worker: "", items: [{ product: "", weight: 0, rate: 0 }] });
+      setInvoiceId(`D/${String(Number(invoiceId.split("/")[1])+1).padStart(4,"0")}`);
+    } catch {
+      toast({ title: "Save Failed ❌", status: "error" });
+    }
+  };
+
+  /* ✅ Filter */
   const filteredBills = bills.filter((b) => {
     const s = search.toLowerCase();
     return (
-      b.user.toLowerCase().includes(s) ||
-      b.worker.toLowerCase().includes(s) ||
-      b.items.some((item) => item.product.toLowerCase().includes(s))
+      b.user?.toLowerCase().includes(s) ||
+      b.worker?.toLowerCase().includes(s) ||
+      b.items?.some((i) => i.product?.toLowerCase().includes(s))
     );
   });
 
-  // ✅ Pagination
-  const rowsPerPage = 5;
-  const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(filteredBills.length / rowsPerPage);
-  const startIndex = (page - 1) * rowsPerPage;
-  const visibleBills = filteredBills.slice(
-    startIndex,
-    startIndex + rowsPerPage
-  );
-
-  // ✅ Load user
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) setCurrentUser(JSON.parse(userData));
-  }, []);
-
+  /* ✅ Open Invoice */
   const openModal = (bill) => {
-    setSelectedBill(bill);
+    setSelectedBill(bill && bill.items ? bill : demoBill);
     onOpen();
   };
 
-  const calculateTotal = (items) =>
-    items.reduce(
-      (acc, i) => ({
-        totalCost: acc.totalCost + i.cost,
-        totalHours: acc.totalHours + i.hours,
-      }),
-      { totalCost: 0, totalHours: 0 }
-    );
-
-  // ✅ PDF
+  /* ✅ PDF Export */
   const downloadBill = async (bill) => {
-    if (!invoiceRef.current) return;
+    const el = invoiceRef.current;
+    const orig = el.style.width;
+    el.style.width = "794px";
+
+    const canvas = await html2canvas(el, { scale: 2 });
+    const img = canvas.toDataURL("image/png");
 
     const pdf = new jsPDF("p", "pt", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 20;
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = (canvas.height * pdfW) / canvas.width;
 
-    const tempDiv = invoiceRef.current.cloneNode(true);
-    tempDiv.style.width = "800px";
-    tempDiv.style.backgroundColor = "#ffffff";
-    document.body.appendChild(tempDiv);
-
-    const canvas = await html2canvas(tempDiv, { scale: 3, useCORS: true });
-    const imgData = canvas.toDataURL("image/png");
-
-    const pdfHeight = (canvas.height * pageWidth) / canvas.width;
-    let heightLeft = pdfHeight;
-    let position = 0;
-
-    while (heightLeft > 0) {
-      pdf.addImage(
-        imgData,
-        "PNG",
-        margin,
-        position + margin,
-        pageWidth - margin * 2,
-        pdfHeight
-      );
-      heightLeft -= pageHeight;
-      if (heightLeft > 0) pdf.addPage();
-      position -= pageHeight;
+    let pos = 0, left = pdfH;
+    while (left > 0) {
+      pdf.addImage(img, "PNG", 0, pos, pdfW, pdfH);
+      left -= pdf.internal.pageSize.getHeight();
+      if (left > 0) pdf.addPage();
+      pos -= pdf.internal.pageSize.getHeight();
     }
 
     pdf.save(`Invoice_${bill.id}.pdf`);
-    document.body.removeChild(tempDiv);
+    el.style.width = orig;
 
     if (currentUser?.role === "admin") {
-      setHistory((prev) => [
-        ...prev,
-        { ...bill, date: new Date().toLocaleString() },
-      ]);
+      setHistory([...history, { ...bill, date: new Date().toLocaleString() }]);
       setTabIndex(1);
     }
     onClose();
   };
 
-  // ✅ Print
-  const printBill = () => {
-    const printWindow = window.open("", "_blank", "width=800,height=1000");
-    printWindow.document.write(`
-      <html>
-      <head><title>${selectedBill.id}</title></head>
-      <body>${invoiceRef.current.outerHTML}
-      <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+  /* ✅ Excel Export */
+  const exportExcel = (bill) => {
+    const data = (bill.items || []).map((i, idx) => ({
+      "Sl No": idx + 1,
+      Product: i.product,
+      Weight: i.weight,
+      Rate: i.rate,
+      Amount: i.weight * i.rate,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Invoice");
+    XLSX.writeFile(wb, `${bill.id}.xlsx`);
+  };
+
+  /* ✅ Grand Total Calc Helper */
+  const calc = (items = []) => {
+    const total = items.reduce((s, i) => s + Number(i.weight) * Number(i.rate), 0);
+    const sgst = total * 0.025;
+    const cgst = total * 0.025;
+    const grand = Math.round(total + sgst + cgst);
+    return { total, sgst, cgst, grand };
   };
 
   return (
     <Center px={3} py={5}>
-      <Box w={{ base: "100%", md: "95%", lg: "90%" }}>
-        <Tabs
-          isFitted
-          variant="enclosed"
-          index={tabIndex}
-          onChange={setTabIndex}
-        >
-          <TabList mb="1em" borderBottom="2px solid #C41E3A">
-            <Tab _selected={{ bg: "#C41E3A", color: "white" }}>
-              Billing Printout
-            </Tab>
-            {currentUser?.role === "admin" && (
-              <Tab _selected={{ bg: "#C41E3A", color: "white" }}>
-                Printout History
-              </Tab>
-            )}
+      <Box w="95%">
+        <Tabs index={tabIndex} onChange={setTabIndex}>
+          <TabList>
+            <Tab>Create Invoice</Tab>
+            <Tab>Billing Printout</Tab>
+            {currentUser?.role === "admin" && <Tab>History</Tab>}
           </TabList>
 
           <TabPanels>
-            {/* ✅ Billing Screen */}
+            {/* ✅ Create Invoice */}
             <TabPanel>
-              {/* ✅ Search Input */}
-              {/* ✅ Search Input With Icon */}
-              <InputGroup mb={2}>
-                <InputLeftElement pointerEvents="none">
-                  <SearchIcon color="#C41E3A" />
-                </InputLeftElement>
+              <Box p={3} border="1px solid #C41E3A">
+                <Input placeholder="Customer Name"
+                  value={form.user}
+                  onChange={(e)=>setForm({...form,user:e.target.value})}
+                />
+                <Input mt={2} placeholder="Worker Name"
+                  value={form.worker}
+                  onChange={(e)=>setForm({...form,worker:e.target.value})}
+                />
 
-                <Input
-                  placeholder="Search user / worker / product"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  borderColor="#C41E3A"
-                  focusBorderColor="#C41E3A"
+                <Text mt={2} fontWeight="bold">Products</Text>
+                {form.items.map((item,i)=>(
+                  <Flex gap={2} key={i} mt={1}>
+                    <Input placeholder="Product"
+                      value={item.product}
+                      onChange={(e)=>handleItemChange(i,"product",e.target.value)}
+                    />
+                    <Input placeholder="Weight" type="number"
+                      value={item.weight}
+                      onChange={(e)=>handleItemChange(i,"weight",e.target.value)}
+                    />
+                    <Input placeholder="Rate" type="number"
+                      value={item.rate}
+                      onChange={(e)=>handleItemChange(i,"rate",e.target.value)}
+                    />
+                  </Flex>
+                ))}
+                <Button mt={2} size="sm" onClick={addRow}>+ Add Row</Button>
+                <Button ml={2} mt={2} bg="#C41E3A" color="white" onClick={saveInvoice}>
+                  Save Invoice
+                </Button>
+              </Box>
+            </TabPanel>
+
+            {/* ✅ Billing Printout */}
+            <TabPanel>
+              <InputGroup mb={2}>
+                <InputLeftElement><SearchIcon/></InputLeftElement>
+                <Input placeholder="Search bills"
+                  value={search} onChange={(e)=>setSearch(e.target.value)}
                 />
               </InputGroup>
 
-              {/* ✅ Scrollable table with reduced height */}
-              <Box
-                maxH="220px"
-                overflowY="auto"
-                border="1px solid #C41E3A"
-                borderRadius="md"
-              >
+              <Button size="sm" bg="#C41E3A" color="white" mb={2}
+                onClick={()=>openModal(null)}>
+                Preview Sample Invoice
+              </Button>
+
+              <Box maxH="300px" overflowY="auto" border="1px solid #C41E3A">
                 <Table size="sm">
-                  <Thead bg="#FDE2E5" position="sticky" top={0} zIndex={1}>
-                    <Tr>
-                      <Th>No</Th>
-                      <Th>User</Th>
-                      <Th>Worker</Th>
-                      <Th>Products</Th>
-                      <Th>Cost</Th>
-                      <Th>Hours</Th>
-                      <Th>Action</Th>
-                    </Tr>
-                  </Thead>
+                  <Thead><Tr><Th>No</Th><Th>User</Th><Th>Worker</Th><Th>Action</Th></Tr></Thead>
                   <Tbody>
-                    {visibleBills.map((bill, i) => {
-                      const { totalCost, totalHours } = calculateTotal(
-                        bill.items
-                      );
-                      return (
-                        <Tr key={i}>
-                          <Td>{startIndex + i + 1}</Td>
-                          <Td>{bill.user}</Td>
-                          <Td>{bill.worker}</Td>
-                          <Td>{bill.items.map((it) => it.product)}</Td>
-                          <Td>₹{totalCost}</Td>
-                          <Td>{totalHours}</Td>
-                          <Td>
-                            <Button
-                              size="xs"
-                              bg="#C41E3A"
-                              color="white"
-                              onClick={() => openModal(bill)}
-                            >
-                              Print
-                            </Button>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
+                    {filteredBills.map((b,i)=>(
+                      <Tr key={i}>
+                        <Td>{i+1}</Td>
+                        <Td>{b.user}</Td>
+                        <Td>{b.worker}</Td>
+                        <Td>
+                          <Button size="xs" bg="#C41E3A" color="white"
+                            onClick={()=>openModal(b)}>
+                            Print
+                          </Button>
+                        </Td>
+                      </Tr>
+                    ))}
                   </Tbody>
                 </Table>
               </Box>
-
-              {/* ✅ Pagination */}
-              <Flex mt={2} justify="center" gap={3}>
-                <Button
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  isDisabled={page === 1}
-                >
-                  Prev
-                </Button>
-                <Box fontWeight="bold">
-                  Page {page} / {totalPages}
-                </Box>
-                <Button
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                  isDisabled={page === totalPages}
-                >
-                  Next
-                </Button>
-              </Flex>
             </TabPanel>
 
-            {/* ✅ Admin History */}
+            {/* ✅ History */}
             {currentUser?.role === "admin" && (
               <TabPanel>
-                <Box
-                  maxH="220px"
-                  overflowY="auto"
-                  border="1px solid #C41E3A"
-                  borderRadius="md"
-                >
+                <Box maxH="300px" overflowY="auto">
                   <Table size="sm">
-                    <Thead bg="#FDE2E5">
-                      <Tr>
-                        <Th>No</Th>
-                        <Th>User</Th>
-                        <Th>Worker</Th>
-                        <Th>Products</Th>
-                        <Th>Cost</Th>
-                        <Th>Hours</Th>
-                        <Th>Date</Th>
-                      </Tr>
-                    </Thead>
+                    <Thead><Tr><Th>No</Th><Th>User</Th><Th>Worker</Th><Th>Date</Th></Tr></Thead>
                     <Tbody>
-                      {history.map((bill, i) => {
-                        const { totalCost, totalHours } = calculateTotal(
-                          bill.items
-                        );
-                        return (
-                          <Tr key={i}>
-                            <Td>{i + 1}</Td>
-                            <Td>{bill.user}</Td>
-                            <Td>{bill.worker}</Td>
-                            <Td>{bill.items.map((it) => it.product)}</Td>
-                            <Td>₹{totalCost}</Td>
-                            <Td>{totalHours}</Td>
-                            <Td>{bill.date}</Td>
-                          </Tr>
-                        );
-                      })}
+                      {history.map((h,i)=>(
+                        <Tr key={i}>
+                          <Td>{i+1}</Td>
+                          <Td>{h.user}</Td>
+                          <Td>{h.worker}</Td>
+                          <Td>{h.date}</Td>
+                        </Tr>
+                      ))}
                     </Tbody>
                   </Table>
                 </Box>
@@ -317,99 +275,80 @@ export default function Billing() {
       </Box>
 
       {/* ✅ Invoice Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
-        <ModalOverlay />
-        <ModalContent p={4}>
-          <ModalCloseButton />
-          <ModalBody>
-            <Box ref={invoiceRef} fontSize="12px">
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                pb={2}
-                borderBottom="1px solid #C41E3A"
-              >
-                <Box>
-                  <Box fontSize="22px" fontWeight="bold" color="#b91c1c">
-                    DEEPTHY FENISHERS
-                  </Box>
-                  <Box fontSize="xs">
-                    1/153G, Semmedu Thottam, Somanur Road, Mangalam
-                    <br />
-                    Tirupur - 641663
-                    <br />
-                    Mobile: 7494009099
-                    <br />
-                    GSTIN NO: 33AAACF3127H1ZY
-                  </Box>
-                </Box>
-                <Box textAlign="right">
-                  <Box border="1px solid" p={1}>
-                    DUPLICATE
-                    <br />
-                    INVOICE
-                  </Box>
-                  <Box mt={2}>Inv No: {selectedBill?.id}</Box>
-                  <Box>Date: {new Date().toLocaleDateString()}</Box>
-                </Box>
-              </Box>
+      <Modal isOpen={isOpen} onClose={onClose} size="4xl">
+        <ModalOverlay/>
+        <ModalContent p={3}>
+          <ModalCloseButton/>
+          <ModalBody maxH="80vh" overflowY="auto">
 
-              <Table size="sm" mt={4} border="1px solid #C41E3A">
-                <Thead bg="#FDE2E5">
-                  <Tr>
-                    <Th>S.No</Th>
-                    <Th>Product</Th>
-                    <Th textAlign="right">Cost</Th>
-                    <Th textAlign="right">Hours</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {selectedBill?.items.map((item, i) => (
-                    <Tr key={i}>
-                      <Td>{i + 1}</Td>
-                      <Td>{item.product}</Td>
-                      <Td textAlign="right">₹{item.cost.toFixed(2)}</Td>
-                      <Td textAlign="right">{item.hours}</Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+            <Box ref={invoiceRef} p={3} bg="white" fontSize="11px">
+              {/* Header */}
+              <Flex justify="space-between" borderBottom="1px solid #000">
+                <Flex>
+                  <Image src="/deepthy_logo.png" boxSize="60px" mr={3}/>
+                  <Box textAlign="center">
+                    <Text fontSize="lg" fontWeight="bold" color="#8B0000">DEEPTHY FENISHERS</Text>
+                    <Text fontSize="xs">(Unit - 3 Dyeing Division)</Text>
+                  </Box>
+                </Flex>
+                <Box border="1px solid #000" p={1}>TRIPLICATE<br/>INVOICE</Box>
+              </Flex>
 
-              <Flex mt={4} justify="space-between">
+              <Flex justify="space-between" fontSize="10px" mt={1}>
                 <Box>
-                  Bank: The Federal Bank LTD
-                  <br />
-                  ACNO: 13590200001050
-                  <br />
-                  IFSC: FDRL0001359
-                </Box>
-                <Box fontWeight="bold">
-                  Total: ₹
-                  {selectedBill?.items
-                    .reduce((acc, i) => acc + i.cost, 0)
-                    .toFixed(2)}
+                  <Text>Inv No: {selectedBill?.id}</Text>
+                  <Text>Date: {new Date().toLocaleDateString()}</Text>
                 </Box>
               </Flex>
 
-              <Box mt={10} textAlign="right">
-                For DEEPTHY FENISHERS
-                <Box mt={10}>Authorised Signature</Box>
+              <Box border="1px solid #000" mt={2} p={1}>
+                <Text><b>To:</b> {selectedBill?.user}</Text>
               </Box>
+
+              {/* Items */}
+              <Table size="sm" mt={2} border="1px solid #000">
+                <Thead><Tr><Th>S.No</Th><Th>Product</Th><Th>Weight</Th><Th>Rate</Th><Th>Amount</Th></Tr></Thead>
+                <Tbody>
+                  {(selectedBill?.items || []).map((i,idx)=>{
+                    const amt = Number(i.weight)*Number(i.rate);
+                    return(
+                      <Tr key={idx}>
+                        <Td>{idx+1}</Td>
+                        <Td>{i.product}</Td>
+                        <Td>{i.weight}</Td>
+                        <Td>{i.rate}</Td>
+                        <Td>{amt.toFixed(2)}</Td>
+                      </Tr>
+                    );
+                  })}
+                </Tbody>
+              </Table>
+
+              {/* Totals */}
+              {(() => {
+                const { total, sgst, cgst, grand } = calc(selectedBill?.items);
+                return (
+                  <>
+                    <Box textAlign="right" mt={2}>
+                      <Text>Total: ₹{total.toFixed(2)}</Text>
+                      <Text>SGST 2.5%: ₹{sgst.toFixed(2)}</Text>
+                      <Text>CGST 2.5%: ₹{cgst.toFixed(2)}</Text>
+                      <Text fontWeight="bold">Grand Total: ₹{grand}</Text>
+                    </Box>
+                    <Text fontSize="10px" mt={1}>
+                      Amount in Words: <b>{numberToWords(grand)}</b>
+                    </Text>
+                  </>
+                );
+              })()}
             </Box>
 
-            <Flex justify="center" mt={6} gap={3}>
-              <Button
-                size="sm"
-                bg="#C41E3A"
-                color="white"
-                onClick={() => downloadBill(selectedBill)}
-              >
-                Download PDF
-              </Button>
-              <Button size="sm" onClick={printBill}>
-                Print
-              </Button>
+            <Flex justify="center" gap={2} mt={3}>
+              <Button size="sm" bg="#C41E3A" color="white"
+                onClick={()=>downloadBill(selectedBill)}>PDF</Button>
+              <Button size="sm" onClick={()=>exportExcel(selectedBill)}>Excel</Button>
             </Flex>
+
           </ModalBody>
         </ModalContent>
       </Modal>

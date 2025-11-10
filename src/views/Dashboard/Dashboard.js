@@ -26,10 +26,7 @@ import BarChart from "components/Charts/BarChart";
 import { FaChartLine } from "react-icons/fa";
 import FabricTable from "components/FabricProcessForm/FabricProcessList";
 // ✅ Import API methods from axiosInstance file
-import {
-  getAllUsers,
-  getAllFabricProcesses,
-} from "utils/axiosInstance";
+import { getAllUsers, getAllFabricProcesses } from "utils/axiosInstance";
 
 // Color constants
 const customColor = "#FF6B6B";
@@ -42,20 +39,22 @@ const UsersSection = ({ users }) => (
   <Card
     p={5}
     borderRadius="15px"
-    border="1px solid"
+    border="2px solid"
     borderColor={customColor}
-    bg={`linear-gradient(135deg, ${customColor} 0%, ${customHoverColor} 100%)`}
-    color="white"
+    bg="white"
+    color="black"
     transition="all 0.3s ease"
     _hover={{
       transform: "translateY(-2px)",
-      boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
     }}
   >
-    <Heading size="md" mb={4}>👤 User Details</Heading>
+    <Heading size="md" mb={4} color={customColor}>
+      👤 User Details
+    </Heading>
     <Box overflowX="auto">
-      <Table variant="striped" colorScheme="whiteAlpha" minW="600px">
-        <Thead bg="rgba(255,255,255,0.15)">
+      <Table variant="simple" minW="600px">
+        <Thead bg="gray.100">
           <Tr>
             <Th>#</Th>
             <Th>Name</Th>
@@ -78,6 +77,7 @@ const UsersSection = ({ users }) => (
   </Card>
 );
 
+
 /* ======================================================
    🔹 STAFF SECTION
    ====================================================== */
@@ -85,20 +85,23 @@ const StaffSection = ({ staff }) => (
   <Card
     p={5}
     borderRadius="15px"
-    border="1px solid"
+    border="2px solid"
     borderColor={customColor}
-    bg={`linear-gradient(135deg, ${customColor} 0%, ${customHoverColor} 100%)`}
-    color="white"
+    bg="white"
+    color="black"
     transition="all 0.3s ease"
     _hover={{
       transform: "translateY(-2px)",
-      boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
     }}
   >
-    <Heading size="md" mb={4}>👨‍💼 Working Staff</Heading>
+    <Heading size="md" mb={4} color={customColor}>
+      👨‍💼 Working Staff
+    </Heading>
+
     <Box overflowX="auto">
-      <Table variant="striped" colorScheme="whiteAlpha" minW="600px">
-        <Thead bg="rgba(255,255,255,0.15)">
+      <Table variant="simple" minW="600px">
+        <Thead bg="gray.100">
           <Tr>
             <Th>#</Th>
             <Th>Name</Th>
@@ -133,6 +136,7 @@ const StaffSection = ({ staff }) => (
   </Card>
 );
 
+
 /* ======================================================
    🔹 SALES / FABRIC SECTION
    ====================================================== */
@@ -140,32 +144,35 @@ const SalesSection = ({ sales, getStatusColor }) => (
   <Card
     p={5}
     borderRadius="15px"
-    border="1px solid"
+    border="2px solid"
     borderColor={customColor}
-    bg={`linear-gradient(135deg, ${customColor} 0%, ${customHoverColor} 100%)`}
-    color="white"
+    bg="white"
+    color="black"
     transition="all 0.3s ease"
     _hover={{
       transform: "translateY(-2px)",
-      boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
     }}
   >
-    <Heading size="md" mb={4}>💰 Process Details</Heading>
+    <Heading size="md" mb={4} color={customColor}>
+      💰 Process Details
+    </Heading>
+
     <Box overflowX="auto">
-      <Table variant="striped" colorScheme="whiteAlpha" minW="800px">
-        <Thead bg="rgba(255,255,255,0.15)">
+      <Table variant="simple" minW="800px">
+        <Thead bg="gray.100">
           <Tr>
             <Th>#</Th>
             <Th>DC No</Th>
-           <Th>Brand</Th>
-           <Th>Color</Th>
+            <Th>Brand</Th>
+            <Th>Color</Th>
             <Th>Qty</Th>
-          <Th>Machine</Th>
+            <Th>Machine</Th>
             <Th>Rate</Th>
-          <Th>Running Time</Th> {/* 👈 new */}
-          <Th>Water Cost</Th>   {/* 👈 new */}
-           <Th>Total Cost</Th>
-          <Th>Action</Th>
+            <Th>Running Time</Th>
+            <Th>Water Cost</Th>
+            <Th>Total Cost</Th>
+            <Th>Status</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -176,11 +183,11 @@ const SalesSection = ({ sales, getStatusColor }) => (
               <Td>{s.brandName || "-"}</Td>
               <Td>{s.color || "-"}</Td>
               <Td>{s.qty || "-"}</Td>
-              <Td>{s.machineNo|| "-"}</Td>
+              <Td>{s.machineNo || "-"}</Td>
               <Td>{s.rate || "-"}</Td>
               <Td>{s.runningTime || "-"}</Td>
-              <Td>{s.waterCost|| "-"}</Td>
-              <Td>{s.totalCost|| "-"}</Td>
+              <Td>{s.waterCost || "-"}</Td>
+              <Td>{s.totalCost || "-"}</Td>
               <Td>
                 <Badge colorScheme={getStatusColor(s.status)}>
                   {s.status || "Unknown"}
@@ -193,6 +200,7 @@ const SalesSection = ({ sales, getStatusColor }) => (
     </Box>
   </Card>
 );
+
 
 /* ======================================================
    🔹 MAIN DASHBOARD COMPONENT
@@ -215,7 +223,10 @@ export default function Dashboard() {
   // ✅ Access control
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || (storedUser.role !== "admin" && storedUser.role !== "owner")) {
+    if (
+      !storedUser ||
+      (storedUser.role !== "admin" && storedUser.role !== "owner")
+    ) {
       toast({
         title: "Access Denied",
         description: "Only admin users can access this page.",
@@ -237,7 +248,9 @@ export default function Dashboard() {
         setLoadingUsers(true);
         const userRes = await getAllUsers();
         const usersData = userRes.data?.data || userRes.data?.users || [];
-        const uniqueUsers = Array.from(new Map(usersData.map(u => [u.email, u])).values());
+        const uniqueUsers = Array.from(
+          new Map(usersData.map((u) => [u.email, u])).values()
+        );
         uniqueUsers.sort((a, b) => a.name.localeCompare(b.name));
         setUsers(uniqueUsers);
       } catch (err) {
@@ -307,7 +320,11 @@ export default function Dashboard() {
   if (!currentUser) return null;
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} marginTop={-20}>
+    <Flex
+      flexDirection="column"
+      pt={{ base: "120px", md: "75px" }}
+      marginTop={-20}
+    >
       <Box mb={6}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Welcome, {currentUser.name} 👋
@@ -326,37 +343,41 @@ export default function Dashboard() {
             minH="125px"
             p={4}
             borderRadius="15px"
-            border="1px solid"
+            border="2px solid"
             borderColor={customColor}
-            bg={`linear-gradient(135deg, ${customColor} 0%, ${customHoverColor} 100%)`}
-            color="white"
+            bg="white" // ✅ simple clean background
+            color="black" // ✅ text black
             transition="all 0.3s ease"
             _hover={{
               transform: "translateY(-5px)",
-              boxShadow: "0 15px 30px rgba(0,0,0,0.3)",
-              bg: `linear-gradient(135deg, ${customHoverColor} 0%, ${customColor} 100%)`,
+              boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
             }}
           >
             <Stat>
-              <StatLabel color="whiteAlpha.800">{card.label}</StatLabel>
-              <StatNumber fontSize="xl">{card.value}</StatNumber>
+              <StatLabel fontWeight="bold">{card.label}</StatLabel>
+              <StatNumber fontSize="2xl" color={customColor}>
+                {card.value}
+              </StatNumber>
             </Stat>
+
             <Button
               mt={3}
-              colorScheme="whiteAlpha"
+              colorScheme="red"
+              variant="outline"
               leftIcon={<FaChartLine />}
               onClick={() => setActiveSection(card.section)}
               _hover={{
-                bg: "rgba(255,255,255,0.3)",
+                bg: customColor,
+                color: "white",
                 transform: "scale(1.05)",
               }}
               transition="all 0.2s ease"
             >
               {card.section === "sales"
-                ? "Show Process Details"
+                ? "Show Process"
                 : card.section === "users"
-                ? "Show User Details"
-                : "Show Working Staff Details"}
+                ? "Show Users"
+                : "Show Working Staff"}
             </Button>
           </Card>
         ))}
@@ -366,21 +387,27 @@ export default function Dashboard() {
       <Box mt={6}>
         {activeSection === "users" &&
           (loadingUsers ? (
-            <Center h="200px"><Spinner color={customColor} size="xl" /></Center>
+            <Center h="200px">
+              <Spinner color={customColor} size="xl" />
+            </Center>
           ) : (
             <UsersSection users={users} />
           ))}
 
         {activeSection === "staffs" &&
           (loadingStaff ? (
-            <Center h="200px"><Spinner color={customColor} size="xl" /></Center>
+            <Center h="200px">
+              <Spinner color={customColor} size="xl" />
+            </Center>
           ) : (
             <StaffSection staff={staff} />
           ))}
 
         {activeSection === "sales" &&
           (loadingSales ? (
-            <Center h="200px"><Spinner color={customColor} size="xl" /></Center>
+            <Center h="200px">
+              <Spinner color={customColor} size="xl" />
+            </Center>
           ) : (
             <SalesSection sales={sales} getStatusColor={getStatusColor} />
           ))}

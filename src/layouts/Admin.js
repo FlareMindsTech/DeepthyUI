@@ -19,7 +19,6 @@ import AdminNavbar from "../components/Navbars/AdminNavbar.js";
 import MainPanel from "components/Layout/MainPanel";
 import PanelContainer from "components/Layout/PanelContainer";
 import PanelContent from "components/Layout/PanelContent";
-import Footer from "components/Footer/Footer.js";
 
 // ✅ Your logos (NO CHANGE to header logos)
 import {

@@ -24,15 +24,16 @@ import { FaUser, FaShoppingBag, FaChartLine, FaFileAlt } from "react-icons/fa";
 import Card from "components/Card/Card.js";
 import BarChart from "components/Charts/BarChart";
 
-// === Profile Section ===
+// ✅ Profile Section
 const ProfileSection = ({ user }) => (
   <Card
     p={5}
     borderRadius="15px"
     border="1px solid"
     borderColor="#C41E3A"
-    bg="rgba(196, 30, 58, 0.85)"
-    color="white"
+    bg="white"
+    color="black"
+    w="100%"
   >
     <Heading size="md" mb={4}>👤 My Profile</Heading>
     <Box>
@@ -44,9 +45,8 @@ const ProfileSection = ({ user }) => (
   </Card>
 );
 
-// === Orders Section with Chart ===
+// ✅ Orders Section
 const OrdersSection = ({ orders, getStatusColor }) => {
-  // Prepare chart data (group orders by status)
   const statusGroups = orders.reduce((acc, order) => {
     acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
@@ -61,13 +61,15 @@ const OrdersSection = ({ orders, getStatusColor }) => {
       borderRadius="15px"
       border="1px solid"
       borderColor="#C41E3A"
-      bg="rgba(196, 30, 58, 0.85)"
-      color="white"
+      bg="white"
+      color="black"
+      w="100%"
     >
       <Heading size="md" mb={4}>🛍 My Orders</Heading>
-      <Box overflowX="auto">
-        <Table variant="striped" colorScheme="whiteAlpha" minW="800px">
-          <Thead bg="rgba(255,255,255,0.15)">
+
+      <Box overflowX="auto" w="100%">
+        <Table variant="striped" colorScheme="gray" minW="800px">
+          <Thead>
             <Tr>
               <Th>Order ID</Th>
               <Th>Product</Th>
@@ -92,26 +94,14 @@ const OrdersSection = ({ orders, getStatusColor }) => {
         </Table>
       </Box>
 
-      {/* Chart - Orders by Status */}
-      <Box mt={8} h="300px">
-        <Heading size="sm" mb={3} color="whiteAlpha.800">📊 Orders by Status</Heading>
+      <Box mt={8} w="100%" h={{ base: "250px", md: "300px" }}>
+        <Heading size="sm" mb={3}>📊 Orders by Status</Heading>
         <BarChart
           chartData={[{ name: "Orders", data: chartValues }]}
           chartOptions={{
             chart: { id: "orders-status-bar" },
             xaxis: { categories: chartCategories },
-            colors: ["#ffffff"],
-            grid: { borderColor: "rgba(255,255,255,0.2)" },
-            yaxis: {
-              labels: {
-                style: { colors: "white" }
-              }
-            },
-            xaxis: {
-              labels: {
-                style: { colors: "white" }
-              }
-            }
+            grid: { borderColor: "lightgray" },
           }}
         />
       </Box>
@@ -119,20 +109,22 @@ const OrdersSection = ({ orders, getStatusColor }) => {
   );
 };
 
-// === Complaints Section ===
+// ✅ Complaints Section
 const ComplaintsSection = ({ complaints }) => (
   <Card
     p={5}
     borderRadius="15px"
     border="1px solid"
     borderColor="#C41E3A"
-    bg="rgba(196, 30, 58, 0.85)"
-    color="white"
+    bg="white"
+    color="black"
+    w="100%"
   >
     <Heading size="md" mb={4}>📝 My Complaints</Heading>
-    <Box overflowX="auto">
-      <Table variant="striped" colorScheme="whiteAlpha" minW="600px">
-        <Thead bg="rgba(255,255,255,0.15)">
+
+    <Box overflowX="auto" w="100%">
+      <Table variant="striped" colorScheme="gray" minW="600px">
+        <Thead>
           <Tr>
             <Th>ID</Th>
             <Th>Subject</Th>
@@ -142,10 +134,14 @@ const ComplaintsSection = ({ complaints }) => (
         </Thead>
         <Tbody>
           {complaints.map((c, idx) => (
-            <Tr key={c.id || idx}>
+            <Tr key={idx}>
               <Td>{idx + 1}</Td>
               <Td>{c.subject}</Td>
-              <Td><Badge colorScheme={c.status === "Resolved" ? "green" : "yellow"}>{c.status}</Badge></Td>
+              <Td>
+                <Badge colorScheme={c.status === "Resolved" ? "green" : "yellow"}>
+                  {c.status}
+                </Badge>
+              </Td>
               <Td>{new Date(c.date).toLocaleDateString()}</Td>
             </Tr>
           ))}
@@ -155,10 +151,10 @@ const ComplaintsSection = ({ complaints }) => (
   </Card>
 );
 
+// ✅ MAIN DASHBOARD
 export default function UserDashboard() {
   const navigate = useNavigate();
   const toast = useToast();
-
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [complaints, setComplaints] = useState([]);
@@ -173,12 +169,10 @@ export default function UserDashboard() {
     }
     setUser(storedUser);
 
-    // Fetch user orders
     axios.get(`http://localhost:7000/api/orders/user/${storedUser._id}`)
       .then(res => setOrders(res.data.data || []))
-      .catch(err => console.error("Order fetch error", err));
+      .catch(() => setOrders([]));
 
-    // Fetch complaints (optional)
     axios.get(`http://localhost:7000/api/complaints/user/${storedUser._id}`)
       .then(res => setComplaints(res.data.data || []))
       .catch(() => setComplaints([]));
@@ -192,36 +186,31 @@ export default function UserDashboard() {
   if (!user) return null;
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
+    <Flex
+      flexDirection="column"
+      pt={{ base: "120px", md: "75px" }}
+      px={{ base: 4, md: 6 }}
+      overflowY="auto"
+      minH="100vh"
+    >
       <Box mb={6}>
-        <Text fontSize="2xl" fontWeight="bold" color="black">
+        <Text fontSize="2xl" fontWeight="bold">
           Welcome back, {user.name} 👋
         </Text>
       </Box>
 
-      {/* Top Summary Cards */}
-      <SimpleGrid columns={{ sm: 1, md: 2, xl: 4 }} spacing="24px" mb="20px">
-        {[{
-          label: "Total Orders",
-          value: orders.length,
-          icon: <FaShoppingBag />,
-          section: "orders",
-        },{
-          label: "Pending Complaints",
-          value: complaints.filter(c => c.status !== "Resolved").length,
-          icon: <FaFileAlt />,
-          section: "complaints",
-        },{
-          label: "Profile",
-          value: "View",
-          icon: <FaUser />,
-          section: "profile",
-        },{
-          label: "Delivered Orders",
-          value: orders.filter(o => o.status === "Delivered").length,
-          icon: <FaChartLine />,
-          section: "orders",
-        }].map((card, idx) => (
+      <SimpleGrid
+        columns={{ base: 1, md: 2, xl: 4 }}
+        spacing="24px"
+        mb="20px"
+        minChildWidth="250px"
+      >
+        {[
+          { label: "Total Orders", value: orders.length, icon: <FaShoppingBag />, section: "orders" },
+          { label: "Pending Complaints", value: complaints.filter(c => c.status !== "Resolved").length, icon: <FaFileAlt />, section: "complaints" },
+          { label: "Profile", value: "View", icon: <FaUser />, section: "profile" },
+          { label: "Delivered Orders", value: orders.filter(o => o.status === "Delivered").length, icon: <FaChartLine />, section: "orders" },
+        ].map((card, idx) => (
           <Card
             key={idx}
             minH="125px"
@@ -229,18 +218,22 @@ export default function UserDashboard() {
             borderRadius="15px"
             border="1px solid"
             borderColor="#C41E3A"
-            bg="rgba(196, 30, 58, 0.85)"
-            color="white"
+            bg="white"
+            color="black"
           >
             <Stat>
-              <StatLabel color="whiteAlpha.800">{card.label}</StatLabel>
+              <StatLabel>{card.label}</StatLabel>
               <StatNumber fontSize="xl">{card.value}</StatNumber>
             </Stat>
+
             <Button
               mt={3}
-              colorScheme="whiteAlpha"
+              bg="#C41E3A"
+              color="white"
               leftIcon={card.icon}
               onClick={() => setActiveSection(card.section)}
+              _hover={{ bg: "#A91A34", transform: "scale(1.05)" }}
+              transition="0.2s"
             >
               View
             </Button>
@@ -248,8 +241,7 @@ export default function UserDashboard() {
         ))}
       </SimpleGrid>
 
-      {/* Section Details */}
-      <Box mt={6}>
+      <Box mt={6} mb={10}>
         {activeSection === "profile" && <ProfileSection user={user} />}
         {activeSection === "orders" && <OrdersSection orders={orders} getStatusColor={getStatusColor} />}
         {activeSection === "complaints" && <ComplaintsSection complaints={complaints} />}

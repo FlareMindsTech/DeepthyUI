@@ -86,7 +86,7 @@ export const adminRoutes = [
         icon: <PersonIcon color="inherit" />,
         element: <Profile />,
         layout: "/admin",
-        roles: ["admin", "owner"],
+        roles: [],
       },
     ],
   },
@@ -105,15 +105,6 @@ export const userRoutes = [
   },
 
   {
-    path: "/fabric-watercost",
-    name: "Water Cost",
-    icon: <StatsIcon color="inherit" />,
-    element: <FabricProcessWatercost />,
-    layout: "/user",
-    roles: ["user","owner","admin"],
-  },
-
-  {
     path: "/fabric-mangement",
     name: "Fabric List",
     icon: <CartIcon color="inherit" />,
@@ -127,6 +118,14 @@ export const userRoutes = [
     name: "Fabric Process",
     icon: <RocketIcon color="inherit" />,
     element: <FabricProcessPage />,
+    layout: "/user",
+    roles: ["user","owner","admin"],
+  },
+  {
+    path: "/fabric-watercost",
+    name: "Water Cost",
+    icon: <StatsIcon color="inherit" />,
+    element: <FabricProcessWatercost />,
     layout: "/user",
     roles: ["user","owner","admin"],
   },
@@ -151,7 +150,7 @@ export const userRoutes = [
         icon: <PersonIcon color="inherit" />,
         element: <UserProfile />,
         layout: "/user",
-        roles: ["user"],
+        roles: [],
       },
     ],
   },
