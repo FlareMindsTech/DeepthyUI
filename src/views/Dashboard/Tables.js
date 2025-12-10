@@ -1,4 +1,6 @@
 /* eslint-disable */
+// Full enhanced WorkHoursTable component
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Table,
@@ -11,186 +13,505 @@ import {
   Center,
   Flex,
   Tooltip,
+  Heading,
   Button,
   Badge,
-  InputGroup,
-  InputLeftElement,
+  Spinner,
   Input,
   useColorModeValue,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
-import React, { useState } from "react";
+import Card from "components/Card/Card.js";
+import CardBody from "components/Card/CardBody.js";
+import CardHeader from "components/Card/CardHeader.js";
+import { getMachineReports } from "../../utils/axiosInstance"; // Backend API
 
 export default function WorkHoursTable() {
-  // Use the custom color constant
   const customColor = "#FF6B6B";
-
-  const workData = [
-    { user: "John Doe", material: "Dress - Summer Collection", customer: "Sanjay Kumar", start: "09:00 AM", end: "05:00 PM", total: "8h", cost: 5000, status: "Completed" },
-    { user: "Emily Carter", material: "Cloths - Casual Wear", customer: "Priya Sharma", start: "10:00 AM", end: "04:00 PM", total: "6h", cost: 3000, status: "In Progress" },
-    { user: "Michael Brown", material: "Dress - Party Wear", customer: "Arun Raj", start: "08:30 AM", end: "03:30 PM", total: "7h", cost: 2500, status: "Pending" },
-    { user: "Sarah Lee", material: "Cloths - Formal Wear", customer: "Meena Devi", start: "06:00 PM", end: "02:00 AM", total: "8h", cost: 4000, status: "Completed" },
-    { user: "Rohit Sharma", material: "Kids Wear", customer: "Kavin Kumar", start: "02:00 PM", end: "08:00 PM", total: "6h", cost: 2800, status: "In Progress" },
-    { user: "Ananya Singh", material: "Bridal Dress", customer: "Swathi Rao", start: "07:00 AM", end: "01:00 PM", total: "6h", cost: 5500, status: "Pending" },
-  ];
-
-  /** ✅ Search **/
+  const [workData, setWorkData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
+  const [filterDate, setFilterDate] = useState("");
   const [search, setSearch] = useState("");
+
+  // tick now every 10s to animate running timelines
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 10000);
+    return () => clearInterval(t);
+  }, []);
+
+  // safe CSS injection for animations & small helpers
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("data-from", "work-hours-timeline");
+    styleTag.innerHTML = `
+      @keyframes progressPulse {
+        0% { box-shadow: 0 0 0 0 rgba(0,0,0,0.12); transform: translateY(0); }
+        50% { box-shadow: 0 6px 18px -6px rgba(0,0,0,0.18); transform: translateY(-1px); }
+        100% { box-shadow: 0 0 0 0 rgba(0,0,0,0.12); transform: translateY(0); }
+      }
+      .timeline-seg-text {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+    `;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
+
+  // fetch reports
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await getMachineReports();
+        const machineData =
+          (res?.data?.data || []).map((item) => ({
+            machine: item.machineNo || "-",
+            receiverNo: item.receiverNo || "-",
+            user: item.operatorName || "-",
+            material: `${item.fabric || "-"} - ${item.color || "-"}`,
+            customer: item.companyName || "-",
+            start: item.startTimeFormatted || "-",
+            end: item.endTimeFormatted || "-",
+            date: item.date || "-",
+            total: item.runningTime ? `${item.runningTime} min` : "-",
+            cost: item.weight || 0,
+            status: item.status || "-",
+            raw: item,
+          })) || [];
+        setWorkData(machineData);
+      } catch (error) {
+        console.error("Error Loading Machine Report", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // search / filter
   const filteredData = workData.filter((row) => {
     const s = search.toLowerCase();
-    return (
-      row.user.toLowerCase().includes(s) ||
-      row.customer.toLowerCase().includes(s) ||
-      row.material.toLowerCase().includes(s) ||
-      row.status.toLowerCase().includes(s)
-    );
+
+    const matchesSearch =
+      row.user?.toLowerCase().includes(s) ||
+      row.customer?.toLowerCase().includes(s) ||
+      row.material?.toLowerCase().includes(s) ||
+      row.status?.toLowerCase().includes(s);
+
+    const matchesDate = !filterDate || row.date === filterDate; // ★ only show selected date
+
+    return matchesSearch && matchesDate;
   });
 
-  /** ✅ Pagination */
+  // pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const currentItems = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const itemsPerPage = 8;
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
+  const currentItems = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
+  // time parsing
   const parseTime = (time) => {
-    const [hourMin, period] = time.split(" ");
-    let [hour, min] = hourMin.split(":").map(Number);
-    if (period === "PM" && hour !== 12) hour += 12;
-    if (period === "AM" && hour === 12) hour = 0;
-    return hour + min / 60;
+    if (!time || typeof time !== "string") return NaN;
+    if (time.trim() === "-") return NaN;
+    // if format "HH:MM AM/PM"
+    if (time.includes(" ")) {
+      const [hourMin, period] = time.split(" ");
+      let [h, m] = hourMin.split(":").map(Number);
+      if (period === "PM" && h !== 12) h += 12;
+      if (period === "AM" && h === 12) h = 0;
+      return h + (m || 0) / 60;
+    }
+    // assume 24h "HH:MM"
+    const [hRaw, mRaw] = time.split(":");
+    const h = Number(hRaw);
+    const m = Number(mRaw || 0);
+    return Number.isFinite(h) ? h + (m || 0) / 60 : NaN;
   };
 
+  // shift definitions
   const shifts = [
-    { name: "Morning", start: 6, end: 12, color: "#ffcb42" },
-    { name: "Afternoon", start: 12, end: 17, color: "#ff914d" },
-    { name: "Evening", start: 17, end: 21, color: "#5bc0f8" },
-    { name: "Night", start: 21, end: 30, color: "#6b7280" },
+    { name: "Night", start: 0, end: 6, color: "#6b7280" }, // midnight - 6
+    { name: "Morning", start: 6, end: 12, color: "#5bc0f8" }, // 6 - 12
+    { name: "Afternoon", start: 12, end: 18, color: "#ffcb42" }, // 12 - 18
+    { name: "Evening", start: 18, end: 24, color: "#ff914d" }, // 18 - 24
   ];
 
-  const getShiftSegments = (start, end) => {
+  // create multi-segments across shifts
+  const getTimelineSegments = (start, end, status) => {
+    if (!start || start === "-" || !start.includes(":")) return [];
     let startHour = parseTime(start);
     let endHour = parseTime(end);
+
+    // if running or missing end use now
+    if (!Number.isFinite(endHour) || status === "Running") {
+      const nowDate = now || new Date();
+      endHour = nowDate.getHours() + nowDate.getMinutes() / 60;
+    }
+    if (!Number.isFinite(startHour)) return [];
+
+    // normalize across day
     if (endHour <= startHour) endHour += 24;
-    return shifts.reduce((acc, shift) => {
+
+    // collect segments by checking each shift window (allow shifts to be extended to 24..30 for overlaps)
+    const segs = [];
+    // use shifts repeated for next day by mapping each shift to both day0 and day1
+    const expandedShifts = shifts.concat(
+      shifts.map((s) => ({ ...s, start: s.start + 24, end: s.end + 24 }))
+    );
+
+    for (const shift of expandedShifts) {
       const overlapStart = Math.max(startHour, shift.start);
       const overlapEnd = Math.min(endHour, shift.end);
       if (overlapEnd > overlapStart) {
-        acc.push({
+        const durationHours = overlapEnd - overlapStart;
+        // scaling: 1 hour = 12px (tweakable)
+        const width = Math.max(2, Math.round(durationHours * 12));
+        segs.push({
           name: shift.name,
-          width: overlapEnd - overlapStart,
+          width,
           color: shift.color,
           startTime: overlapStart % 24,
           endTime: overlapEnd % 24,
+          isRunning: status === "Running",
+          durationHours,
         });
       }
-      return acc;
-    }, []);
+    }
+
+    return segs;
   };
 
-  const formatHour = (decimal) => {
-    const hour = Math.floor(decimal);
-    const min = Math.round((decimal - hour) * 60);
-    const period = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-    return `${displayHour}:${min.toString().padStart(2, "0")} ${period}`;
-  };
-
-  const tableBg = useColorModeValue("rgba(255,255,255,0.85)", "rgba(32,32,32,0.75)");
-
+  // status color fallback (used for label background if needed)
   const getStatusColor = (status) => {
-    const colors = { Completed: "green", "In Progress": "orange", Pending: "red" };
-    return colors[status] || "gray";
+    switch (status) {
+      case "Running":
+        return "green.400";
+      case "Paused":
+        return "yellow.300";
+      case "Freezed":
+        return "purple.400";
+      case "Completed":
+        return "gray.400";
+      case "Pending":
+        return "red.300";
+      default:
+        return "gray.300";
+    }
   };
+
+  const tableBg = useColorModeValue(
+    "rgba(255,255,255,0.95)",
+    "rgba(18,18,18,0.85)"
+  );
+
+  // time scale tick labels (for header scale)
+  const scaleTicks = ["00:00", "06:00", "12:00", "18:00", "00:00"];
 
   return (
-    <Center mt="5">
-      <Box
-        p="4"
-        borderRadius="15px"
-        w="100%"
-        maxW="100%"
-        maxH="520px"
-        overflow="auto"
-        bg={tableBg}
-        backdropFilter="blur(20px)"
-        boxShadow="0 6px 25px rgba(0,0,0,0.15)"
-      >
-        {/* Updated: Heading uses the custom color in the gradient */}
-        <Text fontSize="xl" fontWeight="bold" mb="3" textAlign="center" bgGradient={`linear(to-r,${customColor},#ff914d)`}
-          color="white" py="2" borderRadius="md">
-          👔 Tailoring Work Hours Summary
-        </Text>
+    <Flex flexDirection="column" pt="40px" px={{ base: 2, md: 6 }}>
+      <Card p={4} shadow="xl" bg="white">
+        <CardHeader bg="white" p={0} mb={3}>
+          <Flex justify="space-between" align="center" flexWrap="wrap" gap={3}>
+            <Heading size="sm" color="gray.700">
+              🏭 Machine Work Reports
+            </Heading>
 
-        {/* ✅ Search Bar */}
-        <InputGroup mb={3}>
-          {/* Updated: SearchIcon color */}
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color={customColor} />
-          </InputLeftElement>
-          <Input
-            placeholder="Search Worker / Customer / Material / Status"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            // Updated: Border colors
-            borderColor={customColor}
-            focusBorderColor={customColor}
-          />
-        </InputGroup>
+            <Flex
+              align="center"
+              flex="1"
+              maxW="480px"
+              gap={2} // ⭐ maintains proper spacing
+            >
+              {/* Search Input */}
+              <Input
+                placeholder="Search by operator, customer, material or status..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                size="sm"
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{
+                  borderColor: customColor,
+                  boxShadow: `0 0 0 1px ${customColor}`,
+                }}
+                color="black"
+              />
 
-        <Table variant="simple" size="sm">
-          {/* Updated: Thead background color */}
-          <Thead bg={customColor}>
-            <Tr>
-              {["User Name","Customer Name","Material","Start","End","Total","Cost","Status","Timeline"].map((h,i)=>
-                <Th key={i} color="white" textAlign="center">{h}</Th>
+              {/* Search Icon */}
+              <SearchIcon color="gray.500" />
+
+              {/* Clear Button */}
+              {search && (
+                <Button
+                  size="sm"
+                  onClick={() => setSearch("")}
+                  bg="white"
+                  color={customColor}
+                  border="1px"
+                  borderColor={customColor}
+                  _hover={{ bg: customColor, color: "white" }}
+                >
+                  Clear
+                </Button>
               )}
-            </Tr>
-          </Thead>
-          <Tbody>
-            {currentItems.map((row, idx) => {
-              const segments = getShiftSegments(row.start, row.end);
-              return (
-                <Tr key={idx} _hover={{ bg: "rgba(255,107,107,0.05)" }}> {/* Used a lighter transparent version of the color for hover */}
-                  <Td textAlign="center">{row.user}</Td>
-                  <Td textAlign="center">{row.customer}</Td>
-                  <Td textAlign="center">{row.material}</Td>
-                  <Td textAlign="center">{row.start}</Td>
-                  <Td textAlign="center">{row.end}</Td>
-                  <Td textAlign="center">{row.total}</Td>
-                  <Td textAlign="center">₹{row.cost}</Td>
-                  <Td textAlign="center">
-                    <Badge colorScheme={getStatusColor(row.status)}>{row.status}</Badge>
-                  </Td>
-                  <Td>
-                    <Flex h="18px" w="100px" bg="gray.200" borderRadius="md" overflow="hidden">
-                      {segments.map((seg,i)=>(
-                        <Tooltip key={i} label={`${formatHour(seg.startTime)} - ${formatHour(seg.endTime)}`}>
-                          <Box bg={seg.color} width={`${seg.width * 10}px`} />
-                        </Tooltip>
-                      ))}
-                    </Flex>
-                  </Td>
-                </Tr>
-              );
-            })}
-          </Tbody>
-        </Table>
 
-        {/* Pagination */}
-        <Flex justify="center" mt="3" gap="2">
-          {/* Note: Disabling state will prevent the color from showing fully on disabled buttons. */}
-          <Button size="xs" disabled={currentPage === 1} onClick={()=>setCurrentPage(currentPage-1)} colorScheme="red" variant="outline" borderColor={customColor}>
-            ⬅ Prev
-          </Button>
-          <Text fontWeight="bold">{currentPage} / {totalPages}</Text>
-          <Button size="xs" disabled={currentPage === totalPages} onClick={()=>setCurrentPage(currentPage+1)} colorScheme="red" variant="outline" borderColor={customColor}>
-            Next ➡
-          </Button>
-        </Flex>
-      </Box>
-    </Center>
+              {/* Date Filter */}
+              <Input
+                type="date"
+                value={filterDate}
+                onChange={(e) => {
+                  setFilterDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                size="sm"
+                color="black"
+                borderColor={`${customColor}50`}
+                _hover={{ borderColor: customColor }}
+                _focus={{
+                  borderColor: customColor,
+                  boxShadow: `0 0 0 1px ${customColor}`,
+                }}
+              />
+            </Flex>
+          </Flex>
+        </CardHeader>
+
+        {/* Time scale row */}
+        {/* <Box mb={2} px={2}>
+          <Flex align="center" justify="space-between" maxW="1000px" mx="auto">
+            {scaleTicks.map((t) => (
+              <Text key={t} fontSize="xs" color="gray.500">
+                {t}
+              </Text>
+            ))}
+          </Flex>
+        </Box> */}
+
+        <CardBody bg={tableBg}>
+          <Box overflowX="auto" w="100%">
+            <Table variant="simple" bg="white" size="sm" minW="900px">
+              <Thead bg={`${customColor}20`}>
+                <Tr>
+                  {[
+                    "Machine No",
+                    "Receiver",
+                    "Operator",
+                    "Company",
+                    "Fabric",
+                    "Start",
+                    "End",
+                    "Date",
+                    "Running Time",
+                    "Weight",
+                    "Status",
+                    "Timeline",
+                  ].map((h, i) => (
+                    <Th key={i} textAlign="center" color="gray.700">
+                      {h}
+                    </Th>
+                  ))}
+                </Tr>
+              </Thead>
+
+              <Tbody>
+                {/* loading row kept inside tbody so columns keep alignment */}
+                {loading ? (
+                  <Tr>
+                    <Td colSpan={12} textAlign="center" py={6}>
+                      <Flex justify="center" align="center" gap={3}>
+                        <Spinner size="lg" color={customColor} />
+                        <Text fontWeight="bold" color={customColor}>
+                          Loading machine reports...
+                        </Text>
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ) : currentItems.length > 0 ? (
+                  currentItems.map((row, idx) => {
+                    const segs = getTimelineSegments(
+                      row.start,
+                      row.end,
+                      row.status
+                    );
+
+                    return (
+                      <Tr key={idx} _hover={{ bg: `${customColor}10` }}>
+                        <Td textAlign="center">{row.machine}</Td>
+                        <Td textAlign="center">{row.receiverNo}</Td>
+                        <Td textAlign="center">{row.user}</Td>
+                        <Td textAlign="center">{row.customer}</Td>
+                        <Td textAlign="center">{row.material}</Td>
+                        <Td textAlign="center">{row.start}</Td>
+                        <Td textAlign="center">{row.end}</Td>
+                        <Td textAlign="center">{row.date}</Td>
+                        <Td textAlign="center">{row.total}</Td>
+                        <Td textAlign="center">₹{row.cost}</Td>
+                        <Td textAlign="center">
+                          <Badge
+                            colorScheme={
+                              String(getStatusColor(row.status)).includes(
+                                "green"
+                              )
+                                ? "green"
+                                : "gray"
+                            }
+                          >
+                            {row.status}
+                          </Badge>
+                        </Td>
+
+                        {/* Timeline cell */}
+                        <Td>
+                          {segs.length === 0 ? (
+                            <Text fontSize="xs" color="gray.500">
+                              -
+                            </Text>
+                          ) : (
+                            <Flex
+                              h="22px"
+                              align="center"
+                              bg="gray.100"
+                              borderRadius="6px"
+                              overflow="hidden"
+                              px={1}
+                              gap={1}
+                            >
+                              {segs.map((seg, i) => {
+                                // label inside segment: "<Shift> - <Status>" (A3)
+                                const label = `${seg.name} — ${row.status}`;
+                                const showLabel = seg.width > 70; // only show when enough width
+                                const segBg =
+                                  row.status === "Running" && seg.isRunning
+                                    ? "linear-gradient(90deg, rgba(34,197,94,0.95), rgba(16,185,129,0.9))"
+                                    : seg.color;
+
+                                return (
+                                  <Tooltip
+                                    key={i}
+                                    label={
+                                      <>
+                                        <Text fontWeight="bold">
+                                          {row.machine} • {seg.name}
+                                        </Text>
+                                        <Text>Status: {row.status}</Text>
+                                        <Text>
+                                          {`From: ${seg.startTime
+                                            .toFixed(2)
+                                            .replace(
+                                              ".",
+                                              ":"
+                                            )}  To: ${seg.endTime
+                                            .toFixed(2)
+                                            .replace(".", ":")}`}
+                                        </Text>
+                                      </>
+                                    }
+                                    hasArrow
+                                  >
+                                    <Flex
+                                      align="center"
+                                      justify={
+                                        showLabel ? "center" : "flex-start"
+                                      }
+                                      key={i}
+                                      px={showLabel ? 1 : 0.5}
+                                      style={{
+                                        width: `${seg.width}px`,
+                                        minWidth: "2px",
+                                        height: "16px",
+                                        borderRadius: "4px",
+                                        background:
+                                          typeof segBg === "string"
+                                            ? segBg
+                                            : seg.color,
+                                        position: "relative",
+                                        overflow: "hidden",
+                                        ...(seg.isRunning
+                                          ? {
+                                              animation:
+                                                "progressPulse 1.6s ease-in-out infinite",
+                                              boxShadow:
+                                                "0 6px 18px -6px rgba(0,0,0,0.18)",
+                                            }
+                                          : {}),
+                                      }}
+                                    >
+                                      {/* label inside segment (hide if too narrow) */}
+                                      {showLabel && (
+                                        <Text
+                                          className="timeline-seg-text"
+                                          fontSize="xs"
+                                          fontWeight="600"
+                                          color="white"
+                                        >
+                                          {label}
+                                        </Text>
+                                      )}
+                                    </Flex>
+                                  </Tooltip>
+                                );
+                              })}
+                            </Flex>
+                          )}
+                        </Td>
+                      </Tr>
+                    );
+                  })
+                ) : (
+                  <Tr>
+                    <Td colSpan={12} textAlign="center" py={6}>
+                      No records found
+                    </Td>
+                  </Tr>
+                )}
+              </Tbody>
+            </Table>
+          </Box>
+
+          {/* Pagination */}
+          <Flex justify="center" mt={4} gap={2}>
+            <Button
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              bg="white"
+              border="1px"
+              borderColor={customColor}
+              color={customColor}
+            >
+              ⬅ Prev
+            </Button>
+
+            <Text fontWeight="bold">
+              {currentPage} / {totalPages}
+            </Text>
+
+            <Button
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              bg="white"
+              border="1px"
+              borderColor={customColor}
+              color={customColor}
+            >
+              Next ➡
+            </Button>
+          </Flex>
+        </CardBody>
+      </Card>
+    </Flex>
   );
 }

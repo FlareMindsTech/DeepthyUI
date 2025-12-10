@@ -2,18 +2,42 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
+  IconButton,
   Flex,
+  HStack,
   Menu,
   MenuButton,
   MenuItem,
   MenuList,
   Stack,
   Text,
+  useColorMode,
+  useToast,
+  VStack,
+  Divider,
+  Tooltip,
+  Badge,
+  Avatar,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverFooter,
+  PopoverArrow,
+  PopoverCloseButton,
 } from "@chakra-ui/react";
-import { BellIcon } from "@chakra-ui/icons";
+import { BellIcon, ChevronDownIcon } from "@chakra-ui/icons";
 import { NavLink, useNavigate } from "react-router-dom";
+import { FiLogOut } from "react-icons/fi";
+import {
+  ArgonLogoDark,
+  ArgonLogoLight,
+  ChakraLogoDark,
+  ChakraLogoLight,
+} from "components/Icons/Icons";
+import routes from "routes.js";
 
-// Example avatars for notifications
 import avatar1 from "assets/img/avatars/avatar1.png";
 import avatar2 from "assets/img/avatars/avatar2.png";
 import avatar3 from "assets/img/avatars/avatar3.png";
@@ -21,82 +45,197 @@ import { ItemContent } from "components/Menu/ItemContent";
 import { SidebarResponsive } from "components/Sidebar/Sidebar";
 
 export default function UserHeaderLinks(props) {
-  const { secondary, ...rest } = props;
+  const { fixed, scrolled, secondary, ...rest } = props;
+  const { colorMode } = useColorMode();
+
+  const [notificationCount, setNotificationCount] = useState(3);
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     const currentUser = localStorage.getItem("user");
     if (currentUser) setUser(JSON.parse(currentUser));
   }, []);
 
-  const whiteColor = "white"; // Force white color for all icons and text
+  let navbarIcon = fixed && scrolled ? "gray.700" : "white";
+  if (secondary) navbarIcon = "white";
+  let menuBg = colorMode === "light" ? "white" : "navy.800";
+  let hoverBg = colorMode === "light" ? "gray.50" : "navy.700";
+  let borderColor = colorMode === "light" ? "gray.200" : "gray.600";
+  const themeColor = "#C41E3A";
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setUser(null);
+    toast({
+      title: "Logged out successfully",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+      position: "top-right",
+      variant: "left-accent",
+    });
     navigate("/auth/signin");
   };
 
+  const clearNotifications = () => {
+    setNotificationCount(0);
+    toast({
+      title: "Notifications cleared",
+      status: "success",
+      duration: 1500,
+      isClosable: true,
+      position: "top-right",
+    });
+  };
+
   return (
-    <Flex pe={{ sm: "0px", md: "16px" }} w={{ sm: "100%", md: "auto" }} alignItems="center" flexDirection="row" zIndex="1" >
-      
-      {/* Sign In / Logout */}
-      {!user ? (
-        <Button
-          as={NavLink}
-          to="/auth/signin"
-          ms="0px"
-          px="0px"
-          me={{ sm: "2px", md: "16px" }}
-          color={whiteColor}
-          variant="no-effects"
-        >
-          <Text display={{ sm: "none", md: "flex" }}>{`Sign In`}</Text>
-        </Button>
-      ) : (
-        <Button
-          onClick={handleLogout}
-          ms={{ sm: "2px", md: "16px" }}
-          color={whiteColor}
-          variant="no-effects"
-        >
-          <Text display={{ sm: "none", md: "flex" }}>{`Logout`}</Text>
-        </Button>
-      )}
+    <Flex
+      pe={{ sm: "0px", md: "16px" }}
+      w="100%"
+      alignItems="center"
+      flexDirection="row"
+      justifyContent="space-between"     // ⭐ FIX: Items split left and right
+      position="relative"
+      zIndex="9"
+      gap={{ base: 2, md: 4 }}
+    >
+      {/* LEFT SECTION — HAMBURGER SIDEBAR */}
+      <Box>
+        <SidebarResponsive
+          hamburgerColor={"white"}
+          logo={
+            <Stack direction="row" spacing="12px" align="center" justify="center">
+              {colorMode === "dark" ? (
+                <ArgonLogoLight w="74px" h="27px" />
+              ) : (
+                <ArgonLogoDark w="74px" h="27px" />
+              )}
+              <Box
+                w="1px"
+                h="20px"
+                bg={colorMode === "dark" ? "white" : "gray.700"}
+              />
+              {colorMode === "dark" ? (
+                <ChakraLogoLight w="82px" h="21px" />
+              ) : (
+                <ChakraLogoDark w="82px" h="21px" />
+              )}
+            </Stack>
+          }
+          colorMode={colorMode}
+          secondary={secondary}
+          routes={routes}
+          {...rest}
+        />
+      </Box>
 
-      {/* Sidebar / Hamburger */}
-      <SidebarResponsive
-        hamburgerColor={whiteColor}
-        logo={
-          <Stack direction="row" spacing="12px" align="center" justify="center">
-            <Text fontWeight="bold" color={whiteColor}>User Dashboard</Text>
-          </Stack>
-        }
-        secondary={secondary}
-        routes={[]} // user-specific routes if needed
-        {...rest}
-      />
+      {/* RIGHT SECTION — NOTIFICATION + USER */}
+      <Flex alignItems="center" gap={{ base: 2, md: 4 }}>
+        {user ? (
+          <HStack spacing={3}>
 
-      {/* Notifications */}
-      <Menu>
-        <MenuButton>
-          <BellIcon color={whiteColor} w="18px" h="18px" />
-        </MenuButton>
-        <MenuList p="16px 8px" bg="navy.800">
-          <Flex flexDirection="column">
-            <MenuItem borderRadius="8px" mb="10px">
-              <ItemContent time="13 minutes ago" info="New message from Alicia" aName="Alicia" aSrc={avatar1} />
-            </MenuItem>
-            <MenuItem borderRadius="8px" mb="10px">
-              <ItemContent time="2 days ago" info="Your order has shipped" aName="ShopNow" aSrc={avatar2} />
-            </MenuItem>
-            <MenuItem borderRadius="8px">
-              <ItemContent time="3 days ago" info="Payment successfully completed!" aName="Kara" aSrc={avatar3} />
-            </MenuItem>
-          </Flex>
-        </MenuList>
-      </Menu>
+            {/* Notifications */}
+            <Menu>
+              <Tooltip label="Notifications" placement="bottom" hasArrow>
+                <MenuButton
+                  as={IconButton}
+                  aria-label="Notifications"
+                  icon={
+                    <Box position="relative">
+                      <BellIcon color={navbarIcon} w="20px" h="20px" />
+                      {notificationCount > 0 && (
+                        <Badge
+                          position="absolute"
+                          top="-10px"
+                          right="-10px"
+                          bg="red.500"
+                          color="white"
+                          borderRadius="full"
+                          fontSize="11px"
+                          minW="20px"
+                          h="20px"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          fontWeight="bold"
+                        >
+                          {notificationCount}
+                        </Badge>
+                      )}
+                    </Box>
+                  }
+                  variant="ghost"
+                  size="lg"
+                />
+              </Tooltip>
+
+              <MenuList bg={menuBg} border="1px solid" borderColor={borderColor} boxShadow="2xl" borderRadius="2xl">
+                <MenuItem p={4}>
+                  <ItemContent time="13 minutes ago" info="from Alicia" boldInfo="New Message" aName="Alicia" aSrc={avatar1} />
+                </MenuItem>
+                <MenuItem p={4}>
+                  <ItemContent time="2 days ago" info="by Josh Henry" boldInfo="New Album" aName="Josh Henry" aSrc={avatar2} />
+                </MenuItem>
+                <MenuItem p={4}>
+                  <ItemContent time="3 days ago" info="Payment completed!" aName="Kara" aSrc={avatar3} />
+                </MenuItem>
+              </MenuList>
+            </Menu>
+
+            {/* User Profile */}
+            <Popover placement="bottom-end">
+              <PopoverTrigger>
+                <Button
+                  variant="ghost"
+                  rounded="2xl"
+                  p={2}
+                  rightIcon={<ChevronDownIcon color={navbarIcon} />}
+                >
+                  <Flex align="center" gap={3}>
+                    <Avatar size="md" name={user.name || "User"} />
+                    <VStack spacing={0} align="start" display={{ base: "none", lg: "flex" }}>
+                      <Text color={navbarIcon} fontSize="sm" fontWeight="bold">
+                        {user.name || "User"}
+                      </Text>
+                    </VStack>
+                  </Flex>
+                </Button>
+              </PopoverTrigger>
+
+              <PopoverContent bg={menuBg} border="none" boxShadow="2xl" borderRadius="2xl" w="320px">
+                <PopoverArrow bg={menuBg} />
+                <PopoverCloseButton />
+
+                <PopoverHeader p={6} bg={colorMode === "light" ? "gray.50" : "navy.700"}>
+                  <VStack spacing={4}>
+                    <Avatar size="xl" name={user.name} />
+                    <Text fontWeight="bold" fontSize="xl">{user.name}</Text>
+                    <Badge colorScheme="blue">{user.role || "Member"}</Badge>
+                  </VStack>
+                </PopoverHeader>
+
+                <PopoverFooter p={4}>
+                  <Button
+                    leftIcon={<FiLogOut />}
+                    colorScheme="red"
+                    w="100%"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </PopoverFooter>
+              </PopoverContent>
+            </Popover>
+          </HStack>
+        ) : (
+          <Button as={NavLink} to="/auth/signin" variant="outline" borderColor="white">
+            <Text display={{ sm: "none", md: "flex" }}>Sign In</Text>
+          </Button>
+        )}
+      </Flex>
     </Flex>
   );
 }

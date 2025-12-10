@@ -9,11 +9,13 @@ import SignIn from "views/Pages/SignIn.js";
 import SignUp from "views/Pages/SignUp.js";
 import UserDashboard from "views/UserDashboard/UserDashboard.js";
 import UserProfile from "views/UserDashboard/UserProfile.js";
-import UserManage from "views/Dashboard/UserManage.js"; 
-import AdminManage from "views/Dashboard/AdminManage"; 
-import FabricProcessPage from "./components/FabricProcessForm/FabricProcessForm";
+import UserManage from "views/Dashboard/UserManage.js";
+import AdminManage from "views/Dashboard/AdminManage";
+import FabricProcessPage from "./components/FabricProcessForm/FabricProcess";
 import FabricProcessWatercost from "./components/FabricProcessForm/FabricProcessWatercost";
-import FabricManagement from "./components/FabricProcessForm/FabricProcessList";
+// import FabricManagement from "./components/FabricProcessForm/FabricProcess";
+// import CustomerForm from "./CustomerDetails/CustomerForm"
+import CustomerList from "./CustomerDetails/CustomerList"
 
 // ✅ Sidebar Icons
 import {
@@ -24,9 +26,8 @@ import {
   DocumentIcon,
   RocketIcon,
   SettingsIcon,
-  CartIcon,  
+  CartIcon,
 } from "components/Icons/Icons";
-
 
 // 🌟 Admin & Owner Routes
 export const adminRoutes = [
@@ -36,16 +37,7 @@ export const adminRoutes = [
     icon: <HomeIcon color="inherit" />,
     element: <Dashboard />,
     layout: "/admin",
-    roles: ["admin", "owner"],
-  },
-
-  {
-    path: "/users-manage",
-    name: "User Management",
-    icon: <PersonIcon color="inherit" />,
-    element: <UserManage />,
-    layout: "/admin",
-    roles: ["admin", "owner"],
+    roles: ["admin", "owner", "shiftincharge"],
   },
 
   {
@@ -56,10 +48,26 @@ export const adminRoutes = [
     layout: "/admin",
     roles: ["owner"],
   },
+  {
+    path: "/users-manage",
+    name: "User Management",
+    icon: <PersonIcon color="inherit" />,
+    element: <UserManage />,
+    layout: "/admin",
+    roles: ["admin", "owner", "shiftincharge"],
+  },
+    {
+    path: "/CustomerList",
+    name: "Customer Management",
+    icon: <CreditIcon color="inherit" />,
+    element: <CustomerList />,
+    layout: "/admin",
+    roles: ["admin" , "owner", "shiftincharge"],
+  },
 
   {
     path: "/tables",
-    name: "Tables",
+    name: "Machine Reports",
     icon: <StatsIcon color="inherit" />,
     element: <Tables />,
     layout: "/admin",
@@ -72,8 +80,9 @@ export const adminRoutes = [
     icon: <CreditIcon color="inherit" />,
     element: <Billing />,
     layout: "/admin",
-    roles: ["admin", "owner"],
+    roles: [],
   },
+
 
   {
     name: "ACCOUNT PAGES",
@@ -92,7 +101,6 @@ export const adminRoutes = [
   },
 ];
 
-
 // 🌟 User Routes
 export const userRoutes = [
   {
@@ -101,44 +109,8 @@ export const userRoutes = [
     icon: <HomeIcon color="inherit" />,
     element: <UserDashboard />,
     layout: "/user",
-    roles: ["user"],
+    roles: ["operator"],
   },
-
-  {
-    path: "/fabric-mangement",
-    name: "Fabric List",
-    icon: <CartIcon color="inherit" />,
-    element: <FabricManagement />,
-    layout: "/user",
-    roles: ["user","owner","admin"],
-  },
-
-  {
-    path: "/fabric-process",
-    name: "Fabric Process",
-    icon: <RocketIcon color="inherit" />,
-    element: <FabricProcessPage />,
-    layout: "/user",
-    roles: ["user","owner","admin"],
-  },
-  {
-    path: "/fabric-watercost",
-    name: "Water Cost",
-    icon: <StatsIcon color="inherit" />,
-    element: <FabricProcessWatercost />,
-    layout: "/user",
-    roles: ["user","owner","admin"],
-  },
-
-  {
-    path: "/billing",
-    name: "Billing",
-    icon: <CreditIcon color="inherit" />,
-    element: <Billing />,
-    layout: "/user",
-    roles: ["user"],
-  },
-
   {
     name: "ACCOUNT PAGES",
     category: "account",
@@ -152,10 +124,44 @@ export const userRoutes = [
         layout: "/user",
         roles: [],
       },
+
+      {
+        path: "/fabric-process",
+        name: "Fabric Process",
+        icon: <RocketIcon color="inherit" />,
+        element: <FabricProcessPage />,
+        layout: "/user",
+        roles: [ "owner", "admin", "shiftincharge"],
+      },
+      {
+        path: "/fabric-watercost",
+        name: "Machine Process",
+        icon: <StatsIcon color="inherit" />,
+        element: <FabricProcessWatercost />,
+        layout: "/user",
+        roles: ["operator", "owner", "admin", "shiftincharge"],
+      },
+
+      // {
+      //   path: "/fabric-mangement",
+      //   name: "Fabric List",
+      //   icon: <CartIcon color="inherit" />,
+      //   element: <FabricManagement />,
+      //   layout: "/user",
+      //   roles: ["user", "owner", "admin"],
+      // },
+
+      {
+        path: "/billing",
+        name: "Billing",
+        icon: <CreditIcon color="inherit" />,
+        element: <Billing />,
+        layout: "/user",
+        roles: [],
+      },
     ],
   },
 ];
-
 
 // ✅ Auth Routes
 export const authRoutes = [

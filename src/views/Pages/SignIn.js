@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
+  Image,
   Flex,
   Button,
   FormControl,
@@ -18,6 +19,8 @@ import {
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
+import { loginUser } from "../../utils/axiosInstance";
+import logo from "../../assets/img/deepthy_logo.png"
 
 function Login() {
   const bgForm = useColorModeValue("white", "gray.800");
@@ -32,7 +35,10 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isFocused, setIsFocused] = useState({ identifier: false, password: false });
+  const [isFocused, setIsFocused] = useState({
+    identifier: false,
+    password: false,
+  });
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 }); // State for parallax
   const toast = useToast();
   const navigate = useNavigate();
@@ -126,14 +132,9 @@ function Login() {
 
     try {
       const payload = { identifier, password };
-      const response = await fetch("http://localhost:8080/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json();
+      const { data } = await loginUser(payload); // ✅ Axios call
 
-      if (response.status === 200 && data.token) {
+      if (data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -152,12 +153,12 @@ function Login() {
           navigate("/user/dashboard");
         }
       } else {
-        throw new Error(data.message || "Invalid credentials");
+        throw new Error("Invalid credentials");
       }
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: error.response?.data?.message || error.message,
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -167,6 +168,7 @@ function Login() {
       if (isMounted.current) setLoading(false);
     }
   };
+
   // --- Render ---
   return (
     <Flex
@@ -348,7 +350,10 @@ function Login() {
           w={{ base: "90%", sm: "400px", md: "420px" }}
           borderRadius="20px"
           p={{ base: "30px", md: "40px" }}
-          bg={useColorModeValue("rgba(255,255,255,0.95)", "rgba(26,32,44,0.95)")}
+          bg={useColorModeValue(
+            "rgba(255,255,255,0.95)",
+            "rgba(26,32,44,0.95)"
+          )}
           backdropFilter="blur(20px) saturate(180%)"
           border="2px solid"
           borderColor={useColorModeValue(`${redColor}15`, `${redColor}20`)}
@@ -394,29 +399,33 @@ function Login() {
             <Box
               w="60px"
               h="60px"
-              borderRadius="15px"
-              bgGradient={`linear(135deg, ${redColor}, ${lightRed})`}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              boxShadow={`0 4px 15px ${redColor}30`}
-              position="relative"
-              _before={{
-                content: '""',
-                position: "absolute",
-                top: "15px",
-                left: "15px",
-                right: "15px",
-                bottom: "15px",
-                border: "2px solid white",
-                borderRadius: "8px",
-                opacity: 0.8,
-              }}
+              // borderRadius="15px"
+              // bgGradient={`linear(135deg, ${redColor}, ${lightRed})`}
+              // display="flex"
+              // alignItems="center"
+              // justifyContent="center"
+              // boxShadow={`0 4px 15px ${redColor}30`}
+              // position="relative"
+              // _before={{
+              //   content: '""',
+              //   position: "absolute",
+              //   top: "15px",
+              //   left: "15px",
+              //   right: "15px",
+              //   bottom: "15px",
+              //   border: "2px solid white",
+              //   borderRadius: "8px",
+              //   opacity: 0.8,
+              // }}
             >
-              <Text fontSize="xl" fontWeight="bold" color="white">
-                🧵
-              </Text>
+              <Image
+                src={logo} // replace with your image path or URL
+                alt="Thread Icon"
+                width="100%"
+                height="100%"
+              />
             </Box>
+
             <VStack spacing={1}>
               <Text
                 fontSize={{ base: "2xl", md: "3xl" }}
@@ -428,14 +437,14 @@ function Login() {
               >
                 Deepthy Fenishers
               </Text>
-              <Text
+              {/* <Text
                 fontSize="sm"
                 color={useColorModeValue("gray.600", "gray.400")}
                 textAlign="center"
                 fontWeight="medium"
               >
                 Inventory Management System
-              </Text>
+              </Text> */}
             </VStack>
           </VStack>
 
@@ -574,14 +583,14 @@ function Login() {
             </VStack>
           </form>
 
-          <Text
+          {/* <Text
             fontSize="xs"
             color={useColorModeValue("gray.500", "gray.400")}
             textAlign="center"
             mt={6}
           >
             Secure fabric inventory management system • v2.4.1
-          </Text>
+          </Text> */}
         </Flex>
       </ScaleFade>
     </Flex>

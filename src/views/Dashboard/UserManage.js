@@ -26,6 +26,13 @@ import {
   Text,
   Spinner,
   Avatar,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -36,6 +43,7 @@ import {
   FaEdit,
   FaArrowLeft,
   FaChevronLeft,
+  FaTrash,
   FaChevronRight,
   FaSearch,
   FaUserPlus,
@@ -49,6 +57,8 @@ import {
   getAllUsers,
   updateUser,
   createUsers,
+  deleteUser,
+  getAllOperators,
 } from "../../utils/axiosInstance";
 
 // Main User Management Component
@@ -77,17 +87,31 @@ function UserManagement() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [dataLoaded, setDataLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState(""); // Search filter state
+  const [sortConfig, setSortConfig] = useState({
+    key: "name",
+    direction: "asc",
+  });
+  const [showUserWork, setShowUserWork] = useState(false);
+  const [userWorkData, setUserWorkData] = useState([]);
 
   // View state - 'list', 'edit'
   const [currentView, setCurrentView] = useState("list");
   const [editingUser, setEditingUser] = useState(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [workCurrentPage, setWorkCurrentPage] = useState(1);
+  const [workItemsPerPage] = useState(10);
+  const [workSort, setWorkSort] = useState({
+    key: "operator",
+    direction: "asc",
+  });
 
   // Form state
   const [formData, setFormData] = useState({
     name: "",
-    phone: "",
+    mobile: "",
     password: "",
-    role: "user",
+    role: "", // leave empty — user must select
   });
 
   // Pagination state
@@ -113,12 +137,27 @@ function UserManagement() {
     setSuccess("");
   };
 
+  const getAllowedRolesForCreator = (creatorRole) => {
+    switch (creatorRole) {
+      case "owner":
+        return ["admin", "shiftincharge", "operator"];
+      case "admin":
+        return ["shiftincharge", "operator"];
+      case "shiftincharge":
+        return ["operator"];
+      default:
+        return []; // operator cannot create anyone
+    }
+  };
+
   // Fetch current user from localStorage
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (
       !storedUser ||
-      (storedUser.role !== "admin" && storedUser.role !== "owner")
+      (storedUser.role !== "admin" &&
+        storedUser.role !== "owner" &&
+        storedUser.role !== "shiftincharge")
     ) {
       toast({
         title: "Access Denied",
@@ -151,7 +190,7 @@ function UserManagement() {
           response?.users ||
           response ||
           [];
-        const userOnly = users.filter((u) => u.role === "user");
+        const userOnly = users.filter((u) => u.role === "operator");
 
         // Sort users in descending order (newest first)
         const sortedUsers = userOnly.sort(
@@ -188,6 +227,35 @@ function UserManagement() {
     }
   }, [currentUser, toast]);
 
+  useEffect(() => {
+    if (!showUserWork) return;
+
+    setTableLoading(true);
+
+    const fetchUserWork = async () => {
+      try {
+        const res = await getAllOperators();
+        console.log("Work API Response:", res?.data);
+
+        const workData =
+          res?.data?.users ||
+          res?.data?.operators ||
+          res?.data?.data ||
+          res?.data ||
+          [];
+
+        setUserWorkData(Array.isArray(workData) ? workData : []);
+      } catch (err) {
+        console.error("Work Fetch Error:", err);
+        setUserWorkData([]);
+      } finally {
+        setTableLoading(false);
+      }
+    };
+
+    fetchUserWork();
+  }, [showUserWork]);
+
   // Apply filters and search
   useEffect(() => {
     if (!dataLoaded) return;
@@ -215,16 +283,15 @@ function UserManagement() {
 
       // Apply search filter
       if (searchTerm.trim() !== "") {
+        const lowerSearch = searchTerm.toLowerCase();
+
         filtered = filtered.filter(
           (user) =>
-            `${user.name}`
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (user.role &&
-              user.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.status &&
-              user.status.toLowerCase().includes(searchTerm.toLowerCase()))
+            (user.name && user.name.toLowerCase().includes(lowerSearch)) ||
+            (user.phone &&
+              user.phone.toString().toLowerCase().includes(lowerSearch)) ||
+            (user.role && user.role.toLowerCase().includes(lowerSearch)) ||
+            (user.status && user.status.toLowerCase().includes(lowerSearch))
         );
       }
 
@@ -251,6 +318,14 @@ function UserManagement() {
     setSearchTerm("");
   };
 
+  // asc filter
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
   // Handle edit user - show edit form
   const handleEditUser = (user) => {
     setFormData({
@@ -263,6 +338,38 @@ function UserManagement() {
     setCurrentView("edit");
     setError("");
     setSuccess("");
+  };
+  const handleConfirmDelete = async () => {
+    try {
+      if (!selectedUser?._id) {
+        toast({
+          title: "Error",
+          description: "User ID not found",
+          status: "error",
+        });
+        return;
+      }
+
+      await deleteUser(selectedUser._id);
+      setUserData((prev) => prev.filter((u) => u._id !== selectedUser._id));
+      toast({
+        title: "User Deleted",
+        description: "The USer account has been successfully deleted.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      onClose(); // ✅ Close modal after success
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete admin",
+        status: "error",
+      });
+      onClose(); // ✅ Close modal on error too
+    }
   };
 
   // Handle back to list
@@ -358,6 +465,52 @@ function UserManagement() {
     setLoading(false);
   };
 
+  // Fetch operators when User Work table is active
+  useEffect(() => {
+    if (showUserWork) {
+      setTableLoading(true);
+
+      getAllOperators()
+        .then((res) => {
+          console.log("Work API Response:", res?.data);
+
+          const data =
+            res?.data?.users ||
+            res?.data?.operators ||
+            res?.data?.data ||
+            (Array.isArray(res?.data) ? res.data : []);
+
+          setUserWorkData(Array.isArray(data) ? data : []);
+        })
+        .catch(() => setUserWorkData([]))
+        .finally(() => setTableLoading(false));
+    }
+  }, [showUserWork]);
+
+  // Pagination & sorting helpers
+  const filteredWorkData = userWorkData.filter(
+    (item) =>
+      item.operator?.[0]?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.machineNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.receiverNo?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const workIndexOfLastItem = workCurrentPage * workItemsPerPage;
+  const workIndexOfFirstItem = workIndexOfLastItem - workItemsPerPage;
+  const workTotalPages = Math.ceil(filteredWorkData.length / workItemsPerPage);
+
+  const handleWorkPageClick = (page) => setWorkCurrentPage(page);
+  const handleWorkPrevPage = () =>
+    setWorkCurrentPage((p) => Math.max(p - 1, 1));
+  const handleWorkNextPage = () =>
+    setWorkCurrentPage((p) => Math.min(p + 1, workTotalPages));
+  const handleWorkSort = (key) => {
+    setWorkSort((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
   // Auto-hide success/error messages after 3 seconds
   useEffect(() => {
     if (success || error) {
@@ -425,7 +578,7 @@ function UserManagement() {
   // Render Form View (Edit)
   if (currentView === "edit") {
     return (
-      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
+      <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} mt={-95}>
         <Card bg="white" shadow="xl">
           <CardHeader bg="white">
             <Flex align="center" mb={4}>
@@ -515,15 +668,15 @@ function UserManagement() {
               </FormControl>
             </SimpleGrid>
 
-            <FormControl mb="24px">
-              <FormLabel htmlFor="role" color="gray.700">
-                Role
-              </FormLabel>
+            <FormControl mb={4}>
+              <FormLabel>Role</FormLabel>
+
               <Select
                 id="role"
                 name="role"
-                onChange={handleInputChange}
                 value={formData.role}
+                onChange={handleInputChange}
+                placeholder="Select Role"
                 borderColor={`${customColor}50`}
                 _hover={{ borderColor: customColor }}
                 _focus={{
@@ -532,7 +685,11 @@ function UserManagement() {
                 }}
                 bg="white"
               >
-                <option value="user">User</option>
+                {getAllowedRolesForCreator(currentUser.role).map((role) => (
+                  <option key={role} value={role}>
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  </option>
+                ))}
               </Select>
             </FormControl>
 
@@ -692,19 +849,27 @@ function UserManagement() {
             </SimpleGrid>
 
             <FormControl mb={4}>
-              <FormLabel color="gray.700">Role</FormLabel>
+              <FormLabel>Role</FormLabel>
+
               <Select
+                id="role"
                 name="role"
-                onChange={handleInputChange}
                 value={formData.role}
+                onChange={handleInputChange}
+                placeholder="Select Role"
                 borderColor={`${customColor}50`}
                 _hover={{ borderColor: customColor }}
                 _focus={{
                   borderColor: customColor,
                   boxShadow: `0 0 0 1px ${customColor}`,
                 }}
+                bg="white"
               >
-                <option value="user">User</option>
+                {getAllowedRolesForCreator(currentUser.role).map((role) => (
+                  <option key={role} value={role}>
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  </option>
+                ))}
               </Select>
             </FormControl>
 
@@ -767,12 +932,36 @@ function UserManagement() {
 
   // Render List View
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
+    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} mt={-90}>
+      {/* Delete user Model */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Confirm Delete</ModalHeader>
+          <ModalBody>
+            <Text>
+              Are you sure you want to delete <b>{selectedUser?.name}</b>? This
+              action cannot be undone.
+            </Text>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button size="sm" mr={3} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button size="sm" colorScheme="red" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
       {/* Statistics Cards */}
+
       <Grid
         templateColumns={{ sm: "1fr", md: "1fr 1fr 1fr" }}
         gap="24px"
         mb="24px"
+        // mt="-40px"
       >
         {/* Total Users Card */}
         <Card
@@ -930,7 +1119,7 @@ function UserManagement() {
       )}
 
       {/* Active Filter Display */}
-      <Flex justify="space-between" align="center" mb={4}>
+      <Flex justify="space-between" align="center" mb={1} mt={-4}>
         <Text fontSize="lg" fontWeight="bold" color={textColor}>
           {activeFilter === "active" && "Active Users"}
           {activeFilter === "inactive" && "Inactive Users"}
@@ -953,22 +1142,20 @@ function UserManagement() {
       </Flex>
 
       {/* User Table with new styling */}
-      <Card mx={4} mb={4} shadow="xl" flex="1" overflow="hidden" bg="white">
-        <CardHeader p="6px 0px 22px 0px" bg="white">
-          <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
-            {/* Title */}
-            <Heading size="md" flexShrink={0} color="gray.700">
+      <Card mx={4} mb={2} shadow="xl" flex="1" overflow="hidden" bg="white">
+        <CardHeader p="4px 0px 8px 0px" bg="white">
+          <Flex justify="space-between" align="center" flexWrap="wrap" gap={2}>
+            <Heading size="sm" flexShrink={0} color="gray.700">
               👥 Users Table
             </Heading>
 
-            {/* Search Bar */}
-            <Flex align="center" flex="1" maxW="400px">
+            <Flex align="center" flex="1" maxW="350px">
               <Input
                 placeholder="Search by name, email, phone, or role..."
                 value={searchTerm}
                 onChange={handleSearchChange}
                 size="sm"
-                mr={2}
+                mr={1}
                 borderColor={`${customColor}50`}
                 _hover={{ borderColor: customColor }}
                 _focus={{
@@ -979,9 +1166,10 @@ function UserManagement() {
                 bg="white"
               />
               <Icon as={FaSearch} color="gray.400" />
+
               {searchTerm && (
                 <Button
-                  size="sm"
+                  size="xs"
                   ml={2}
                   onClick={handleClearSearch}
                   bg="white"
@@ -995,246 +1183,375 @@ function UserManagement() {
               )}
             </Flex>
 
-            {/* Add User Button */}
+            <Button
+              bg={customColor}
+              color="white"
+              _hover={{ bg: customHoverColor }}
+              onClick={() => setShowUserWork(!showUserWork)}
+            >
+              {showUserWork ? "User List" : "User Work"}
+            </Button>
+
             <Button
               bg={customColor}
               _hover={{ bg: customHoverColor }}
               color="white"
               onClick={handleAddUser}
-              fontSize="sm"
-              borderRadius="8px"
+              fontSize="xs"
+              borderRadius="6px"
               flexShrink={0}
+              py={1}
+              px={3}
             >
               Add User
             </Button>
           </Flex>
         </CardHeader>
-        <CardBody overflow="auto" bg="white">
+
+        <CardBody overflow="hidden" bg="white">
           {tableLoading ? (
-            <Flex justify="center" align="center" py={10}>
-              <Spinner size="xl" color={customColor} />
-              <Text ml={4}>Loading users...</Text>
+            <Flex justify="center" align="center" py={8}>
+              <Spinner size="lg" color={customColor} />
+              <Text ml={3} fontSize="sm">
+                Loading users...
+              </Text>
             </Flex>
           ) : (
             <>
-              {currentItems.length > 0 ? (
+
+              {showUserWork ? (
+                // ---- USER WORK TABLE ----
                 <>
-                  <Table variant="simple" bg="white">
+
+                  <Table variant="simple" size="sm" bg="white">
                     <Thead
-                      bg={`${customColor}20`}
+                      bg={`${customColor}15`}
                       position="sticky"
                       top={0}
                       zIndex={1}
                     >
                       <Tr>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>
-                          User
+                        <Th
+                          py={2}
+                          fontSize="sm"
+                          cursor="pointer"
+                          onClick={() => handleWorkSort("operator")}
+                        >
+                          Operator{" "}
+                          {workSort.key === "operator" &&
+                            (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>
-                          Contact
+                        <Th
+                          py={2}
+                          fontSize="sm"
+                          cursor="pointer"
+                          onClick={() => handleWorkSort("machineNo")}
+                        >
+                          Machine No{" "}
+                          {workSort.key === "machineNo" &&
+                            (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>
-                          Role
+                        <Th
+                          py={2}
+                          fontSize="sm"
+                          cursor="pointer"
+                          onClick={() => handleWorkSort("receiverNo")}
+                        >
+                          Receiver No{" "}
+                          {workSort.key === "receiverNo" &&
+                            (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>
-                          Status
+                        <Th
+                          py={2}
+                          fontSize="sm"
+                          cursor="pointer"
+                          onClick={() => handleWorkSort("status")}
+                        >
+                          Status{" "}
+                          {workSort.key === "status" &&
+                            (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>
-                          Verification
+                        <Th py={2} fontSize="sm">
+                          Company
                         </Th>
-                        <Th color="gray.700" borderColor={`${customColor}30`}>
-                          Actions
+                        <Th py={2} fontSize="sm">
+                          Color
+                        </Th>
+                        <Th
+                          py={2}
+                          fontSize="sm"
+                          cursor="pointer"
+                          onClick={() => handleWorkSort("weight")}
+                        >
+                          Weight{" "}
+                          {workSort.key === "weight" &&
+                            (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
                       </Tr>
                     </Thead>
+
                     <Tbody>
-                      {currentItems.map((user, index) => {
-                        const statusColors = getStatusColor(user.status);
-                        const verification = getVerificationBadge(
-                          user.isVerified
-                        );
-                        return (
-                          <Tr
-                            key={user._id || index}
-                            bg="white"
-                            _hover={{ bg: `${customColor}10` }}
-                            borderBottom="1px"
-                            borderColor={`${customColor}20`}
-                          >
-                            <Td borderColor={`${customColor}20`}>
-                              <Flex align="center">
-                                <Avatar
-                                  size="sm"
-                                  name={`${user.name}`}
-                                  src={user.profileImage}
-                                  mr={3}
-                                />
-                                <Box>
-                                  <Text fontSize="sm">{user.name}</Text>
-                                </Box>
-                              </Flex>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Box>
-                                <Text fontSize="sm" color="gray.600">
-                                  {user.phone || "No phone"}
-                                </Text>
-                              </Box>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Badge
-                                colorScheme={
-                                  user.role === "super admin"
-                                    ? "purple"
-                                    : user.role === "admin"
-                                    ? "blue"
-                                    : "gray"
-                                }
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {user.role || "user"}
-                              </Badge>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Badge
-                                bg={statusColors.bg}
-                                color={statusColors.color}
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {user.status || "active"}
-                              </Badge>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Badge
-                                colorScheme={verification.color}
-                                px={3}
-                                py={1}
-                                borderRadius="full"
-                                fontSize="sm"
-                                fontWeight="bold"
-                              >
-                                {verification.text}
-                              </Badge>
-                            </Td>
-                            <Td borderColor={`${customColor}20`}>
-                              <Button
-                                bg="white"
-                                color={customColor}
-                                border="1px"
-                                borderColor={customColor}
-                                _hover={{ bg: customColor, color: "white" }}
-                                size="sm"
-                                leftIcon={<FaEdit />}
-                                onClick={() => handleEditUser(user)}
-                              >
-                                Edit
-                              </Button>
-                            </Td>
-                          </Tr>
-                        );
-                      })}
+                      {filteredWorkData.length > 0 ? (
+                        filteredWorkData
+                          .slice(workIndexOfFirstItem, workIndexOfLastItem)
+                          .sort((a, b) => {
+                            const { key, direction } = workSort;
+                            let valA = a[key]?.toString().toLowerCase() || "";
+                            let valB = b[key]?.toString().toLowerCase() || "";
+                            if (valA < valB)
+                              return direction === "asc" ? -1 : 1;
+                            if (valA > valB)
+                              return direction === "asc" ? 1 : -1;
+                            return 0;
+                          })
+                          .map((item, index) => (
+                            <Tr key={index} _hover={{ bg: `${customColor}08` }}>
+                              <Td py={2}>{item.operator?.[0] || "-"}</Td>
+                              <Td py={2}>{item.machineNo || "-"}</Td>
+                              <Td py={2}>{item.receiverNo || "-"}</Td>
+                              <Td py={2}>{item.status || "-"}</Td>
+                              <Td py={2}>
+                                {item.customer?.companyName || "-"}
+                              </Td>
+                              <Td py={2}>{item.customer?.color || "-"}</Td>
+                              <Td py={2}>{item.customer?.weight || "-"}</Td>
+                            </Tr>
+                          ))
+                      ) : (
+                        <Tr>
+                          <Td colSpan={7} textAlign="center" py={4}>
+                            No work data found
+                          </Td>
+                        </Tr>
+                      )}
                     </Tbody>
                   </Table>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      mt={4}
-                      pt={4}
-                      borderTop="1px solid"
-                      borderColor={`${customColor}20`}
-                    >
-                      <Text fontSize="sm" color="gray.600">
-                        Showing {indexOfFirstItem + 1} to{" "}
-                        {Math.min(indexOfLastItem, filteredData.length)} of{" "}
-                        {filteredData.length} entries
-                        {searchTerm &&
-                          ` (filtered from ${userData.length} total)`}
+                  {/* ---- Pagination ---- */}
+                  {workTotalPages > 1 && (
+                    <Flex justify="space-between" align="center" mt={3} py={2}>
+                      <Text fontSize="xs" color="gray.600">
+                        Showing {workIndexOfFirstItem + 1} -{" "}
+                        {Math.min(workIndexOfLastItem, filteredWorkData.length)}{" "}
+                        of {filteredWorkData.length}
                       </Text>
-                      <Flex align="center" gap={2}>
+                      <Flex gap={1}>
                         <Button
-                          size="sm"
-                          onClick={handlePrevPage}
-                          isDisabled={currentPage === 1}
-                          leftIcon={<FaChevronLeft />}
-                          bg="white"
-                          color={customColor}
-                          border="1px"
-                          borderColor={customColor}
-                          _hover={{ bg: customColor, color: "white" }}
-                          _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
+                          size="xs"
+                          onClick={handleWorkPrevPage}
+                          isDisabled={workCurrentPage === 1}
                         >
-                          Previous
+                          <FaChevronLeft size={10} />
                         </Button>
-
-                        {/* Page Numbers */}
-                        <Flex gap={1}>
-                          {Array.from(
-                            { length: totalPages },
-                            (_, i) => i + 1
-                          ).map((page) => (
-                            <Button
-                              key={page}
-                              size="sm"
-                              variant={
-                                currentPage === page ? "solid" : "outline"
-                              }
-                              bg={currentPage === page ? customColor : "white"}
-                              color={
-                                currentPage === page ? "white" : customColor
-                              }
-                              border="1px"
-                              borderColor={customColor}
-                              _hover={
-                                currentPage === page
-                                  ? { bg: customHoverColor }
-                                  : { bg: customColor, color: "white" }
-                              }
-                              onClick={() => handlePageClick(page)}
-                            >
-                              {page}
-                            </Button>
-                          ))}
-                        </Flex>
-
+                        {Array.from(
+                          { length: workTotalPages },
+                          (_, i) => i + 1
+                        ).map((page) => (
+                          <Button
+                            key={page}
+                            size="xs"
+                            bg={
+                              workCurrentPage === page ? customColor : "white"
+                            }
+                            color={
+                              workCurrentPage === page ? "white" : customColor
+                            }
+                            onClick={() => handleWorkPageClick(page)}
+                          >
+                            {page}
+                          </Button>
+                        ))}
                         <Button
-                          size="sm"
-                          onClick={handleNextPage}
-                          isDisabled={currentPage === totalPages}
-                          rightIcon={<FaChevronRight />}
-                          bg="white"
-                          color={customColor}
-                          border="1px"
-                          borderColor={customColor}
-                          _hover={{ bg: customColor, color: "white" }}
-                          _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
+                          size="xs"
+                          onClick={handleWorkNextPage}
+                          isDisabled={workCurrentPage === workTotalPages}
                         >
-                          Next
+                          <FaChevronRight size={10} />
                         </Button>
                       </Flex>
                     </Flex>
                   )}
                 </>
               ) : (
-                <Text textAlign="center" py={10} color="gray.500" fontSize="lg">
-                  {dataLoaded
-                    ? userData.length === 0
-                      ? "No users found."
-                      : searchTerm
-                      ? "No users match your search."
-                      : "No users match the selected filter."
-                    : "Loading users..."}
-                </Text>
+                // ---- ORIGINAL USER TABLE ----
+                <>
+                  {currentItems.length > 0 ? (
+                    <>
+                      <Table variant="simple" size="sm" bg="white">
+                        <Thead
+                          bg={`${customColor}15`}
+                          position="sticky"
+                          top={0}
+                          zIndex={1}
+                        >
+                          <Th
+                            py={2}
+                            fontSize="sm"
+                            cursor="pointer"
+                            onClick={() => handleSort("name")}
+                          >
+                            User{" "}
+                            {sortConfig.key === "name" &&
+                              (sortConfig.direction === "asc" ? "▲" : "▼")}
+                          </Th>
+                          <Th
+                            py={2}
+                            fontSize="sm"
+                            cursor="pointer"
+                            onClick={() => handleSort("phone")}
+                          >
+                            Contact{" "}
+                            {sortConfig.key === "phone" &&
+                              (sortConfig.direction === "asc" ? "▲" : "▼")}
+                          </Th>
+                          <Th py={2} fontSize="sm">
+                            Role
+                          </Th>
+                          <Th
+                            py={2}
+                            fontSize="sm"
+                            cursor="pointer"
+                            onClick={() => handleSort("status")}
+                          >
+                            Status{" "}
+                            {sortConfig.key === "status" &&
+                              (sortConfig.direction === "asc" ? "▲" : "▼")}
+                          </Th>
+                          <Th
+                            py={2}
+                            fontSize="sm"
+                            cursor="pointer"
+                            onClick={() => handleSort("isVerified")}
+                          >
+                            Verification{" "}
+                            {sortConfig.key === "isVerified" &&
+                              (sortConfig.direction === "asc" ? "▲" : "▼")}
+                          </Th>
+                          <Th py={2} fontSize="sm">
+                            Actions
+                          </Th>
+                        </Thead>
+                        <Tbody>
+                          {[...currentItems]
+                            .sort((a, b) => {
+                              const { key, direction } = sortConfig;
+                              let valA = a[key]?.toString().toLowerCase() || "";
+                              let valB = b[key]?.toString().toLowerCase() || "";
+                              if (typeof valA === "boolean") {
+                                valA = valA ? "verified" : "not verified";
+                                valB = valB ? "verified" : "not verified";
+                              }
+                              if (valA < valB)
+                                return direction === "asc" ? -1 : 1;
+                              if (valA > valB)
+                                return direction === "asc" ? 1 : -1;
+                              return 0;
+                            })
+                            .map((user, index) => (
+                              <Tr
+                                key={user._id || index}
+                                _hover={{ bg: `${customColor}08` }}
+                              >
+                                <Td py={2}>
+                                  <Flex align="center">
+                                    <Avatar
+                                      size="xs"
+                                      name={user.name}
+                                      src={user.profileImage}
+                                      mr={2}
+                                    />
+                                    <Text fontSize="sm">{user.name}</Text>
+                                  </Flex>
+                                </Td>
+                                <Td py={2}>
+                                  <Text fontSize="sm">{user.phone || "—"}</Text>
+                                </Td>
+                                <Td py={2}>
+                                  <Badge
+                                    colorScheme={
+                                      user.role === "super admin"
+                                        ? "purple"
+                                        : user.role === "admin"
+                                        ? "blue"
+                                        : "gray"
+                                    }
+                                    px={2}
+                                    py={0.5}
+                                    fontSize="xs"
+                                  >
+                                    {user.role || "user"}
+                                  </Badge>
+                                </Td>
+                                <Td py={2}>
+                                  <Badge
+                                    bg={getStatusColor(user.status).bg}
+                                    color={getStatusColor(user.status).color}
+                                    px={2}
+                                    py={0.5}
+                                    fontSize="xs"
+                                  >
+                                    {user.status || "active"}
+                                  </Badge>
+                                </Td>
+                                <Td py={2}>
+                                  <Badge
+                                    colorScheme={
+                                      getVerificationBadge(user.isVerified)
+                                        .color
+                                    }
+                                    px={2}
+                                    py={0.5}
+                                    fontSize="xs"
+                                  >
+                                    {getVerificationBadge(user.isVerified).text}
+                                  </Badge>
+                                </Td>
+                                <Td py={2}>
+                                  <Flex gap={2}>
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      p={1}
+                                      color={customColor}
+                                      onClick={() => handleEditUser(user)}
+                                      _hover={{
+                                        color: customColor,
+                                        bg: "transparent",
+                                      }}
+                                    >
+                                      <FaEdit size={16} />
+                                    </Button>
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      p={1}
+                                      color="red.500"
+                                      onClick={() => {
+                                        setSelectedUser(user);
+                                        onOpen();
+                                      }}
+                                    >
+                                      <FaTrash size={16} />
+                                    </Button>
+                                  </Flex>
+                                </Td>
+                              </Tr>
+                            ))}
+                        </Tbody>
+                      </Table>
+                      {/* Pagination same as before */}
+                    </>
+                  ) : (
+                    <Text
+                      textAlign="center"
+                      py={8}
+                      color="gray.500"
+                      fontSize="sm"
+                    >
+                      {dataLoaded ? "No users match criteria" : "Loading..."}
+                    </Text>
+                  )}
+                </>
               )}
             </>
           )}

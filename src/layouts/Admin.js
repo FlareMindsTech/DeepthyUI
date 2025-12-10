@@ -153,6 +153,7 @@ export default function Dashboard(props) {
         ml={{ base: "0px", xl: "275px" }}
         transition="all 0.3s ease"
         zIndex="-1"
+        overflow="hidden" 
       >
         <Portal>
           <AdminNavbar

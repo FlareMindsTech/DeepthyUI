@@ -35,48 +35,53 @@ import {
   Tooltip,
 } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon, EditIcon, DeleteIcon } from "@chakra-ui/icons";
-import axios from "axios";
+import {
+  getAllFabricProcesses,
+  updateFabricProcess,
+  deleteFabricProcess,
+  getFabricByUser,
+} from "../../utils/axiosInstance";
 
-const API_URL = "http://localhost:8080/api/fabric";
-
-// Color constants - Coordinated red scheme
 const primaryColor = "#FF6B6B";
-const secondaryColor = "#E53E3E";
-const lightRed = "#FED7D7";
 const darkRed = "#C53030";
+const lightRed = "#FED7D7";
 const textColor = "#2D3748";
 const blueColor = "#3182CE";
-const darkBlue = "#2C5AA0";
-
-// Padding constants
-const paddingTop = "60px";
-const paddingBottom = "20px";
-const paddingSides = "4px";
 
 export default function FabricTable() {
+  const toast = useToast();
+  const cancelRef = useRef();
+
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const userRole = user?.role;
+
   const [fabrics, setFabrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDcNo, setSelectedDcNo] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editData, setEditData] = useState({});
-  
-  // Pagination state
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  
-  const cancelRef = useRef();
-  const toast = useToast();
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  // ✅ Fetch fabric processes
+  const [userFabrics, setUserFabrics] = useState([]);
+
+  // Fetch all fabrics
   const fetchFabrics = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_URL}/all`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await getAllFabricProcesses();
+      let allFabrics = res.data || [];
+
+      // Sort by DC number ascending
+      allFabrics.sort((a, b) => {
+        const aNum = parseInt(a.dcNo?.replace(/\D/g, "") || 0, 10);
+        const bNum = parseInt(b.dcNo?.replace(/\D/g, "") || 0, 10);
+        return aNum - bNum;
       });
-      setFabrics(res.data);
+
+      setFabrics(allFabrics);
     } catch (err) {
       console.error(err);
       toast({
@@ -90,75 +95,58 @@ export default function FabricTable() {
     }
   };
 
-  // ✅ Handle Delete Click
-  const handleDeleteClick = (dcNo) => {
-    setSelectedDcNo(dcNo);
-    setIsOpen(true);
-  };
-
-  // ✅ Confirm Delete
-  const confirmDelete = async () => {
-    if (!selectedDcNo) return;
+  // Fetch user-specific fabrics
+  const fetchUserFabrics = async () => {
+    if (!user) return;
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/delete/${selectedDcNo}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      toast({
-        title: "Deleted Successfully",
-        description: `Fabric record with DC No ${selectedDcNo} removed.`,
-        status: "success",
-        duration: 2500,
-      });
-
-      setFabrics((prev) => prev.filter((f) => f.dcNo !== selectedDcNo));
+      const res = await getFabricByUser(user.name);
+      const { workDetails } = res.data || {};
+      setUserFabrics(workDetails || []);
     } catch (err) {
       console.error(err);
       toast({
-        title: "Delete Failed",
+        title: "Failed to fetch user fabrics",
         description: err.response?.data?.message || err.message,
         status: "error",
         duration: 3000,
       });
-    } finally {
-      setIsOpen(false);
-      setSelectedDcNo(null);
     }
   };
 
-  // ✅ Handle Edit Click
+  useEffect(() => {
+    if (!user) return;
+    fetchFabrics();
+    if (userRole === "user") fetchUserFabrics();
+  }, [user]);
+
+  // Edit/Delete Handlers
   const handleEditClick = (fabric) => {
     setEditData(fabric);
     setIsEditOpen(true);
   };
 
-  // ✅ Handle Edit Change
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Update Fabric Process
   const handleUpdate = async () => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.put(`${API_URL}/update/${editData.dcNo}`, editData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const updatedData = {
+        ...editData,
+        qty: Number(editData.qty),
+        rate: Number(editData.rate),
+      };
+      await updateFabricProcess(editData.dcNo, updatedData);
       toast({
         title: "Fabric Updated",
-        description: `DC No ${editData.dcNo} has been updated successfully.`,
+        description: `DC No ${editData.dcNo} updated successfully.`,
         status: "success",
         duration: 2500,
       });
-
-      // Update frontend state instantly
       setFabrics((prev) =>
-        prev.map((f) => (f.dcNo === editData.dcNo ? { ...f, ...editData } : f))
+        prev.map((f) => (f.dcNo === editData.dcNo ? { ...f, ...updatedData } : f))
       );
-
       setIsEditOpen(false);
     } catch (err) {
       console.error(err);
@@ -171,35 +159,69 @@ export default function FabricTable() {
     }
   };
 
-  // Pagination calculations
-  const totalPages = Math.ceil(fabrics.length / itemsPerPage);
+  const handleDeleteClick = (dcNo) => {
+    setSelectedDcNo(dcNo);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedDcNo) return;
+    try {
+      await deleteFabricProcess(selectedDcNo);
+      toast({
+        title: "Deleted Successfully",
+        description: `Fabric record with DC No ${selectedDcNo} removed.`,
+        status: "success",
+        duration: 2500,
+      });
+      setFabrics((prev) => prev.filter((f) => f.dcNo !== selectedDcNo));
+      setUserFabrics((prev) => prev.filter((f) => f.dcNo !== selectedDcNo));
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Delete Failed",
+        description: err.response?.data?.message || err.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      setIsDeleteOpen(false);
+      setSelectedDcNo(null);
+    }
+  };
+
+  // Filter & Pagination
+  const activeFabrics =
+    userRole === "user"
+      ? userFabrics.filter((f) => f.status !== "Completed")
+      : fabrics;
+
+  const filteredFabrics = activeFabrics.filter((fabric) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (fabric.dcNo || "").toLowerCase().includes(term) ||
+      (fabric.brandName || "").toLowerCase().includes(term) ||
+      (fabric.machineNo || "").toLowerCase().includes(term) ||
+      (fabric.createdAt
+        ? new Date(fabric.createdAt).toLocaleDateString().toLowerCase()
+        : false)
+    );
+  });
+
+  const totalPages = Math.ceil(filteredFabrics.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentFabrics = fabrics.slice(startIndex, endIndex);
+  const currentFabrics = filteredFabrics.slice(startIndex, endIndex);
 
-  // Handle page change
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  // Handle items per page change
+  const handlePageChange = (page) => setCurrentPage(page);
   const handleItemsPerPageChange = (e) => {
     setItemsPerPage(Number(e.target.value));
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
   };
-
-  useEffect(() => {
-    fetchFabrics();
-  }, []);
 
   if (loading)
     return (
-      <Box 
-        textAlign="center" 
-        pt={paddingTop}
-        pb={paddingBottom}
-        px={paddingSides}
-      >
+      <Box textAlign="center" pt="60px" pb="20px" px="4px">
         <Spinner size="xl" color={primaryColor} />
         <Text mt={4} color={textColor}>
           Loading fabric records...
@@ -208,120 +230,51 @@ export default function FabricTable() {
     );
 
   return (
-    <Box 
-      pt={paddingTop}
-      pb={paddingBottom}
-      px={paddingSides}
-      maxW="100%" 
-      overflowX="auto"
-      bg="gray.50"
-      minH="100vh"
-    >
-      <Heading 
-        size="lg" 
-        mb={6} 
-        textAlign="center"
-        color={textColor}
-        textShadow="0 2px 4px rgba(0,0,0,0.1)"
-      >
+    <Box pt="60px" pb="20px" px="4px" maxW="100%" overflowX="auto" bg="gray.50" minH="70vh">
+      <Heading size="lg" mb={1} textAlign="center" color={textColor}>
         Fabric List
       </Heading>
 
-      {/* Pagination Controls - Top */}
-      {fabrics.length > 0 && (
-        <Flex justify="space-between" align="center" mb={4} p={4} bg="white" borderRadius="lg" boxShadow="sm" border="1px" borderColor="gray.200">
-          <HStack>
-            <Text fontSize="sm" color="gray.600">
-              Show:
-            </Text>
-            <Select
-              size="sm"
-              value={itemsPerPage}
-              onChange={handleItemsPerPageChange}
-              w="auto"
-              focusBorderColor={primaryColor}
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </Select>
-            <Text fontSize="sm" color="gray.600">
-              entries
-            </Text>
-          </HStack>
+      {/* Controls */}
+      <Flex justify="space-between" align="center" mb={4} p={4} bg="white" borderRadius="lg" boxShadow="sm" border="1px" borderColor="gray.200" flexWrap="wrap">
+        <HStack spacing={4} mb={{ base: 2, md: 0 }}>
+          <Text fontSize="sm" color="gray.600">Show:</Text>
+          <Select size="sm" value={itemsPerPage} onChange={handleItemsPerPageChange} w="auto" focusBorderColor={primaryColor}>
+            {[5, 10, 20, 50].map((num) => <option key={num} value={num}>{num}</option>)}
+          </Select>
+          <Text fontSize="sm" color="gray.600">entries</Text>
+        </HStack>
 
-          <HStack>
-            <IconButton
-              aria-label="Previous page"
-              icon={<ChevronLeftIcon />}
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              isDisabled={currentPage === 1}
-              colorScheme="red"
-              variant="outline"
-              _hover={{ bg: primaryColor, color: "white" }}
-            />
-            <Text fontSize="sm" color="gray.600" minW="100px" textAlign="center">
-              Page {currentPage} of {totalPages}
-            </Text>
-            <IconButton
-              aria-label="Next page"
-              icon={<ChevronRightIcon />}
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              isDisabled={currentPage === totalPages}
-              colorScheme="red"
-              variant="outline"
-              _hover={{ bg: primaryColor, color: "white" }}
-            />
-          </HStack>
-        </Flex>
-      )}
+        <HStack spacing={4} mb={{ base: 2, md: 0 }}>
+          <Text fontSize="sm" color="gray.600">Search:</Text>
+          <Input
+            placeholder="DC No, customer, Machine, Date"
+            size="sm"
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            focusBorderColor={primaryColor}
+          />
+        </HStack>
+      </Flex>
 
-      {fabrics.length === 0 ? (
-        <Box 
-          textAlign="center" 
-          py={10} 
-          bg="white" 
-          borderRadius="lg" 
-          boxShadow="sm"
-          border="1px" 
-          borderColor="gray.200"
-        >
-          <Text color="gray.500" fontSize="lg">
-            No fabric process records found.
-          </Text>
+      {filteredFabrics.length === 0 ? (
+        <Box textAlign="center" py={10} bg="white" borderRadius="lg" boxShadow="sm" border="1px" borderColor="gray.200">
+          <Text color="gray.500" fontSize="lg">No fabric process records found.</Text>
         </Box>
       ) : (
         <Box bg="white" borderRadius="lg" boxShadow="md" overflow="hidden" border="1px" borderColor="gray.200">
-          <Table variant="simple" size="md">
+          <Table variant="simple" size="sm">
             <Thead bg={primaryColor}>
               <Tr>
-                <Th color="white" fontWeight="bold">DC No</Th>
-                <Th color="white" fontWeight="bold">Brand</Th>
-                <Th color="white" fontWeight="bold">Color</Th>
-                <Th color="white" fontWeight="bold">Qty</Th>
-                <Th color="white" fontWeight="bold">Machine</Th>
-                <Th color="white" fontWeight="bold">Rate</Th>
-                <Th color="white" fontWeight="bold">Running Time</Th>
-                <Th color="white" fontWeight="bold">Water Cost</Th>
-                <Th color="white" fontWeight="bold">Total Cost</Th>
-                <Th color="white" fontWeight="bold">Date</Th>
-                <Th color="white" fontWeight="bold">Action</Th>
+                {["DC No", "Customer Name", "Color", "Qty", "Machine", "Rate", "Running Time", "Water Cost", "Total Cost", "Date"].map((head) => (
+                  <Th key={head} color="white" fontWeight="bold">{head}</Th>
+                ))}
+                {["admin", "owner"].includes(userRole) && <Th color="white" fontWeight="bold">Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
               {currentFabrics.map((fabric) => (
-                <Tr 
-                  key={fabric._id} 
-                  _hover={{ 
-                    bg: lightRed,
-                    transform: "translateY(-1px)",
-                    transition: "all 0.2s"
-                  }}
-                  transition="all 0.2s"
-                >
+                <Tr key={fabric._id} _hover={{ bg: lightRed, transform: "translateY(-1px)", transition: "all 0.2s" }} transition="all 0.2s">
                   <Td fontWeight="medium" color={textColor}>{fabric.dcNo}</Td>
                   <Td color={textColor}>{fabric.brandName}</Td>
                   <Td color={textColor}>{fabric.color}</Td>
@@ -330,89 +283,20 @@ export default function FabricTable() {
                   <Td color={textColor}>{fabric.rate || "-"}</Td>
                   <Td color={textColor}>{fabric.runningTime || "-"}</Td>
                   <Td fontWeight="medium" color={textColor}>₹{fabric.waterCost?.toFixed(2) || "0.00"}</Td>
-                  <Td fontWeight="bold" color={primaryColor}>
-                    ₹{fabric.totalCost || "0"}
-                  </Td>
-                  <Td color={textColor}>
-                    {fabric.createdAt
-                      ? new Date(fabric.createdAt).toLocaleDateString()
-                      : "-"}
-                  </Td>
-                  <Td>
-                    <HStack spacing={2}>
-                      {/* Edit Button with Advanced Styling */}
-                      <Tooltip label="Edit Record" hasArrow bg={blueColor} color="white">
-                        <IconButton
-                          aria-label="Edit fabric"
-                          icon={<EditIcon />}
-                          size="sm"
-                          onClick={() => handleEditClick(fabric)}
-                          bg="white"
-                          border="2px"
-                          borderColor="blue.300"
-                          color="blue.500"
-                          borderRadius="lg"
-                          boxShadow="0 2px 4px rgba(49, 130, 206, 0.2)"
-                          _hover={{
-                            bg: "blue.500",
-                            color: "white",
-                            transform: "translateY(-2px) scale(1.05)",
-                            boxShadow: "0 4px 12px rgba(49, 130, 206, 0.4)",
-                            borderColor: "blue.500",
-                          }}
-                          _active={{
-                            transform: "translateY(0) scale(0.98)",
-                            boxShadow: "0 2px 4px rgba(49, 130, 206, 0.3)",
-                          }}
-                          transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-                          sx={{
-                            "& svg": {
-                              transition: "transform 0.3s ease",
-                            },
-                            "&:hover svg": {
-                              transform: "scale(1.1)",
-                            }
-                          }}
-                        />
-                      </Tooltip>
-
-                      {/* Delete Button with Advanced Styling */}
-                      <Tooltip label="Delete Record" hasArrow bg={primaryColor} color="white">
-                        <IconButton
-                          aria-label="Delete fabric"
-                          icon={<DeleteIcon />}
-                          size="sm"
-                          onClick={() => handleDeleteClick(fabric.dcNo)}
-                          bg="white"
-                          border="2px"
-                          borderColor="red.300"
-                          color="red.500"
-                          borderRadius="lg"
-                          boxShadow="0 2px 4px rgba(255, 107, 107, 0.2)"
-                          _hover={{
-                            bg: primaryColor,
-                            color: "white",
-                            transform: "translateY(-2px) scale(1.05)",
-                            boxShadow: "0 4px 12px rgba(255, 107, 107, 0.4)",
-                            borderColor: primaryColor,
-                          }}
-                          _active={{
-                            transform: "translateY(0) scale(0.98)",
-                            boxShadow: "0 2px 4px rgba(255, 107, 107, 0.3)",
-                          }}
-                          transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-                          sx={{
-                            "& svg": {
-                              transition: "transform 0.3s ease",
-                            },
-                            "&:hover svg": {
-                              transform: "scale(1.1) rotate(-5deg)",
-                            }
-                          }}
-                        />
-                      </Tooltip>
-                    </HStack>
-                  </Td>
+                  <Td fontWeight="bold" color={primaryColor}>₹{fabric.totalCost || "0"}</Td>
+                  <Td color={textColor}>{fabric.createdAt ? new Date(fabric.createdAt).toLocaleDateString() : "-"}</Td>
+                  {["admin", "owner"].includes(userRole) && (
+                    <Td>
+                      <HStack spacing={2}>
+                        <Tooltip label="Edit Record" hasArrow bg={blueColor} color="white">
+                          <IconButton aria-label="Edit fabric" icon={<EditIcon />} size="sm" onClick={() => handleEditClick(fabric)} bg="white" border="2px" borderColor="blue.300" color="blue.500" borderRadius="lg" />
+                        </Tooltip>
+                        <Tooltip label="Delete Record" hasArrow bg={primaryColor} color="white">
+                          <IconButton aria-label="Delete fabric" icon={<DeleteIcon />} size="sm" onClick={() => handleDeleteClick(fabric.dcNo)} bg="white" border="2px" borderColor="red.300" color="red.500" borderRadius="lg" />
+                        </Tooltip>
+                      </HStack>
+                    </Td>
+                  )}
                 </Tr>
               ))}
             </Tbody>
@@ -420,209 +304,72 @@ export default function FabricTable() {
         </Box>
       )}
 
-      {/* Pagination Controls - Bottom */}
-      {fabrics.length > 0 && (
-        <Flex 
-          justify="space-between" 
-          align="center" 
-          mt={4} 
-          p={4} 
-          bg="white" 
-          borderRadius="lg" 
-          boxShadow="sm"
-          border="1px" 
-          borderColor="gray.200"
-        >
+      {/* Pagination */}
+      {filteredFabrics.length > 0 && (
+        <Flex justify="space-between" align="center" mt={4} p={4} bg="white" borderRadius="lg" boxShadow="sm" border="1px" borderColor="gray.200">
           <Text fontSize="sm" color="gray.600">
-            Showing {startIndex + 1} to {Math.min(endIndex, fabrics.length)} of {fabrics.length} entries
+            Showing {startIndex + 1} to {Math.min(endIndex, filteredFabrics.length)} of {filteredFabrics.length} entries
           </Text>
-
           <HStack>
-            <IconButton
-              aria-label="Previous page"
-              icon={<ChevronLeftIcon />}
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              isDisabled={currentPage === 1}
-              colorScheme="red"
-              variant="outline"
-              _hover={{ bg: primaryColor, color: "white" }}
-            />
-            
-            {/* Page numbers */}
+            <IconButton aria-label="Previous page" icon={<ChevronLeftIcon />} size="sm" onClick={() => handlePageChange(currentPage - 1)} isDisabled={currentPage <= 1} colorScheme="red" variant="outline" _hover={{ bg: primaryColor, color: "white" }} />
             <HStack spacing={1}>
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
+                if (totalPages <= 5) pageNum = i + 1;
+                else if (currentPage <= 3) pageNum = i + 1;
+                else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                else pageNum = currentPage - 2 + i;
 
                 return (
-                  <Button
-                    key={pageNum}
-                    size="sm"
-                    onClick={() => handlePageChange(pageNum)}
-                    colorScheme={currentPage === pageNum ? "red" : "gray"}
-                    variant={currentPage === pageNum ? "solid" : "outline"}
-                    bg={currentPage === pageNum ? primaryColor : "transparent"}
-                    _hover={currentPage === pageNum ? { bg: darkRed } : {}}
-                  >
-                    {pageNum}
-                  </Button>
+                  <Button key={pageNum} size="sm" onClick={() => handlePageChange(pageNum)} colorScheme={currentPage === pageNum ? "red" : "gray"} variant={currentPage === pageNum ? "solid" : "outline"} bg={currentPage === pageNum ? primaryColor : "transparent"} _hover={currentPage === pageNum ? { bg: darkRed } : {}}>{pageNum}</Button>
                 );
               })}
             </HStack>
-
-            <IconButton
-              aria-label="Next page"
-              icon={<ChevronRightIcon />}
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              isDisabled={currentPage === totalPages}
-              colorScheme="red"
-              variant="outline"
-              _hover={{ bg: primaryColor, color: "white" }}
-            />
+            <IconButton aria-label="Next page" icon={<ChevronRightIcon />} size="sm" onClick={() => handlePageChange(currentPage + 1)} isDisabled={currentPage >= totalPages} colorScheme="red" variant="outline" _hover={{ bg: primaryColor, color: "white" }} />
           </HStack>
         </Flex>
       )}
 
-      {/* ✅ Edit Modal */}
-      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} size="lg">
+      {/* Edit Modal */}
+      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} size="sm" >
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader 
-            bg={primaryColor} 
-            color="white"
-            borderTopRadius="md"
-          >
-            Edit Fabric Process
-          </ModalHeader>
+          <ModalHeader bg={primaryColor} color="white" borderTopRadius="sm">Edit Fabric Process</ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody py={6}>
-            <FormControl mb={4}>
-              <FormLabel fontWeight="medium" color={textColor}>Brand Name</FormLabel>
-              <Input
-                name="brandName"
-                value={editData.brandName || ""}
-                onChange={handleEditChange}
-                focusBorderColor={primaryColor}
-              />
-            </FormControl>
-
-            <FormControl mb={4}>
-              <FormLabel fontWeight="medium" color={textColor}>Color</FormLabel>
-              <Input
-                name="color"
-                value={editData.color || ""}
-                onChange={handleEditChange}
-                focusBorderColor={primaryColor}
-              />
-            </FormControl>
-
-            <FormControl mb={4}>
-              <FormLabel fontWeight="medium" color={textColor}>Machine No</FormLabel>
-              <Input
-                name="machineNo"
-                value={editData.machineNo || ""}
-                onChange={handleEditChange}
-                focusBorderColor={primaryColor}
-              />
-            </FormControl>
-
-            <FormControl mb={4}>
-              <FormLabel fontWeight="medium" color={textColor}>Quantity</FormLabel>
-              <Input
-                type="number"
-                name="qty"
-                value={editData.qty || ""}
-                onChange={handleEditChange}
-                focusBorderColor={primaryColor}
-              />
-            </FormControl>
-
-            <FormControl mb={4}>
-              <FormLabel fontWeight="medium" color={textColor}>Rate</FormLabel>
-              <Input
-                type="number"
-                name="rate"
-                value={editData.rate || ""}
-                onChange={handleEditChange}
-                focusBorderColor={primaryColor}
-              />
-            </FormControl>
+            {["brandName","color","machineNo","qty","rate"].map((field) => (
+              <FormControl key={field} mb={2}>
+                <FormLabel fontWeight="medium" color={textColor}>{field === "brandName" ? "Brand Name" : field.charAt(0).toUpperCase()+field.slice(1)}</FormLabel>
+                <Input
+                  name={field}
+                  type={["qty","rate"].includes(field) ? "number" : "text"}
+                  value={editData[field] || ""}
+                  onChange={handleEditChange}
+                  focusBorderColor={primaryColor}
+                />
+              </FormControl>
+            ))}
           </ModalBody>
-
           <ModalFooter>
-            <Button 
-              onClick={() => setIsEditOpen(false)} 
-              mr={3}
-              variant="outline"
-              color={textColor}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleUpdate}
-              bg={primaryColor}
-              _hover={{ bg: darkRed }}
-              color="white"
-            >
-              Save Changes
-            </Button>
+            <Button onClick={() => setIsEditOpen(false)} mr={3} variant="outline" color={textColor}>Cancel</Button>
+            <Button onClick={handleUpdate} bg={primaryColor} _hover={{ bg: darkRed }} color="white">Save Changes</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
 
-      {/* ✅ Delete Confirmation Dialog */}
-      <AlertDialog
-        isOpen={isOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={() => setIsOpen(false)}
-      >
+      {/* Delete Dialog */}
+      <AlertDialog isOpen={isDeleteOpen} leastDestructiveRef={cancelRef} onClose={() => setIsDeleteOpen(false)}>
         <AlertDialogOverlay>
           <AlertDialogContent>
-            <AlertDialogHeader 
-              fontSize="lg" 
-              fontWeight="bold"
-              bg={primaryColor}
-              color="white"
-            >
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" bg={primaryColor} color="white">
               Delete Fabric Record
             </AlertDialogHeader>
-
             <AlertDialogBody py={6}>
-              Are you sure you want to delete{" "}
-              <Text as="span" fontWeight="semibold" color={primaryColor}>
-                DC No: {selectedDcNo}
-              </Text>
-              ? This action cannot be undone.
+              Are you sure you want to delete <Text as="span" fontWeight="semibold" color={primaryColor}>DC No: {selectedDcNo}</Text>? This action cannot be undone.
             </AlertDialogBody>
-
             <AlertDialogFooter>
-              <Button 
-                ref={cancelRef} 
-                onClick={() => setIsOpen(false)}
-                variant="outline"
-                color={textColor}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={confirmDelete} 
-                ml={3}
-                bg={primaryColor}
-                _hover={{ bg: darkRed }}
-                color="white"
-              >
-                Delete
-              </Button>
+              <Button ref={cancelRef} onClick={() => setIsDeleteOpen(false)} variant="outline" color={textColor}>Cancel</Button>
+              <Button onClick={confirmDelete} ml={3} bg={primaryColor} _hover={{ bg: darkRed }} color="white">Delete</Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialogOverlay>

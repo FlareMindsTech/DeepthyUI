@@ -8,25 +8,24 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
-import { Link as RouterLink } from "react-router-dom"; // ✅ v6 Link
-import UserNavbarLinks from "./UserNavbarLinks"; // Create this similar to AdminNavbarLinks for user links
+import { Link as RouterLink } from "react-router-dom";
+import UserNavbarLinks from "./UserNavbarLinks";
 
 export default function UserNavbar(props) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     window.addEventListener("scroll", changeNavbar);
-    return () => {
-      window.removeEventListener("scroll", changeNavbar);
-    };
+    return () => window.removeEventListener("scroll", changeNavbar);
   }, []);
 
-  const { variant, children, fixed, secondary, brandText, onOpen, ...rest } = props;
+  const { fixed, secondary, brandText, onOpen } = props;
 
   let mainText =
     fixed && scrolled
       ? useColorModeValue("gray.700", "gray.200")
       : useColorModeValue("white", "gray.200");
+
   let secondaryText =
     fixed && scrolled
       ? useColorModeValue("gray.700", "gray.200")
@@ -41,8 +40,7 @@ export default function UserNavbar(props) {
   let secondaryMargin = "0px";
   let paddingX = "15px";
 
-  if (fixed === true && scrolled === true) {
-    navbarPosition = "fixed";
+  if (fixed && scrolled) {
     navbarShadow = useColorModeValue(
       "0px 7px 23px rgba(0, 0, 0, 0.05)",
       "none"
@@ -68,11 +66,7 @@ export default function UserNavbar(props) {
   }
 
   const changeNavbar = () => {
-    if (window.scrollY > 1) {
-      setScrolled(true);
-    } else {
-      setScrolled(false);
-    }
+    setScrolled(window.scrollY > 1);
   };
 
   return (
@@ -91,27 +85,35 @@ export default function UserNavbar(props) {
       display="flex"
       minH="75px"
       justifyContent={{ xl: "center" }}
-      lineHeight="25.6px"
       mx="auto"
       mt={secondaryMargin}
       pb="8px"
       left={document.documentElement.dir === "rtl" ? "30px" : ""}
       right={document.documentElement.dir === "rtl" ? "" : "30px"}
       px={{ sm: paddingX, md: "30px" }}
-      ps={{ xl: "12px" }}
       pt="8px"
       top="18px"
       w={{ sm: "calc(100vw - 30px)", xl: "calc(100vw - 75px - 275px)" }}
+      zIndex="9"
     >
       <Flex
         w="100%"
         flexDirection={{ sm: "column", md: "row" }}
         alignItems={{ xl: "center" }}
       >
-        <Box mb={{ sm: "8px", md: "0px" }}>
+        {/* LEFT SECTION (HIDDEN ON MOBILE) */}
+        <Box
+          mb={{ sm: "8px", md: "0px" }}
+          display={{ base: "none", md: "inline" }}  // Hide on mobile
+        >
+          {/* Breadcrumb */}
           <Breadcrumb>
             <BreadcrumbItem color={mainText}>
-              <BreadcrumbLink as={RouterLink} to="/user/dashboard" color={secondaryText}>
+              <BreadcrumbLink
+                as={RouterLink}
+                to="/user/dashboard"
+                color={secondaryText}
+              >
                 Pages
               </BreadcrumbLink>
             </BreadcrumbItem>
@@ -123,22 +125,22 @@ export default function UserNavbar(props) {
             </BreadcrumbItem>
           </Breadcrumb>
 
+          {/* Page Title */}
           <Box
             as={RouterLink}
             to="/user/dashboard"
             color={mainText}
-            bg="inherit"
-            borderRadius="inherit"
             fontWeight="bold"
+            bg="inherit"
             _hover={{ color: mainText }}
-            _active={{ bg: "inherit", transform: "none", borderColor: "transparent" }}
             _focus={{ boxShadow: "none" }}
           >
             {brandText}
           </Box>
         </Box>
 
-        <Box ms="auto" w={{ sm: "100%", md: "unset" }}>
+        {/* RIGHT SIDE ACTIONS */}
+        <Box ms="auto" w={{ sm: "100%", md: "unset" }} >
           <UserNavbarLinks
             onOpen={onOpen}
             logoText={props.logoText}

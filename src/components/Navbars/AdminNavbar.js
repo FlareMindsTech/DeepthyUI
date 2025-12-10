@@ -5,10 +5,10 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   Flex,
-  useColorModeValue
+  useColorModeValue,
 } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
-import { Link as RouterLink } from "react-router-dom";  // ✅ v6 Link
+import { Link as RouterLink } from "react-router-dom";
 import AdminNavbarLinks from "./AdminNavbarLinks";
 
 export default function AdminNavbar(props) {
@@ -16,27 +16,17 @@ export default function AdminNavbar(props) {
 
   useEffect(() => {
     window.addEventListener("scroll", changeNavbar);
-
-    return () => {
-      window.removeEventListener("scroll", changeNavbar);
-    };
+    return () => window.removeEventListener("scroll", changeNavbar);
   });
 
-  const {
-    variant,
-    children,
-    fixed,
-    secondary,
-    brandText,
-    onOpen,
-    ...rest
-  } = props;
+  const { fixed, secondary, brandText } = props;
 
-  let mainText =
+  const mainText =
     fixed && scrolled
       ? useColorModeValue("gray.700", "gray.200")
       : useColorModeValue("white", "gray.200");
-  let secondaryText =
+
+  const secondaryText =
     fixed && scrolled
       ? useColorModeValue("gray.700", "gray.200")
       : useColorModeValue("white", "gray.200");
@@ -50,28 +40,20 @@ export default function AdminNavbar(props) {
   let secondaryMargin = "0px";
   let paddingX = "15px";
 
-  if (props.fixed === true)
-    if (scrolled === true) {
-      navbarPosition = "fixed";
-      navbarShadow = useColorModeValue(
-        "0px 7px 23px rgba(0, 0, 0, 0.05)",
-        "none"
-      );
-      navbarBg = useColorModeValue(
-        "linear-gradient(112.83deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.8) 110.84%)",
-        "linear-gradient(112.83deg, rgba(255, 255, 255, 0.21) 0%, rgba(255, 255, 255, 0) 110.84%)"
-      );
-      navbarBorder = useColorModeValue(
-        "#FFFFFF",
-        "rgba(255, 255, 255, 0.31)"
-      );
-      navbarFilter = useColorModeValue(
-        "none",
-        "drop-shadow(0px 7px 23px rgba(0, 0, 0, 0.05))"
-      );
-    }
-  if (props.secondary) {
-    navbarBackdrop = "none";
+  if (fixed && scrolled) {
+    navbarShadow = useColorModeValue(
+      "0px 7px 23px rgba(0, 0, 0, 0.05)",
+      "none"
+    );
+    navbarBg = useColorModeValue(
+      "linear-gradient(112.83deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.8) 110.84%)",
+      "linear-gradient(112.83deg, rgba(255, 255, 255, 0.21) 0%, rgba(255, 255, 255, 0) 110.84%)"
+    );
+    navbarBorder = useColorModeValue("#FFFFFF", "rgba(255, 255, 255, 0.31)");
+    navbarFilter = useColorModeValue("none", "drop-shadow(0px 7px 23px rgba(0, 0, 0, 0.05))");
+  }
+
+  if (secondary) {
     navbarPosition = "absolute";
     mainText = "white";
     secondaryText = "white";
@@ -80,11 +62,7 @@ export default function AdminNavbar(props) {
   }
 
   const changeNavbar = () => {
-    if (window.scrollY > 1) {
-      setScrolled(true);
-    } else {
-      setScrolled(false);
-    }
+    setScrolled(window.scrollY > 1);
   };
 
   return (
@@ -103,41 +81,37 @@ export default function AdminNavbar(props) {
       display="flex"
       minH="75px"
       justifyContent={{ xl: "center" }}
-      lineHeight="25.6px"
       mx="auto"
       mt={secondaryMargin}
       pb="8px"
       left={document.documentElement.dir === "rtl" ? "30px" : ""}
       right={document.documentElement.dir === "rtl" ? "" : "30px"}
-      px={{
-        sm: paddingX,
-        md: "30px",
-      }}
-      ps={{
-        xl: "12px",
-      }}
+      px={{ sm: paddingX, md: "30px" }}
       pt="8px"
-      top="18px"
       w={{ sm: "calc(100vw - 30px)", xl: "calc(100vw - 75px - 275px)" }}
-      zIndex = "9"
+      zIndex="9"
     >
       <Flex
         w="100%"
-        flexDirection={{
-          sm: "column",
-          md: "row",
-        }}
+        flexDirection={{ sm: "column", md: "row" }}
         alignItems={{ xl: "center" }}
       >
-        <Box mb={{ sm: "8px", md: "0px" }}>
+        {/* LEFT SIDE: Breadcrumb + Brand */}
+        <Box
+          mb={{ sm: "8px", md: "0px" }}
+          display={{ base: "none", md: "inline" }} // Hide on mobile
+        >
+          {/* Breadcrumb */}
           <Breadcrumb>
             <BreadcrumbItem color={mainText}>
-              {/* ✅ Use RouterLink */}
-              <BreadcrumbLink as={RouterLink} to="/admin/dashboard" color={secondaryText}>
+              <BreadcrumbLink
+                as={RouterLink}
+                to="/admin/dashboard"
+                color={secondaryText}
+              >
                 Pages
               </BreadcrumbLink>
             </BreadcrumbItem>
-
             <BreadcrumbItem color={mainText}>
               <BreadcrumbLink as={RouterLink} to="#" color={mainText}>
                 {brandText}
@@ -145,29 +119,22 @@ export default function AdminNavbar(props) {
             </BreadcrumbItem>
           </Breadcrumb>
 
-          {/* Navbar brand */}
+          {/* Page Title (Brand Text) */}
           <Box
             as={RouterLink}
             to="/admin/dashboard"
             color={mainText}
-            bg="inherit"
-            borderRadius="inherit"
             fontWeight="bold"
+            bg="inherit"
             _hover={{ color: mainText }}
-            _active={{
-              bg: "inherit",
-              transform: "none",
-              borderColor: "transparent",
-            }}
-            _focus={{
-              boxShadow: "none",
-            }}
-            // zIndex="9"
+            _focus={{ boxShadow: "none" }}
           >
             {brandText}
           </Box>
         </Box>
-        <Box ms="auto" w={{ sm: "100%", md: "unset" }} >
+
+        {/* RIGHT SIDE NAV ITEMS */}
+        <Box ms="auto" w={{ sm: "100%", md: "unset" }}>
           <AdminNavbarLinks
             onOpen={props.onOpen}
             logoText={props.logoText}

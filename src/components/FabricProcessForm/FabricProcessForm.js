@@ -46,7 +46,7 @@ import {
   ModalFooter,
   ModalCloseButton,
   useDisclosure,
-  Stack
+  Stack,
 } from "@chakra-ui/react";
 import {
   FaTag,
@@ -67,8 +67,10 @@ import {
   FaCheckCircle,
   FaEye,
   FaVial,
-  FaTint
+  FaTint,
 } from "react-icons/fa";
+
+import { createFabricProcess } from "../../utils/axiosInstance";
 
 // Advanced animations
 const floatAnimation = keyframes`
@@ -128,9 +130,15 @@ export default function FabricProcessForm() {
   });
 
   // Animation variants
-  const float = prefersReducedMotion ? undefined : `${floatAnimation} 6s ease-in-out infinite`;
-  const glow = prefersReducedMotion ? undefined : `${glowAnimation} 3s ease-in-out infinite`;
-  const pulse = prefersReducedMotion ? undefined : `${pulseAnimation} 2s ease-in-out infinite`;
+  const float = prefersReducedMotion
+    ? undefined
+    : `${floatAnimation} 6s ease-in-out infinite`;
+  const glow = prefersReducedMotion
+    ? undefined
+    : `${glowAnimation} 3s ease-in-out infinite`;
+  const pulse = prefersReducedMotion
+    ? undefined
+    : `${pulseAnimation} 2s ease-in-out infinite`;
   const slide = prefersReducedMotion ? undefined : `${slideIn} 0.8s ease-out`;
   const bounce = prefersReducedMotion ? undefined : `${bounceIn} 0.8s ease-out`;
 
@@ -141,15 +149,18 @@ export default function FabricProcessForm() {
   const successColor = "#48BB78";
   const gradient = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`;
   const premiumGradient = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${accentColor} 100%)`;
-  
+
   const cardBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.600");
   const subtleBg = useColorModeValue("gray.50", "gray.700");
-  const shadow = useColorModeValue("0 25px 50px -12px rgba(0, 0, 0, 0.25)", "dark-lg");
+  const shadow = useColorModeValue(
+    "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+    "dark-lg"
+  );
 
   // Validate form
   useEffect(() => {
-    const isValid = 
+    const isValid =
       formData.dcNo.trim() !== "" &&
       formData.brandName.trim() !== "" &&
       formData.color.trim() !== "" &&
@@ -157,18 +168,26 @@ export default function FabricProcessForm() {
       formData.qty > 0 &&
       formData.rate > 0 &&
       formData.lotWeight > 0;
-    
+
     setIsFormValid(isValid);
-    
+
     // Calculate progress
-    const fields = ['dcNo', 'brandName', 'color', 'machineNo', 'qty', 'rate', 'lotWeight'];
-    const filledFields = fields.filter(field => {
-      if (field === 'qty' || field === 'rate' || field === 'lotWeight') {
+    const fields = [
+      "dcNo",
+      "brandName",
+      "color",
+      "machineNo",
+      "qty",
+      "rate",
+      "lotWeight",
+    ];
+    const filledFields = fields.filter((field) => {
+      if (field === "qty" || field === "rate" || field === "lotWeight") {
         return formData[field] > 0;
       }
       return formData[field].trim() !== "";
     }).length;
-    
+
     setProgress(Math.round((filledFields / fields.length) * 100));
   }, [formData]);
 
@@ -184,9 +203,9 @@ export default function FabricProcessForm() {
   const addChemical = () => {
     if (chemicalInput.trim() && chemicalQuantity && chemicalCost) {
       const chemicalExists = formData.chemical.find(
-        chem => chem.name.toLowerCase() === chemicalInput.trim().toLowerCase()
+        (chem) => chem.name.toLowerCase() === chemicalInput.trim().toLowerCase()
       );
-      
+
       if (chemicalExists) {
         toast({
           title: "Chemical Already Added",
@@ -204,19 +223,19 @@ export default function FabricProcessForm() {
         quantity: parseFloat(chemicalQuantity),
         cost: parseFloat(chemicalCost),
         unit: "kg",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       setFormData({
         ...formData,
-        chemical: [...formData.chemical, newChemical]
+        chemical: [...formData.chemical, newChemical],
       });
-      
+
       // Reset chemical inputs
       setChemicalInput("");
       setChemicalQuantity("");
       setChemicalCost("");
-      
+
       toast({
         title: "Chemical Added",
         description: `${newChemical.name} added successfully.`,
@@ -228,10 +247,10 @@ export default function FabricProcessForm() {
   };
 
   const removeChemical = (id) => {
-    const chemicalToRemove = formData.chemical.find(chem => chem.id === id);
-    const newChemicals = formData.chemical.filter(chem => chem.id !== id);
+    const chemicalToRemove = formData.chemical.find((chem) => chem.id === id);
+    const newChemicals = formData.chemical.filter((chem) => chem.id !== id);
     setFormData({ ...formData, chemical: newChemicals });
-    
+
     toast({
       title: "Chemical Removed",
       description: `${chemicalToRemove.name} removed from list.`,
@@ -244,9 +263,9 @@ export default function FabricProcessForm() {
   const addDye = () => {
     if (dyeInput.trim() && dyeQuantity && dyeCost) {
       const dyeExists = formData.dyes.find(
-        dye => dye.name.toLowerCase() === dyeInput.trim().toLowerCase()
+        (dye) => dye.name.toLowerCase() === dyeInput.trim().toLowerCase()
       );
-      
+
       if (dyeExists) {
         toast({
           title: "Dye Already Added",
@@ -265,19 +284,19 @@ export default function FabricProcessForm() {
         cost: parseFloat(dyeCost),
         unit: "kg",
         color: formData.color || "Mixed",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       setFormData({
         ...formData,
-        dyes: [...formData.dyes, newDye]
+        dyes: [...formData.dyes, newDye],
       });
-      
+
       // Reset dye inputs
       setDyeInput("");
       setDyeQuantity("");
       setDyeCost("");
-      
+
       toast({
         title: "Dye Added",
         description: `${newDye.name} added successfully.`,
@@ -289,10 +308,10 @@ export default function FabricProcessForm() {
   };
 
   const removeDye = (id) => {
-    const dyeToRemove = formData.dyes.find(dye => dye.id === id);
-    const newDyes = formData.dyes.filter(dye => dye.id !== id);
+    const dyeToRemove = formData.dyes.find((dye) => dye.id === id);
+    const newDyes = formData.dyes.filter((dye) => dye.id !== id);
     setFormData({ ...formData, dyes: newDyes });
-    
+
     toast({
       title: "Dye Removed",
       description: `${dyeToRemove.name} removed from list.`,
@@ -303,10 +322,10 @@ export default function FabricProcessForm() {
   };
 
   const handleKeyPress = (e, type) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
-      if (type === 'chemical') addChemical();
-      if (type === 'dye') addDye();
+      if (type === "chemical") addChemical();
+      if (type === "dye") addDye();
     }
   };
 
@@ -323,8 +342,14 @@ export default function FabricProcessForm() {
       const token = localStorage.getItem("token");
 
       // Calculate totals
-      const totalChemicalCost = formData.chemical.reduce((sum, chem) => sum + chem.cost, 0);
-      const totalDyeCost = formData.dyes.reduce((sum, dye) => sum + dye.cost, 0);
+      const totalChemicalCost = formData.chemical.reduce(
+        (sum, chem) => sum + chem.cost,
+        0
+      );
+      const totalDyeCost = formData.dyes.reduce(
+        (sum, dye) => sum + dye.cost,
+        0
+      );
       const totalMaterialCost = totalChemicalCost + totalDyeCost;
 
       const submissionData = {
@@ -332,23 +357,21 @@ export default function FabricProcessForm() {
         totalChemicalCost,
         totalDyeCost,
         totalMaterialCost,
-        chemicals: formData.chemical, // Send as objects
-        dyes: formData.dyes, // Send as objects
+        chemical: formData.chemical.map((c) => ({
+          name: c.name,
+          qty: Number(c.quantity), // ✅ change quantity → qty
+          cost: Number(c.cost),
+        })),
+        dyes: formData.dyes.map((d) => ({
+          name: d.name,
+          qty: Number(d.quantity), // ✅ change quantity → qty
+          cost: Number(d.cost),
+        })),
       };
 
-      const res = await axios.post(
-        "http://localhost:8080/api/fabric/create",
-        submissionData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      const res = await createFabricProcess(submissionData);
       setShowSuccess(true);
-      
+
       toast({
         title: "🎉 Process Created Successfully!",
         description: `Fabric process for ${formData.brandName} has been created with ${formData.chemical.length} chemicals and ${formData.dyes.length} dyes.`,
@@ -384,11 +407,11 @@ export default function FabricProcessForm() {
 
       // Hide success message after 5 seconds
       setTimeout(() => setShowSuccess(false), 5000);
-
     } catch (error) {
       toast({
         title: "❌ Creation Failed",
-        description: error.response?.data?.message || "Server error. Please try again.",
+        description:
+          error.response?.data?.message || "Server error. Please try again.",
         status: "error",
         duration: 4000,
         isClosable: true,
@@ -403,7 +426,10 @@ export default function FabricProcessForm() {
 
   // Calculate total cost
   const totalCost = formData.qty * formData.rate;
-  const totalChemicalCost = formData.chemical.reduce((sum, chem) => sum + chem.cost, 0);
+  const totalChemicalCost = formData.chemical.reduce(
+    (sum, chem) => sum + chem.cost,
+    0
+  );
   const totalDyeCost = formData.dyes.reduce((sum, dye) => sum + dye.cost, 0);
   const totalMaterialCost = totalChemicalCost + totalDyeCost;
 
@@ -412,10 +438,10 @@ export default function FabricProcessForm() {
       <Container maxW="1000px" mx="auto" mt={8} mb={8} px={4}>
         {/* Success Alert */}
         <Collapse in={showSuccess} animateOpacity>
-          <Alert 
-            status="success" 
-            borderRadius="2xl" 
-            mb={6} 
+          <Alert
+            status="success"
+            borderRadius="2xl"
+            mb={6}
             variant="solid"
             bg={successColor}
             animation={bounce}
@@ -433,11 +459,11 @@ export default function FabricProcessForm() {
         </Collapse>
 
         {/* Progress Bar */}
-        <Box 
-          mb={6} 
-          bg={cardBg} 
-          boxShadow="md" 
-          borderRadius="2xl" 
+        <Box
+          mb={6}
+          bg={cardBg}
+          boxShadow="md"
+          borderRadius="2xl"
           p={6}
           border="1px"
           borderColor={borderColor}
@@ -451,17 +477,17 @@ export default function FabricProcessForm() {
                 {progress}%
               </Text>
             </Flex>
-            <Progress 
-              value={progress} 
-              w="100%" 
-              size="lg" 
+            <Progress
+              value={progress}
+              w="100%"
+              size="lg"
               borderRadius="full"
               bg={subtleBg}
               sx={{
-                '& > div': {
+                "& > div": {
                   background: gradient,
                   animation: pulse,
-                }
+                },
               }}
             />
           </VStack>
@@ -478,12 +504,7 @@ export default function FabricProcessForm() {
           animation={slide}
         >
           {/* Premium Header Section */}
-          <Box 
-            bg={premiumGradient} 
-            p={8}
-            position="relative"
-            overflow="hidden"
-          >
+          <Box bg={premiumGradient} p={8} position="relative" overflow="hidden">
             {/* Animated Background Elements */}
             <Box
               position="absolute"
@@ -495,13 +516,17 @@ export default function FabricProcessForm() {
               bgSize="50px 50px"
               animation={float}
             />
-            
-            <Flex direction="column" align="center" color="white" position="relative" zIndex={1}>
-             
+
+            <Flex
+              direction="column"
+              align="center"
+              color="white"
+              position="relative"
+              zIndex={1}
+            >
               <Heading size="xl" fontWeight="black" textAlign="center" mb={2}>
-                 FABRIC PROCESS ENTRY
+                FABRIC PROCESS ENTRY
               </Heading>
-              
             </Flex>
           </Box>
 
@@ -511,18 +536,24 @@ export default function FabricProcessForm() {
               <VStack spacing={8}>
                 {/* Main Form Grid */}
                 <Grid templateColumns="repeat(2, 1fr)" gap={6} w="100%">
-                  
                   {/* DC Number */}
                   <GridItem colSpan={1}>
                     <FormControl isRequired>
-                      <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                      <FormLabel
+                        fontWeight="bold"
+                        color={secondaryColor}
+                        fontSize="sm"
+                      >
                         <HStack>
                           <Icon as={FaTag} color={primaryColor} />
                           <Text>DC NUMBER</Text>
                         </HStack>
                       </FormLabel>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none" color={primaryColor}>
+                        <InputLeftElement
+                          pointerEvents="none"
+                          color={primaryColor}
+                        >
                           <Icon as={FaTag} />
                         </InputLeftElement>
                         <Input
@@ -531,15 +562,15 @@ export default function FabricProcessForm() {
                           onChange={handleChange}
                           placeholder="Enter DC number"
                           borderColor={borderColor}
-                          _hover={{ 
+                          _hover={{
                             borderColor: primaryColor,
                             transform: "translateY(-2px)",
-                            boxShadow: "lg"
+                            boxShadow: "lg",
                           }}
-                          _focus={{ 
-                            borderColor: primaryColor, 
+                          _focus={{
+                            borderColor: primaryColor,
                             boxShadow: `0 0 0 3px ${primaryColor}20`,
-                            transform: "scale(1.02)"
+                            transform: "scale(1.02)",
                           }}
                           transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
                           bg="white"
@@ -554,14 +585,21 @@ export default function FabricProcessForm() {
                   {/* Brand Name */}
                   <GridItem colSpan={1}>
                     <FormControl isRequired>
-                      <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                      <FormLabel
+                        fontWeight="bold"
+                        color={secondaryColor}
+                        fontSize="sm"
+                      >
                         <HStack>
                           <Icon as={FaIndustry} color={primaryColor} />
                           <Text>BRAND NAME</Text>
                         </HStack>
                       </FormLabel>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none" color={primaryColor}>
+                        <InputLeftElement
+                          pointerEvents="none"
+                          color={primaryColor}
+                        >
                           <Icon as={FaIndustry} />
                         </InputLeftElement>
                         <Input
@@ -570,15 +608,15 @@ export default function FabricProcessForm() {
                           onChange={handleChange}
                           placeholder="Enter brand name"
                           borderColor={borderColor}
-                          _hover={{ 
+                          _hover={{
                             borderColor: primaryColor,
                             transform: "translateY(-2px)",
-                            boxShadow: "lg"
+                            boxShadow: "lg",
                           }}
-                          _focus={{ 
-                            borderColor: primaryColor, 
+                          _focus={{
+                            borderColor: primaryColor,
                             boxShadow: `0 0 0 3px ${primaryColor}20`,
-                            transform: "scale(1.02)"
+                            transform: "scale(1.02)",
                           }}
                           transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
                           bg="white"
@@ -593,7 +631,11 @@ export default function FabricProcessForm() {
                   {/* Quantity */}
                   <GridItem colSpan={1}>
                     <FormControl isRequired>
-                      <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                      <FormLabel
+                        fontWeight="bold"
+                        color={secondaryColor}
+                        fontSize="sm"
+                      >
                         QUANTITY
                       </FormLabel>
                       <NumberInput
@@ -604,14 +646,14 @@ export default function FabricProcessForm() {
                       >
                         <NumberInputField
                           borderColor={borderColor}
-                          _hover={{ 
+                          _hover={{
                             borderColor: primaryColor,
                             transform: "translateY(-2px)",
-                            boxShadow: "lg"
+                            boxShadow: "lg",
                           }}
-                          _focus={{ 
-                            borderColor: primaryColor, 
-                            boxShadow: `0 0 0 3px ${primaryColor}20`
+                          _focus={{
+                            borderColor: primaryColor,
+                            boxShadow: `0 0 0 3px ${primaryColor}20`,
                           }}
                           bg="white"
                           borderRadius="xl"
@@ -619,8 +661,14 @@ export default function FabricProcessForm() {
                           fontSize="md"
                         />
                         <NumberInputStepper>
-                          <NumberIncrementStepper borderColor={primaryColor} color={primaryColor} />
-                          <NumberDecrementStepper borderColor={primaryColor} color={primaryColor} />
+                          <NumberIncrementStepper
+                            borderColor={primaryColor}
+                            color={primaryColor}
+                          />
+                          <NumberDecrementStepper
+                            borderColor={primaryColor}
+                            color={primaryColor}
+                          />
                         </NumberInputStepper>
                       </NumberInput>
                     </FormControl>
@@ -629,14 +677,21 @@ export default function FabricProcessForm() {
                   {/* Color */}
                   <GridItem colSpan={1}>
                     <FormControl isRequired>
-                      <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                      <FormLabel
+                        fontWeight="bold"
+                        color={secondaryColor}
+                        fontSize="sm"
+                      >
                         <HStack>
                           <Icon as={FaPalette} color={primaryColor} />
                           <Text>COLOR</Text>
                         </HStack>
                       </FormLabel>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none" color={primaryColor}>
+                        <InputLeftElement
+                          pointerEvents="none"
+                          color={primaryColor}
+                        >
                           <Icon as={FaPalette} />
                         </InputLeftElement>
                         <Input
@@ -645,15 +700,15 @@ export default function FabricProcessForm() {
                           onChange={handleChange}
                           placeholder="Enter color name"
                           borderColor={borderColor}
-                          _hover={{ 
+                          _hover={{
                             borderColor: primaryColor,
                             transform: "translateY(-2px)",
-                            boxShadow: "lg"
+                            boxShadow: "lg",
                           }}
-                          _focus={{ 
-                            borderColor: primaryColor, 
+                          _focus={{
+                            borderColor: primaryColor,
                             boxShadow: `0 0 0 3px ${primaryColor}20`,
-                            transform: "scale(1.02)"
+                            transform: "scale(1.02)",
                           }}
                           transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
                           bg="white"
@@ -668,14 +723,21 @@ export default function FabricProcessForm() {
                   {/* Machine Number */}
                   <GridItem colSpan={1}>
                     <FormControl isRequired>
-                      <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                      <FormLabel
+                        fontWeight="bold"
+                        color={secondaryColor}
+                        fontSize="sm"
+                      >
                         <HStack>
                           <Icon as={FaWarehouse} color={primaryColor} />
                           <Text>MACHINE NO</Text>
                         </HStack>
                       </FormLabel>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none" color={primaryColor}>
+                        <InputLeftElement
+                          pointerEvents="none"
+                          color={primaryColor}
+                        >
                           <Icon as={FaWarehouse} />
                         </InputLeftElement>
                         <Input
@@ -684,15 +746,15 @@ export default function FabricProcessForm() {
                           onChange={handleChange}
                           placeholder="e.g., M-001"
                           borderColor={borderColor}
-                          _hover={{ 
+                          _hover={{
                             borderColor: primaryColor,
                             transform: "translateY(-2px)",
-                            boxShadow: "lg"
+                            boxShadow: "lg",
                           }}
-                          _focus={{ 
-                            borderColor: primaryColor, 
+                          _focus={{
+                            borderColor: primaryColor,
                             boxShadow: `0 0 0 3px ${primaryColor}20`,
-                            transform: "scale(1.02)"
+                            transform: "scale(1.02)",
                           }}
                           transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
                           bg="white"
@@ -707,19 +769,28 @@ export default function FabricProcessForm() {
                   {/* Rate */}
                   <GridItem colSpan={1}>
                     <FormControl isRequired>
-                      <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                      <FormLabel
+                        fontWeight="bold"
+                        color={secondaryColor}
+                        fontSize="sm"
+                      >
                         <HStack>
                           <Icon as={FaDollarSign} color={primaryColor} />
                           <Text>RATE (PER UNIT)</Text>
                         </HStack>
                       </FormLabel>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none" color={primaryColor}>
+                        <InputLeftElement
+                          pointerEvents="none"
+                          color={primaryColor}
+                        >
                           <Icon as={FaDollarSign} />
                         </InputLeftElement>
                         <NumberInput
                           value={formData.rate}
-                          onChange={(value) => handleNumberChange("rate", value)}
+                          onChange={(value) =>
+                            handleNumberChange("rate", value)
+                          }
                           min={0}
                           precision={2}
                           w="100%"
@@ -727,14 +798,14 @@ export default function FabricProcessForm() {
                           <NumberInputField
                             pl="10"
                             borderColor={borderColor}
-                            _hover={{ 
+                            _hover={{
                               borderColor: primaryColor,
                               transform: "translateY(-2px)",
-                              boxShadow: "lg"
+                              boxShadow: "lg",
                             }}
-                            _focus={{ 
-                              borderColor: primaryColor, 
-                              boxShadow: `0 0 0 3px ${primaryColor}20`
+                            _focus={{
+                              borderColor: primaryColor,
+                              boxShadow: `0 0 0 3px ${primaryColor}20`,
                             }}
                             bg="white"
                             borderRadius="xl"
@@ -749,19 +820,28 @@ export default function FabricProcessForm() {
                   {/* Lot Weight */}
                   <GridItem colSpan={1}>
                     <FormControl isRequired>
-                      <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                      <FormLabel
+                        fontWeight="bold"
+                        color={secondaryColor}
+                        fontSize="sm"
+                      >
                         <HStack>
                           <Icon as={FaWeight} color={primaryColor} />
                           <Text>LOT WEIGHT (KG)</Text>
                         </HStack>
                       </FormLabel>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none" color={primaryColor}>
+                        <InputLeftElement
+                          pointerEvents="none"
+                          color={primaryColor}
+                        >
                           <Icon as={FaWeight} />
                         </InputLeftElement>
                         <NumberInput
                           value={formData.lotWeight}
-                          onChange={(value) => handleNumberChange("lotWeight", value)}
+                          onChange={(value) =>
+                            handleNumberChange("lotWeight", value)
+                          }
                           min={0}
                           precision={2}
                           w="100%"
@@ -769,14 +849,14 @@ export default function FabricProcessForm() {
                           <NumberInputField
                             pl="10"
                             borderColor={borderColor}
-                            _hover={{ 
+                            _hover={{
                               borderColor: primaryColor,
                               transform: "translateY(-2px)",
-                              boxShadow: "lg"
+                              boxShadow: "lg",
                             }}
-                            _focus={{ 
-                              borderColor: primaryColor, 
-                              boxShadow: `0 0 0 3px ${primaryColor}20`
+                            _focus={{
+                              borderColor: primaryColor,
+                              boxShadow: `0 0 0 3px ${primaryColor}20`,
                             }}
                             bg="white"
                             borderRadius="xl"
@@ -791,7 +871,11 @@ export default function FabricProcessForm() {
                   {/* Total Cost Display */}
                   <GridItem colSpan={1}>
                     <FormControl>
-                      <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                      <FormLabel
+                        fontWeight="bold"
+                        color={secondaryColor}
+                        fontSize="sm"
+                      >
                         <HStack>
                           <Icon as={FaCalculator} color={primaryColor} />
                           <Text>TOTAL COST</Text>
@@ -811,7 +895,7 @@ export default function FabricProcessForm() {
                         transition="all 0.3s ease"
                         _hover={{
                           transform: "scale(1.05)",
-                          bg: `${primaryColor}15`
+                          bg: `${primaryColor}15`,
                         }}
                       >
                         ${totalCost.toFixed(2)}
@@ -824,29 +908,40 @@ export default function FabricProcessForm() {
 
                 {/* Chemicals Section */}
                 <FormControl w="100%">
-                  <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                  <FormLabel
+                    fontWeight="bold"
+                    color={secondaryColor}
+                    fontSize="sm"
+                  >
                     <HStack>
                       <Icon as={FaFlask} color={primaryColor} />
                       <Text>CHEMICALS</Text>
-                      <Badge 
-                        colorScheme="red" 
-                        borderRadius="full" 
+                      <Badge
+                        colorScheme="red"
+                        borderRadius="full"
                         bg={primaryColor}
                         animation={pulse}
                       >
                         {formData.chemical.length}
                       </Badge>
-                      <Badge colorScheme="green" variant="solid" borderRadius="full">
+                      <Badge
+                        colorScheme="green"
+                        variant="solid"
+                        borderRadius="full"
+                      >
                         Total: ${totalChemicalCost.toFixed(2)}
                       </Badge>
                     </HStack>
                   </FormLabel>
-                  
+
                   {/* Chemical Input Grid */}
                   <Grid templateColumns="repeat(3, 1fr)" gap={3} mb={4}>
                     <GridItem colSpan={1}>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none" color={primaryColor}>
+                        <InputLeftElement
+                          pointerEvents="none"
+                          color={primaryColor}
+                        >
                           <Icon as={FaFlask} />
                         </InputLeftElement>
                         <Input
@@ -912,12 +1007,16 @@ export default function FabricProcessForm() {
                         _hover={{
                           bg: secondaryColor,
                           transform: "scale(1.05)",
-                          boxShadow: "xl"
+                          boxShadow: "xl",
                         }}
                         _active={{
-                          transform: "scale(0.95)"
+                          transform: "scale(0.95)",
                         }}
-                        isDisabled={!chemicalInput.trim() || !chemicalQuantity || !chemicalCost}
+                        isDisabled={
+                          !chemicalInput.trim() ||
+                          !chemicalQuantity ||
+                          !chemicalCost
+                        }
                         borderRadius="xl"
                         height="50px"
                         flex={1}
@@ -940,7 +1039,7 @@ export default function FabricProcessForm() {
                         animation={bounce}
                         _hover={{
                           transform: "scale(1.05)",
-                          cursor: "pointer"
+                          cursor: "pointer",
                         }}
                         transition="all 0.3s ease"
                         p={3}
@@ -948,7 +1047,7 @@ export default function FabricProcessForm() {
                         <TagLabel fontWeight="medium" mr={2}>
                           {chem.name} ({chem.quantity}kg - ${chem.cost})
                         </TagLabel>
-                        <TagCloseButton 
+                        <TagCloseButton
                           onClick={() => removeChemical(chem.id)}
                           _hover={{ bg: "rgba(255,255,255,0.2)" }}
                         />
@@ -961,29 +1060,40 @@ export default function FabricProcessForm() {
 
                 {/* Dyes Section */}
                 <FormControl w="100%">
-                  <FormLabel fontWeight="bold" color={secondaryColor} fontSize="sm">
+                  <FormLabel
+                    fontWeight="bold"
+                    color={secondaryColor}
+                    fontSize="sm"
+                  >
                     <HStack>
                       <Icon as={FaFillDrip} color={primaryColor} />
                       <Text>DYES</Text>
-                      <Badge 
-                        colorScheme="red" 
-                        borderRadius="full" 
+                      <Badge
+                        colorScheme="red"
+                        borderRadius="full"
                         bg={secondaryColor}
                         animation={pulse}
                       >
                         {formData.dyes.length}
                       </Badge>
-                      <Badge colorScheme="purple" variant="solid" borderRadius="full">
+                      <Badge
+                        colorScheme="purple"
+                        variant="solid"
+                        borderRadius="full"
+                      >
                         Total: ${totalDyeCost.toFixed(2)}
                       </Badge>
                     </HStack>
                   </FormLabel>
-                  
+
                   {/* Dye Input Grid */}
                   <Grid templateColumns="repeat(3, 1fr)" gap={3} mb={4}>
                     <GridItem colSpan={1}>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none" color={primaryColor}>
+                        <InputLeftElement
+                          pointerEvents="none"
+                          color={primaryColor}
+                        >
                           <Icon as={FaTint} />
                         </InputLeftElement>
                         <Input
@@ -1049,12 +1159,14 @@ export default function FabricProcessForm() {
                         _hover={{
                           bg: primaryColor,
                           transform: "scale(1.05)",
-                          boxShadow: "xl"
+                          boxShadow: "xl",
                         }}
                         _active={{
-                          transform: "scale(0.95)"
+                          transform: "scale(0.95)",
                         }}
-                        isDisabled={!dyeInput.trim() || !dyeQuantity || !dyeCost}
+                        isDisabled={
+                          !dyeInput.trim() || !dyeQuantity || !dyeCost
+                        }
                         borderRadius="xl"
                         height="50px"
                         flex={1}
@@ -1077,7 +1189,7 @@ export default function FabricProcessForm() {
                         animation={bounce}
                         _hover={{
                           transform: "scale(1.05)",
-                          cursor: "pointer"
+                          cursor: "pointer",
                         }}
                         transition="all 0.3s ease"
                         p={3}
@@ -1085,7 +1197,7 @@ export default function FabricProcessForm() {
                         <TagLabel fontWeight="medium" mr={2}>
                           {dye.name} ({dye.quantity}kg - ${dye.cost})
                         </TagLabel>
-                        <TagCloseButton 
+                        <TagCloseButton
                           onClick={() => removeDye(dye.id)}
                           _hover={{ bg: "rgba(255,255,255,0.2)" }}
                         />
@@ -1104,25 +1216,52 @@ export default function FabricProcessForm() {
                     border="2px"
                     borderColor={primaryColor}
                   >
-                    <Heading size="md" color={secondaryColor} mb={3} textAlign="center">
+                    <Heading
+                      size="md"
+                      color={secondaryColor}
+                      mb={3}
+                      textAlign="center"
+                    >
                       Material Cost Summary
                     </Heading>
-                    <Grid templateColumns="repeat(3, 1fr)" gap={4} textAlign="center">
+                    <Grid
+                      templateColumns="repeat(3, 1fr)"
+                      gap={4}
+                      textAlign="center"
+                    >
                       <Box>
-                        <Text fontWeight="bold" color="gray.600">Chemicals</Text>
-                        <Text fontSize="xl" fontWeight="black" color={primaryColor}>
+                        <Text fontWeight="bold" color="gray.600">
+                          Chemicals
+                        </Text>
+                        <Text
+                          fontSize="xl"
+                          fontWeight="black"
+                          color={primaryColor}
+                        >
                           ${totalChemicalCost.toFixed(2)}
                         </Text>
                       </Box>
                       <Box>
-                        <Text fontWeight="bold" color="gray.600">Dyes</Text>
-                        <Text fontSize="xl" fontWeight="black" color={secondaryColor}>
+                        <Text fontWeight="bold" color="gray.600">
+                          Dyes
+                        </Text>
+                        <Text
+                          fontSize="xl"
+                          fontWeight="black"
+                          color={secondaryColor}
+                        >
                           ${totalDyeCost.toFixed(2)}
                         </Text>
                       </Box>
                       <Box>
-                        <Text fontWeight="bold" color="gray.600">Total Materials</Text>
-                        <Text fontSize="xl" fontWeight="black" color={accentColor}>
+                        <Text fontWeight="bold" color="gray.600">
+                          Total Materials
+                        </Text>
+                        <Text
+                          fontSize="xl"
+                          fontWeight="black"
+                          color={accentColor}
+                        >
                           ${totalMaterialCost.toFixed(2)}
                         </Text>
                       </Box>
@@ -1145,7 +1284,7 @@ export default function FabricProcessForm() {
                         bg: primaryColor,
                         color: "white",
                         transform: "translateY(-3px)",
-                        boxShadow: "xl"
+                        boxShadow: "xl",
                       }}
                       transition="all 0.3s ease"
                       borderRadius="xl"
@@ -1154,7 +1293,7 @@ export default function FabricProcessForm() {
                       Preview
                     </Button>
                   </Tooltip>
-                  
+
                   <Button
                     type="submit"
                     size="lg"
@@ -1163,11 +1302,15 @@ export default function FabricProcessForm() {
                     loadingText="🚀 Creating Process..."
                     bg={isFormValid ? premiumGradient : "gray.300"}
                     color="white"
-                    _hover={isFormValid ? {
-                      transform: "translateY(-3px) scale(1.02)",
-                      boxShadow: `0 20px 40px -10px ${primaryColor}80`,
-                      animation: glow
-                    } : {}}
+                    _hover={
+                      isFormValid
+                        ? {
+                            transform: "translateY(-3px) scale(1.02)",
+                            boxShadow: `0 20px 40px -10px ${primaryColor}80`,
+                            animation: glow,
+                          }
+                        : {}
+                    }
                     _active={{
                       transform: "translateY(-1px)",
                     }}
@@ -1181,7 +1324,9 @@ export default function FabricProcessForm() {
                     borderRadius="2xl"
                     disabled={!isFormValid}
                   >
-                    {isFormValid ? "🚀 LAUNCH FABRIC PROCESS" : "FILL REQUIRED FIELDS"}
+                    {isFormValid
+                      ? "🚀 LAUNCH FABRIC PROCESS"
+                      : "FILL REQUIRED FIELDS"}
                   </Button>
                 </HStack>
               </VStack>
@@ -1191,7 +1336,12 @@ export default function FabricProcessForm() {
       </Container>
 
       {/* Preview Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="xl" motionPreset="slideInBottom">
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size="xl"
+        motionPreset="slideInBottom"
+      >
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
         <ModalContent borderRadius="3xl" overflow="hidden">
           <ModalHeader bg={gradient} color="white">
@@ -1205,15 +1355,21 @@ export default function FabricProcessForm() {
             <VStack spacing={4} align="stretch">
               {/* Basic Information */}
               <Box p={4} bg={subtleBg} borderRadius="lg">
-                <Heading size="sm" color={secondaryColor} mb={3}>Basic Information</Heading>
+                <Heading size="sm" color={secondaryColor} mb={3}>
+                  Basic Information
+                </Heading>
                 <Grid templateColumns="repeat(2, 1fr)" gap={3}>
                   <Flex justify="space-between">
                     <Text fontWeight="bold">DC Number:</Text>
-                    <Text color={primaryColor}>{formData.dcNo || "Not set"}</Text>
+                    <Text color={primaryColor}>
+                      {formData.dcNo || "Not set"}
+                    </Text>
                   </Flex>
                   <Flex justify="space-between">
                     <Text fontWeight="bold">Brand:</Text>
-                    <Text color={primaryColor}>{formData.brandName || "Not set"}</Text>
+                    <Text color={primaryColor}>
+                      {formData.brandName || "Not set"}
+                    </Text>
                   </Flex>
                   <Flex justify="space-between">
                     <Text fontWeight="bold">Color:</Text>
@@ -1223,7 +1379,9 @@ export default function FabricProcessForm() {
                   </Flex>
                   <Flex justify="space-between">
                     <Text fontWeight="bold">Machine No:</Text>
-                    <Text color={primaryColor}>{formData.machineNo || "Not set"}</Text>
+                    <Text color={primaryColor}>
+                      {formData.machineNo || "Not set"}
+                    </Text>
                   </Flex>
                   <Flex justify="space-between">
                     <Text fontWeight="bold">Quantity:</Text>
@@ -1237,20 +1395,34 @@ export default function FabricProcessForm() {
               </Box>
 
               {/* Cost Summary */}
-              <Box p={4} bg={`${primaryColor}10`} borderRadius="lg" borderLeft="4px" borderColor={primaryColor}>
-                <Heading size="sm" color={secondaryColor} mb={3}>Cost Summary</Heading>
+              <Box
+                p={4}
+                bg={`${primaryColor}10`}
+                borderRadius="lg"
+                borderLeft="4px"
+                borderColor={primaryColor}
+              >
+                <Heading size="sm" color={secondaryColor} mb={3}>
+                  Cost Summary
+                </Heading>
                 <VStack spacing={2}>
                   <Flex justify="space-between" w="100%">
                     <Text fontWeight="bold">Fabric Cost:</Text>
-                    <Text fontWeight="black" color={primaryColor}>${totalCost.toFixed(2)}</Text>
+                    <Text fontWeight="black" color={primaryColor}>
+                      ${totalCost.toFixed(2)}
+                    </Text>
                   </Flex>
                   <Flex justify="space-between" w="100%">
                     <Text fontWeight="bold">Chemical Cost:</Text>
-                    <Text fontWeight="bold" color={secondaryColor}>${totalChemicalCost.toFixed(2)}</Text>
+                    <Text fontWeight="bold" color={secondaryColor}>
+                      ${totalChemicalCost.toFixed(2)}
+                    </Text>
                   </Flex>
                   <Flex justify="space-between" w="100%">
                     <Text fontWeight="bold">Dye Cost:</Text>
-                    <Text fontWeight="bold" color={secondaryColor}>${totalDyeCost.toFixed(2)}</Text>
+                    <Text fontWeight="bold" color={secondaryColor}>
+                      ${totalDyeCost.toFixed(2)}
+                    </Text>
                   </Flex>
                   <Divider />
                   <Flex justify="space-between" w="100%">
@@ -1270,7 +1442,13 @@ export default function FabricProcessForm() {
                   </Heading>
                   <VStack spacing={2} align="stretch">
                     {formData.chemical.map((chem) => (
-                      <Flex key={chem.id} justify="space-between" p={2} bg="white" borderRadius="md">
+                      <Flex
+                        key={chem.id}
+                        justify="space-between"
+                        p={2}
+                        bg="white"
+                        borderRadius="md"
+                      >
                         <Text>{chem.name}</Text>
                         <Text fontWeight="bold">
                           {chem.quantity} kg - ${chem.cost}
@@ -1289,7 +1467,13 @@ export default function FabricProcessForm() {
                   </Heading>
                   <VStack spacing={2} align="stretch">
                     {formData.dyes.map((dye) => (
-                      <Flex key={dye.id} justify="space-between" p={2} bg="white" borderRadius="md">
+                      <Flex
+                        key={dye.id}
+                        justify="space-between"
+                        p={2}
+                        bg="white"
+                        borderRadius="md"
+                      >
                         <Text>{dye.name}</Text>
                         <Text fontWeight="bold">
                           {dye.quantity} kg - ${dye.cost}

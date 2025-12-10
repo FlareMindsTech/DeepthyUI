@@ -24,12 +24,18 @@ function Sidebar({ routes }) {
   const mainPanel = React.useRef();
   const [role, setRole] = useState(null);
   useEffect(() => {
-    const currentUser = localStorage.getItem("user");
-    if (currentUser) {
-      const parsedUser = JSON.parse(currentUser);
-      setRole(parsedUser.role);
+    const stored = localStorage.getItem("user");
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed?.role) setRole(parsed.role);
+    } catch (e) {
+      console.warn("Invalid JSON in localStorage:user", e);
+      localStorage.removeItem("user"); // prevent repeated crashes
     }
   }, []);
+
   const activeBg = "#C41E3A";
   const inactiveBg = useColorModeValue("white", "#1A202C");
   const activeColor = "white";
@@ -251,7 +257,13 @@ export function SidebarResponsive({ routes, hamburgerColor }) {
   const links = <>{filterRoutes(routes)}</>;
 
   const brand = (
-    <Flex direction="column" justify="center" align="center" pt="25px" mb="12px">
+    <Flex
+      direction="column"
+      justify="center"
+      align="center"
+      pt="25px"
+      mb="12px"
+    >
       <Text fontWeight="extrabold" fontSize="lg">
         Deepthy Fenishers
       </Text>
@@ -267,8 +279,18 @@ export function SidebarResponsive({ routes, hamburgerColor }) {
   );
 
   return (
-    <Flex display={{ sm: "flex", xl: "none" }} ref={mainPanel} alignItems="center" zIndex="9">
-      <HamburgerIcon color={hamburgerColor} w="18px" h="18px" onClick={onOpen} />
+    <Flex
+      display={{ sm: "flex", xl: "none" }}
+      ref={mainPanel}
+      alignItems="center"
+      zIndex="9"
+    >
+      <HamburgerIcon
+        color={hamburgerColor}
+        w="18px"
+        h="18px"
+        onClick={onOpen}
+      />
       <Drawer isOpen={isOpen} onClose={onClose} placement="left">
         <DrawerOverlay />
         <DrawerContent
@@ -280,7 +302,10 @@ export function SidebarResponsive({ routes, hamburgerColor }) {
           flexDirection="column"
           justifyContent="space-between"
         >
-          <DrawerCloseButton _focus={{ boxShadow: "none" }} _hover={{ boxShadow: "none" }} />
+          <DrawerCloseButton
+            _focus={{ boxShadow: "none" }}
+            _hover={{ boxShadow: "none" }}
+          />
           <DrawerBody
             maxW="250px"
             px="1rem"

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ReactApexChart from "react-apexcharts";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -37,160 +38,37 @@ const customHoverColor = "#B71C1C";
    ====================================================== */
 const UsersSection = ({ users }) => (
   <Card
-    p={5}
-    borderRadius="15px"
-    border="2px solid"
+    p={3}
+    borderRadius="10px"
+    border="1.5px solid"
     borderColor={customColor}
     bg="white"
     color="black"
-    transition="all 0.3s ease"
-    _hover={{
-      transform: "translateY(-2px)",
-      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
-    }}
+    mt={-5}
   >
-    <Heading size="md" mb={4} color={customColor}>
+    <Heading size="sm" mb={3} color={customColor}>
       👤 User Details
     </Heading>
+
     <Box overflowX="auto">
-      <Table variant="simple" minW="600px">
-        <Thead bg="gray.100">
+      <Table size="sm" minW="500px">
+        <Thead bg="gray.200">
           <Tr>
-            <Th>#</Th>
-            <Th>Name</Th>
-            <Th>Phone</Th>
-            <Th>Role</Th>
+            <Th fontSize="sm">#</Th>
+            <Th fontSize="sm">Name</Th>
+            <Th fontSize="sm">Phone</Th>
+            <Th fontSize="sm">Role</Th>
           </Tr>
         </Thead>
         <Tbody>
-          {users.map((u, idx) => (
-            <Tr key={u._id || idx}>
+          {users.slice(0, 5).map((u, idx) => (
+            <Tr key={idx}>
               <Td>{idx + 1}</Td>
               <Td>{u.name}</Td>
               <Td>{u.phone}</Td>
-              <Td>{u.role}</Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </Box>
-  </Card>
-);
-
-
-/* ======================================================
-   🔹 STAFF SECTION
-   ====================================================== */
-const StaffSection = ({ staff }) => (
-  <Card
-    p={5}
-    borderRadius="15px"
-    border="2px solid"
-    borderColor={customColor}
-    bg="white"
-    color="black"
-    transition="all 0.3s ease"
-    _hover={{
-      transform: "translateY(-2px)",
-      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
-    }}
-  >
-    <Heading size="md" mb={4} color={customColor}>
-      👨‍💼 Working Staff
-    </Heading>
-
-    <Box overflowX="auto">
-      <Table variant="simple" minW="600px">
-        <Thead bg="gray.100">
-          <Tr>
-            <Th>#</Th>
-            <Th>Name</Th>
-            <Th>Email</Th>
-            <Th>Department</Th>
-            <Th>Role</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {staff.map((s, idx) => (
-            <Tr key={s._id || idx}>
-              <Td>{idx + 1}</Td>
-              <Td>{s.name}</Td>
-              <Td>{s.email}</Td>
-              <Td>{s.department}</Td>
-              <Td>{s.role}</Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </Box>
-
-    <Box mt={5} h="300px">
-      <BarChart
-        chartData={[{ name: "Staff Count", data: staff.map(() => 1) }]}
-        chartOptions={{
-          chart: { id: "staff-bar" },
-          xaxis: { categories: staff.map((s) => s.name) },
-        }}
-      />
-    </Box>
-  </Card>
-);
-
-
-/* ======================================================
-   🔹 SALES / FABRIC SECTION
-   ====================================================== */
-const SalesSection = ({ sales, getStatusColor }) => (
-  <Card
-    p={5}
-    borderRadius="15px"
-    border="2px solid"
-    borderColor={customColor}
-    bg="white"
-    color="black"
-    transition="all 0.3s ease"
-    _hover={{
-      transform: "translateY(-2px)",
-      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
-    }}
-  >
-    <Heading size="md" mb={4} color={customColor}>
-      💰 Process Details
-    </Heading>
-
-    <Box overflowX="auto">
-      <Table variant="simple" minW="800px">
-        <Thead bg="gray.100">
-          <Tr>
-            <Th>#</Th>
-            <Th>DC No</Th>
-            <Th>Brand</Th>
-            <Th>Color</Th>
-            <Th>Qty</Th>
-            <Th>Machine</Th>
-            <Th>Rate</Th>
-            <Th>Running Time</Th>
-            <Th>Water Cost</Th>
-            <Th>Total Cost</Th>
-            <Th>Status</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {sales.map((s, idx) => (
-            <Tr key={s._id || idx}>
-              <Td>{idx + 1}</Td>
-              <Td>{s.dcNo || "-"}</Td>
-              <Td>{s.brandName || "-"}</Td>
-              <Td>{s.color || "-"}</Td>
-              <Td>{s.qty || "-"}</Td>
-              <Td>{s.machineNo || "-"}</Td>
-              <Td>{s.rate || "-"}</Td>
-              <Td>{s.runningTime || "-"}</Td>
-              <Td>{s.waterCost || "-"}</Td>
-              <Td>{s.totalCost || "-"}</Td>
               <Td>
-                <Badge colorScheme={getStatusColor(s.status)}>
-                  {s.status || "Unknown"}
+                <Badge colorScheme="purple" fontSize="0.7rem">
+                  {u.role}
                 </Badge>
               </Td>
             </Tr>
@@ -201,6 +79,168 @@ const SalesSection = ({ sales, getStatusColor }) => (
   </Card>
 );
 
+/* ======================================================
+   🔹 STAFF SECTION
+   ====================================================== */
+
+/* ======================================================
+   🔹 STAFF SECTION (Updated with Line + Bar Charts)
+   ====================================================== */
+const StaffSection = ({ staff, sales }) => {
+  // Prepare chart data for running hours
+  const lineChartData = {
+    series: [
+      {
+        name: "Working Hours",
+        data: staff.map((s) => s.totalHours || 0),
+      },
+    ],
+    options: {
+      chart: { id: "staff-line" },
+      xaxis: { categories: staff.map((s) => s.name) },
+      stroke: { curve: "smooth" },
+      title: {
+        text: "Staff Working Hours",
+        align: "center",
+      },
+      markers: { size: 4 },
+    },
+  };
+
+  // Prepare bar chart data for hours vs water cost
+  const machineStats = (staff || []).map((s) => {
+    const matching = (sales || []).filter((proc) => proc.machineNo === s.name);
+    const totalWater = matching.reduce(
+      (sum, p) => sum + Number(p?.waterCost || 0),
+      0
+    );
+    return { name: s.name, totalHours: s.totalHours || 0, totalWater };
+  });
+
+  const barChartData = {
+    series: [
+      {
+        name: "Total Running Hours",
+        data: machineStats.map((m) => m.totalHours),
+      },
+      {
+        name: "Water Cost (₹)",
+        data: machineStats.map((m) => m.totalWater),
+      },
+    ],
+    options: {
+      chart: { type: "bar", height: 300, toolbar: { show: false } },
+      plotOptions: { bar: { horizontal: false, columnWidth: "45%" } },
+      dataLabels: { enabled: false },
+      stroke: { show: true, width: 2, colors: ["transparent"] },
+      xaxis: { categories: machineStats.map((m) => m.name) },
+      yaxis: {
+        title: { text: "Hours / Water Cost" },
+      },
+      fill: { opacity: 1 },
+      colors: ["#FF6B6B", "#4ECDC4"], // red & teal contrast
+      legend: { position: "bottom" },
+      title: {
+        text: "Machine Hours vs Water Cost",
+        align: "center",
+      },
+    },
+  };
+
+  return (
+    <Card
+      p={3}
+      borderRadius="10px"
+      border="1.5px solid"
+      borderColor={customColor}
+      mt={-5}
+    >
+      <Heading size="sm" mb={3} color={customColor}>
+        👨‍💼 Working Staff
+      </Heading>
+
+      {/* Line Chart (Running Hours) */}
+      <Box mt={3} h="220px">
+        <ReactApexChart
+          options={lineChartData.options}
+          series={lineChartData.series}
+          type="line"
+          height="250"
+        />
+      </Box>
+
+      {/* Bar Chart (Hours vs Water Cost) */}
+      <Box mt={8}>
+        <ReactApexChart
+          options={barChartData.options}
+          series={barChartData.series}
+          type="bar"
+          height="300"
+        />
+      </Box>
+    </Card>
+  );
+};
+
+/* ======================================================
+   🔹 SALES / FABRIC SECTION
+   ====================================================== */
+const SalesSection = ({
+  sales,
+  handleEdit,
+  setSelectedItem,
+  setIsDeleteOpen,
+}) => (
+  <Card
+    p={3}
+    borderRadius="10px"
+    border="1.5px solid"
+    borderColor={customColor}
+    bg="white"
+    mt={-5}
+  >
+    <Heading size="sm" mb={3} color={customColor}>
+      💰 Process Details
+    </Heading>
+
+    <Box overflowX="auto">
+      <Table size="sm">
+        <Thead bg={`${customColor}20`}>
+          <Tr>
+            <Th>Receiver No</Th>
+            <Th>Machine</Th>
+            <Th>Shift Incharge</Th>
+            <Th>Operator</Th>
+            <Th>Qty</Th>
+            <Th>Rate</Th>
+            <Th>Assign Number</Th>
+            <Th>Date</Th>
+            <Th>Status</Th>
+            {/* <Th>Actions</Th> */}
+          </Tr>
+        </Thead>
+
+        <Tbody>
+          {(sales || []).map((item, idx) => (
+            <Tr key={item._id || idx}>
+              <Td>{item.receiverNo || "-"}</Td>
+              <Td>{item.machineNo || "-"}</Td>
+              <Td>{item.shiftincharge || "-"}</Td>
+              <Td>{item.operator || "-"}</Td>
+              <Td>{item.qty || 0}</Td>
+              <Td>{item.rate || 0}</Td>
+              <Td>{item.orderNo || "-"}</Td>
+              <Td>{item.date?.substring(0, 10) || "-"}</Td>
+              <Td>{item.status || "-"}</Td>
+              <Td>
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </Box>
+  </Card>
+);
 
 /* ======================================================
    🔹 MAIN DASHBOARD COMPONENT
@@ -210,7 +250,7 @@ export default function Dashboard() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [activeSection, setActiveSection] = useState("");
+  const [activeSection, setActiveSection] = useState("sales");
   const [users, setUsers] = useState([]);
   const [staff, setStaff] = useState([]);
   const [sales, setSales] = useState([]);
@@ -220,12 +260,24 @@ export default function Dashboard() {
   const [loadingStaff, setLoadingStaff] = useState(true);
   const [loadingSales, setLoadingSales] = useState(true);
 
+  // Pagination State
+
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 5;
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeSection]);
+
+  const startIndex = (page - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+
   // ✅ Access control
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (
       !storedUser ||
-      (storedUser.role !== "admin" && storedUser.role !== "owner")
+      (storedUser.role !== "admin" && storedUser.role !== "owner" && storedUser.role !== "shiftincharge")
     ) {
       toast({
         title: "Access Denied",
@@ -252,7 +304,7 @@ export default function Dashboard() {
           new Map(usersData.map((u) => [u.email, u])).values()
         );
         uniqueUsers.sort((a, b) => a.name.localeCompare(b.name));
-        setUsers(uniqueUsers);
+        setUsers(usersData);
       } catch (err) {
         toast({
           title: "Error fetching users",
@@ -285,12 +337,32 @@ export default function Dashboard() {
       }
 
       // ---- Fabric / Sales ----
+      // ---- Fabric / Sales ----
       try {
         setLoadingSales(true);
         const salesRes = await getAllFabricProcesses();
-        const salesData = salesRes.data?.fabricProcesses || salesRes.data || [];
-        salesData.sort((a, b) => (a.dcNo || "").localeCompare(b.dcNo || ""));
+        const salesData = Array.isArray(salesRes.data?.data)
+          ? salesRes.data.data
+          : [];
+
+        salesData.sort((a, b) => (a.order || "").localeCompare(b.order || ""));
         setSales(salesData);
+
+        // Calculate staff hours
+        const staffHours = {};
+        salesData.forEach((proc) => {
+          const key = proc.machineNo || "Unknown";
+          const runTime = Number(proc.runningTime) || 0;
+          staffHours[key] = (staffHours[key] || 0) + runTime;
+        });
+
+        const staffArray = Object.entries(staffHours).map(
+          ([name, totalHours]) => ({
+            name,
+            totalHours,
+          })
+        );
+        setStaff(staffArray);
       } catch (err) {
         toast({
           title: "Error fetching process data",
@@ -325,7 +397,7 @@ export default function Dashboard() {
       pt={{ base: "120px", md: "75px" }}
       marginTop={-20}
     >
-      <Box mb={6}>
+      <Box mb={3}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Welcome, {currentUser.name} 👋
         </Text>
@@ -365,7 +437,11 @@ export default function Dashboard() {
               colorScheme="red"
               variant="outline"
               leftIcon={<FaChartLine />}
-              onClick={() => setActiveSection(card.section)}
+              onClick={() => {
+                if (card.section === "sales") setActiveSection("sales");
+                if (card.section === "users") setActiveSection("users");
+                if (card.section === "staffs") setActiveSection("staffs");
+              }}
               _hover={{
                 bg: customColor,
                 color: "white",
@@ -374,7 +450,7 @@ export default function Dashboard() {
               transition="all 0.2s ease"
             >
               {card.section === "sales"
-                ? "Show Process"
+                ? "Process Showing"
                 : card.section === "users"
                 ? "Show Users"
                 : "Show Working Staff"}
@@ -385,32 +461,65 @@ export default function Dashboard() {
 
       {/* ===== Dynamic Sections ===== */}
       <Box mt={6}>
-        {activeSection === "users" &&
-          (loadingUsers ? (
-            <Center h="200px">
-              <Spinner color={customColor} size="xl" />
-            </Center>
-          ) : (
-            <UsersSection users={users} />
-          ))}
-
-        {activeSection === "staffs" &&
-          (loadingStaff ? (
-            <Center h="200px">
-              <Spinner color={customColor} size="xl" />
-            </Center>
-          ) : (
-            <StaffSection staff={staff} />
-          ))}
-
+        {/* Sales Section */}
         {activeSection === "sales" &&
           (loadingSales ? (
             <Center h="200px">
               <Spinner color={customColor} size="xl" />
             </Center>
           ) : (
-            <SalesSection sales={sales} getStatusColor={getStatusColor} />
+            <SalesSection
+              sales={sales.slice(startIndex, endIndex)}
+              getStatusColor={getStatusColor}
+            />
           ))}
+
+        {/* Users Section */}
+        {activeSection === "users" &&
+          (loadingUsers ? (
+            <Center h="200px">
+              <Spinner color={customColor} size="xl" />
+            </Center>
+          ) : (
+            <UsersSection users={users.slice(startIndex, endIndex)} />
+          ))}
+
+        {/* Staff Section */}
+        {activeSection === "staffs" &&
+          (loadingStaff ? (
+            <Center h="200px">
+              <Spinner color={customColor} size="xl" />
+            </Center>
+          ) : (
+            <StaffSection
+              staff={staff.slice(startIndex, endIndex)}
+              sales={sales}
+            />
+          ))}
+
+        {/* ✅ Pagination Buttons */}
+        <Flex mt={4} justify="center" gap={4}>
+          <Button
+            size="sm"
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+          >
+            Prev
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setPage(page + 1)}
+            disabled={
+              activeSection === "sales"
+                ? endIndex >= sales.length
+                : activeSection === "users"
+                ? endIndex >= users.length
+                : endIndex >= staff.length
+            }
+          >
+            Next
+          </Button>
+        </Flex>
       </Box>
     </Flex>
   );

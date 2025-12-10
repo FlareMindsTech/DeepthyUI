@@ -76,7 +76,8 @@ export default function UserDashboard(props) {
     return routes.map((prop, key) => {
       if (prop.collapse) return getRoutes(prop.views);
       if (prop.category === "account") return getRoutes(prop.views);
-      if (prop.layout === "/user") // <-- change admin to user
+      if (prop.layout === "/user")
+        // <-- change admin to user
         return <Route path={prop.path} element={prop.element} key={key} />;
       return null;
     });
@@ -91,76 +92,84 @@ export default function UserDashboard(props) {
         <title>User Dashboard | Deepthy Fenishers</title>
       </Helmet>
       <Box>
-  {/* ✅ Background box for light/dark mode */}
-  <Box
-    minH="15vh"
-    w="100%"
-    position="fixed"
-    top="0"
-    bgImage={colorMode === "light" ? `url(${bgLight})` : `url(${bgDark})`}
-    bgColor={colorMode === "dark" ? "navy.900" : "transparent"}
-    bgSize="cover"
-    bgPosition="center"
-    bgRepeat="no-repeat"
-    zIndex="0"  // ⚡ Lower background
-  />
-
-  {/* ✅ Sidebar under header */}
-  <Sidebar
-    routes={routes}
-    logo={
-      <Stack direction="row" spacing="12px" align="center" justify="center">
-        {colorMode === "dark" ? (
-          <ArgonLogoLight w="74px" h="27px" />
-        ) : (
-          <ArgonLogoDark w="74px" h="27px" />
-        )}
+        {/* ✅ Background box for light/dark mode */}
         <Box
-          w="1px"
-          h="20px"
-          bg={colorMode === "dark" ? "white" : "gray.700"}
+          minH="15vh"
+          w="100%"
+          position="fixed"
+          top="0"
+          bgImage={colorMode === "light" ? `url(${bgLight})` : `url(${bgDark})`}
+          bgColor={colorMode === "dark" ? "navy.900" : "transparent"}
+          bgSize="cover"
+          bgPosition="center"
+          bgRepeat="no-repeat"
+          zIndex="0" // ⚡ Lower background
         />
-        {colorMode === "dark" ? (
-          <ChakraLogoLight w="82px" h="21px" />
-        ) : (
-          <ChakraLogoDark w="82px" h="21px" />
-        )}
-      </Stack>
-    }
-    zIndex="10" // ⚡ Sidebar below header
-    {...rest}
-  />
 
-  <MainPanel w={{ base: "100%", xl: "calc(100% - 275px)" }} zIndex="-5" marginTop= "10">
-    <Portal>
-      <UserNavbar
-        onOpen={onOpen}
-        brandText={getActiveRoute(routes)}
-        secondary={getActiveNavbar(routes)}
-        fixed={fixed}
-        zIndex="20" // ⚡ Navbar on top of everything except modals
-        {...rest}
-      />
-    </Portal>
+        {/* ✅ Sidebar under header */}
+        <Sidebar
+          routes={routes}
+          logo={
+            <Stack
+              direction="row"
+              spacing="12px"
+              align="center"
+              justify="center"
+            >
+              {colorMode === "dark" ? (
+                <ArgonLogoLight w="74px" h="27px" />
+              ) : (
+                <ArgonLogoDark w="74px" h="27px" />
+              )}
+              <Box
+                w="1px"
+                h="20px"
+                bg={colorMode === "dark" ? "white" : "gray.700"}
+              />
+              {colorMode === "dark" ? (
+                <ChakraLogoLight w="82px" h="21px" />
+              ) : (
+                <ChakraLogoDark w="82px" h="21px" />
+              )}
+            </Stack>
+          }
+          zIndex="10" // ⚡ Sidebar below header
+          {...rest}
+        />
 
-    {getRoute() ? (
-      <PanelContent zIndex="5" position="relative">
-        <PanelContainer>
-          <Routes>
-            {getRoutes(routes)}
-            <Route
-              path="/user"
-              element={<Navigate to="/user/dashboard" replace />}
+        <MainPanel
+          w={{ base: "100%", xl: "calc(100% - 275px)" }}
+          zIndex="-5"
+          marginTop="10"
+        >
+          <Portal>
+            <UserNavbar
+              onOpen={onOpen}
+              brandText={getActiveRoute(routes)}
+              secondary={getActiveNavbar(routes)}
+              fixed={fixed}
+              zIndex="20" // ⚡ Navbar on top of everything except modals
+              {...rest}
             />
-          </Routes>
-        </PanelContainer>
-      </PanelContent>
-    ) : null}
+          </Portal>
 
-    <Footer zIndex="5" />
-  </MainPanel>
-</Box>
+          {getRoute() ? (
+            <PanelContent zIndex="5" position="relative">
+              <PanelContainer>
+                <Routes>
+                  {getRoutes(routes)}
+                  <Route
+                    path="/user"
+                    element={<Navigate to="/user/dashboard" replace />}
+                  />
+                </Routes>
+              </PanelContainer>
+            </PanelContent>
+          ) : null}
 
+          {/* <Footer zIndex="5" /> */}
+        </MainPanel>
+      </Box>
     </>
   );
 }
