@@ -327,21 +327,30 @@ function UserManagement() {
   };
 
   // Handle edit user - show edit form
-  const handleEditUser = (user) => {
-    setFormData({
-      name: user.name,
-      phone: user.phone,
-      role: user.role,
-      password: "", // Don't pre-fill password for security
-    });
-    setEditingUser(user);
-    setCurrentView("edit");
-    setError("");
-    setSuccess("");
+const handleEditUser = (user) => {
+  const normalizedUser = {
+    ...user,
+    _id: user._id || user.id, // 🔥 normalize
   };
+
+  setFormData({
+    name: user.name,
+    phone: user.phone,
+    role: user.role,
+    password: "",
+  });
+
+  setEditingUser(normalizedUser);
+  setCurrentView("edit");
+  setError("");
+  setSuccess("");
+};
+
   const handleConfirmDelete = async () => {
     try {
-      if (!selectedUser?._id) {
+      const userId = selectedUser?._id || selectedUser?.id;
+
+      if (!userId) {
         toast({
           title: "Error",
           description: "User ID not found",
@@ -350,25 +359,27 @@ function UserManagement() {
         return;
       }
 
-      await deleteUser(selectedUser._id);
-      setUserData((prev) => prev.filter((u) => u._id !== selectedUser._id));
+      await deleteUser(userId);
+
+      setUserData((prev) => prev.filter((u) => (u._id || u.id) !== userId));
+
       toast({
         title: "User Deleted",
-        description: "The USer account has been successfully deleted.",
+        description: "The user account has been successfully deleted.",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
 
-      onClose(); // ✅ Close modal after success
+      onClose();
     } catch (err) {
       console.error("Delete error:", err);
       toast({
         title: "Error",
-        description: "Failed to delete admin",
+        description: "Failed to delete user",
         status: "error",
       });
-      onClose(); // ✅ Close modal on error too
+      onClose();
     }
   };
 
@@ -1218,11 +1229,8 @@ function UserManagement() {
             </Flex>
           ) : (
             <>
-
               {showUserWork ? (
-                // ---- USER WORK TABLE ----
                 <>
-
                   <Table variant="simple" size="sm" bg="white">
                     <Thead
                       bg={`${customColor}15`}
@@ -1241,6 +1249,7 @@ function UserManagement() {
                           {workSort.key === "operator" &&
                             (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
+
                         <Th
                           py={2}
                           fontSize="sm"
@@ -1251,6 +1260,7 @@ function UserManagement() {
                           {workSort.key === "machineNo" &&
                             (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
+
                         <Th
                           py={2}
                           fontSize="sm"
@@ -1261,6 +1271,7 @@ function UserManagement() {
                           {workSort.key === "receiverNo" &&
                             (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
+
                         <Th
                           py={2}
                           fontSize="sm"
@@ -1271,21 +1282,15 @@ function UserManagement() {
                           {workSort.key === "status" &&
                             (workSort.direction === "asc" ? "▲" : "▼")}
                         </Th>
+
                         <Th py={2} fontSize="sm">
-                          Company
+                          Qty
                         </Th>
                         <Th py={2} fontSize="sm">
-                          Color
+                          Order No
                         </Th>
-                        <Th
-                          py={2}
-                          fontSize="sm"
-                          cursor="pointer"
-                          onClick={() => handleWorkSort("weight")}
-                        >
-                          Weight{" "}
-                          {workSort.key === "weight" &&
-                            (workSort.direction === "asc" ? "▲" : "▼")}
+                        <Th py={2} fontSize="sm">
+                          Date
                         </Th>
                       </Tr>
                     </Thead>
@@ -1306,15 +1311,17 @@ function UserManagement() {
                           })
                           .map((item, index) => (
                             <Tr key={index} _hover={{ bg: `${customColor}08` }}>
-                              <Td py={2}>{item.operator?.[0] || "-"}</Td>
+                              <Td py={2}>{item.operator || "-"}</Td>
                               <Td py={2}>{item.machineNo || "-"}</Td>
                               <Td py={2}>{item.receiverNo || "-"}</Td>
                               <Td py={2}>{item.status || "-"}</Td>
+                              <Td py={2}>{item.qty || "-"}</Td>
+                              <Td py={2}>{item.orderNo || "-"}</Td>
                               <Td py={2}>
-                                {item.customer?.companyName || "-"}
+                                {item.date
+                                  ? new Date(item.date).toLocaleString()
+                                  : "-"}
                               </Td>
-                              <Td py={2}>{item.customer?.color || "-"}</Td>
-                              <Td py={2}>{item.customer?.weight || "-"}</Td>
                             </Tr>
                           ))
                       ) : (
@@ -1327,7 +1334,7 @@ function UserManagement() {
                     </Tbody>
                   </Table>
 
-                  {/* ---- Pagination ---- */}
+                  {/* Pagination */}
                   {workTotalPages > 1 && (
                     <Flex justify="space-between" align="center" mt={3} py={2}>
                       <Text fontSize="xs" color="gray.600">
@@ -1335,6 +1342,7 @@ function UserManagement() {
                         {Math.min(workIndexOfLastItem, filteredWorkData.length)}{" "}
                         of {filteredWorkData.length}
                       </Text>
+
                       <Flex gap={1}>
                         <Button
                           size="xs"
@@ -1343,6 +1351,7 @@ function UserManagement() {
                         >
                           <FaChevronLeft size={10} />
                         </Button>
+
                         {Array.from(
                           { length: workTotalPages },
                           (_, i) => i + 1
@@ -1361,6 +1370,7 @@ function UserManagement() {
                             {page}
                           </Button>
                         ))}
+
                         <Button
                           size="xs"
                           onClick={handleWorkNextPage}

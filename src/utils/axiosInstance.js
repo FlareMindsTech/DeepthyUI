@@ -32,7 +32,7 @@ export const createUsers = (data) => axiosInstance.post("/users/create", data);
 
 export const getUserById = (id) => axiosInstance.get(`/users/byId/${id}`);
 
-export const updateUser = (id, data) => axiosInstance.put(`/users/${id}`, data);
+export const updateUser = (id, data) => axiosInstance.put(`/users/update/${id}`, data);
 
 export const deleteUser = (id) => axiosInstance.delete(`/users/delete/${id}`);
 

@@ -81,39 +81,49 @@ const CurrentSection = ({ processes }) => (
       <Table variant="striped" colorScheme="gray" minW="700px">
         <Thead>
           <Tr>
-            <Th>DC No</Th>
-            <Th>Brand</Th>
-            <Th>Color</Th>
             <Th>Machine No</Th>
+            <Th>Receiver No</Th>
+            {/* <Th>Company Name</Th> */}
+            <Th>Quantity</Th>
+            {/* <Th>Color</Th> */}
+            <Th>Running Time</Th>
             <Th>Status</Th>
-            <Th>Last Action</Th>
+            <Th>Date</Th>
+            {/* <Th>Last Action</Th> */}
           </Tr>
         </Thead>
         <Tbody>
           {processes.map((p, idx) => (
             <Tr key={idx}>
-              <Td>{p.dcNo}</Td>
-              <Td>{p.brandName}</Td>
-              <Td>{p.color}</Td>
               <Td>{p.machineNo || "—"}</Td>
+              <Td>{p.receiverNo}</Td>
+              {/* <Td>{p.companyName}</Td> */}
+              <Td>{p.qty}</Td>
+              {/* <Td>{p.color}</Td> */}
+              <Td>{p.runningTime}</Td>
               <Td>
                 <Badge
                   colorScheme={
                     p.status === "Completed"
                       ? "green"
                       : p.status === "Running"
+                      ? "cyan"
+                      : p.status === "Stopped"
+                      ? "red"
+                      : p.status === "Paused"
                       ? "yellow"
-                      : "gray"
+                      : "gray" // default fallback
                   }
                 >
                   {p.status}
                 </Badge>
               </Td>
-              <Td>
+              <Td>{p.date}</Td>
+              {/* <Td>
                 {p.lastAction?.date
-                  ? new Date(p.lastAction.date).toLocaleDateString()
+                  ? new Date(summary.lastWorkedOn).toLocaleString()
                   : "—"}
-              </Td>
+              </Td> */}
             </Tr>
           ))}
         </Tbody>
@@ -141,23 +151,43 @@ const CompletedSection = ({ processes }) => (
       <Table variant="striped" colorScheme="gray" minW="700px">
         <Thead>
           <Tr>
-            <Th>DC No</Th>
-            <Th>Brand</Th>
-            <Th>Color</Th>
             <Th>Machine No</Th>
-            <Th>Water Cost</Th>
-            <Th>Total Cost</Th>
+            <Th>Receiver No</Th>
+            {/* <Th>Company Name</Th> */}
+            <Th>Quantity</Th>
+            {/* <Th>Color</Th> */}
+            <Th>Running Time</Th>
+            <Th>Status</Th>
+            <Th>Date</Th>
           </Tr>
         </Thead>
         <Tbody>
           {processes.map((p, idx) => (
             <Tr key={idx}>
-              <Td>{p.dcNo}</Td>
-              <Td>{p.brandName}</Td>
-              <Td>{p.color}</Td>
               <Td>{p.machineNo || "—"}</Td>
-              <Td>₹{p.waterCost?.toFixed(2) || 0}</Td>
-              <Td>₹{p.totalCost?.toFixed(2) || 0}</Td>
+              <Td>{p.receiverNo}</Td>
+              {/* <Td>{p.brandName}</Td> */}
+              <Td>{p.qty}</Td>
+              {/* <Td>{p.color}</Td> */}
+              <Td>{p.runningTime}</Td>
+              <Td>
+                <Badge
+                  colorScheme={
+                    p.status === "Completed"
+                      ? "green"
+                      : p.status === "Running"
+                      ? "cyan"
+                      : p.status === "Stopped"
+                      ? "red"
+                      : p.status === "Paused"
+                      ? "yellow"
+                      : "gray" // default fallback
+                  }
+                >
+                  {p.status}
+                </Badge>
+              </Td>
+              <Td>{p.date}</Td>
             </Tr>
           ))}
         </Tbody>
@@ -179,43 +209,54 @@ export default function UserDashboard() {
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (!storedUser) {
-      toast({ title: "Please sign in", status: "warning", duration: 3000 });
+      toast({
+        title: "Please sign in",
+        status: "warning",
+        duration: 3000,
+      });
       navigate("/auth/signin");
       return;
     }
 
-    // Fetch user details from backend by ID
+    // 🔥 Fetch user details + work history in one request
     getUserById(storedUser.id)
       .then((res) => {
-        if (res.data.success) {
-          setUser(res.data.user);
-
-          // Fetch fabric processes
-          getUserById(res.data.user.name)
-            .then((res2) => {
-              const { summary, workDetails } = res2.data;
-              setSummary(summary);
-              setWorkDetails(workDetails);
-              setCompleted(workDetails.filter((f) => f.status === "Completed"));
-              setCurrent(workDetails.filter((f) => f.status !== "Completed"));
-            })
-            .catch((err) => {
-              console.error(err);
-              toast({
-                title: "Failed to fetch user work details",
-                status: "error",
-                duration: 3000,
-              });
-            });
-        } else {
-          toast({ title: "User not found", status: "error", duration: 3000 });
+        if (!res.data.success) {
+          toast({
+            title: "User not found",
+            status: "error",
+            duration: 3000,
+          });
           navigate("/auth/signin");
+          return;
         }
+
+        const userData = res.data.user;
+        setUser(userData);
+
+        // 🌟 Extract work data (backend already sends workDone)
+        const work = userData.workDone || [];
+        setWorkDetails(work);
+
+        // 🌟 Build smart summary
+        const completed = work.filter((f) => f.status === "Completed");
+        const current = work.filter((f) => f.status !== "Completed");
+
+        setSummary({
+          totalProcesses: work.length,
+          totalCompleted: completed.length,
+          totalRunning: work.filter((f) => f.status === "Running").length,
+          totalPending: work.filter((f) => f.status === "Pending").length,
+          lastWorkedOn: work[0]?.date || null,
+        });
+
+        setCompleted(completed);
+        setCurrent(current);
       })
       .catch((err) => {
         console.error(err);
         toast({
-          title: "Failed to fetch user",
+          title: "Failed to fetch user data",
           status: "error",
           duration: 3000,
         });

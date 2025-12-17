@@ -1,5 +1,5 @@
 /* eslint-disable */
-// Full enhanced WorkHoursTable component
+// Full enhanced WorkHoursTable component with Excel export & details modal
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -10,7 +10,6 @@ import {
   Th,
   Td,
   Text,
-  Center,
   Flex,
   Tooltip,
   Heading,
@@ -19,20 +18,33 @@ import {
   Spinner,
   Input,
   useColorModeValue,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
 import CardHeader from "components/Card/CardHeader.js";
-import { getMachineReports } from "../../utils/axiosInstance"; // Backend API
+import { getMachineReports } from "../../utils/axiosInstance";
+import * as XLSX from "xlsx";
 
 export default function WorkHoursTable() {
   const customColor = "#FF6B6B";
   const [workData, setWorkData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-  const [filterDate, setFilterDate] = useState("");
+  const [filterDate, setFilterDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [search, setSearch] = useState("");
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [modalData, setModalData] = useState(null);
 
   // tick now every 10s to animate running timelines
   useEffect(() => {
@@ -40,7 +52,7 @@ export default function WorkHoursTable() {
     return () => clearInterval(t);
   }, []);
 
-  // safe CSS injection for animations & small helpers
+  // CSS injection for timeline animation
   useEffect(() => {
     const styleTag = document.createElement("style");
     styleTag.setAttribute("data-from", "work-hours-timeline");
@@ -57,32 +69,49 @@ export default function WorkHoursTable() {
       }
     `;
     document.head.appendChild(styleTag);
-    return () => {
-      document.head.removeChild(styleTag);
-    };
+    return () => document.head.removeChild(styleTag);
   }, []);
 
-  // fetch reports
+  // fetch reports from backend
+  // fetch reports from backend
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         const res = await getMachineReports();
         const machineData =
-          (res?.data?.data || []).map((item) => ({
-            machine: item.machineNo || "-",
-            receiverNo: item.receiverNo || "-",
-            user: item.operatorName || "-",
-            material: `${item.fabric || "-"} - ${item.color || "-"}`,
-            customer: item.companyName || "-",
-            start: item.startTimeFormatted || "-",
-            end: item.endTimeFormatted || "-",
-            date: item.date || "-",
-            total: item.runningTime ? `${item.runningTime} min` : "-",
-            cost: item.weight || 0,
-            status: item.status || "-",
-            raw: item,
-          })) || [];
+          (res?.data?.data || []).map((item) => {
+            // fix invalid dates
+            const startTime =
+              item.startTimeFormatted &&
+              item.startTimeFormatted !== "Invalid Date"
+                ? item.startTimeFormatted
+                : "-";
+            const endTime =
+              item.endTimeFormatted && item.endTimeFormatted !== "Invalid Date"
+                ? item.endTimeFormatted
+                : "-";
+
+            // generate date from createdAt
+            const date = item.createdAt
+              ? new Date(item.createdAt).toISOString().split("T")[0]
+              : "-";
+
+            return {
+              machine: item.machineNo || "-",
+              receiverNo: item.receiverNo || "-",
+              user: item.operatorName || "-",
+              material: `${item.fabric || "-"} - ${item.color || "-"}`,
+              customer: item.companyName || "-",
+              start: startTime,
+              end: endTime,
+              date, // now we have a valid date for filtering
+              total: item.runningTime || 0,
+              cost: item.weight || 0,
+              status: item.status || "-",
+              raw: item,
+            };
+          }) || [];
         setWorkData(machineData);
       } catch (error) {
         console.error("Error Loading Machine Report", error);
@@ -92,19 +121,25 @@ export default function WorkHoursTable() {
     };
 
     fetchData();
-  }, []);
+  }, [filterDate]); // optional: refetch if filterDate changes
 
-  // search / filter
+  // filtered data
+  // filtered data
   const filteredData = workData.filter((row) => {
     const s = search.toLowerCase();
 
+    // search match
     const matchesSearch =
       row.user?.toLowerCase().includes(s) ||
       row.customer?.toLowerCase().includes(s) ||
       row.material?.toLowerCase().includes(s) ||
       row.status?.toLowerCase().includes(s);
 
-    const matchesDate = !filterDate || row.date === filterDate; // ★ only show selected date
+    // date match
+    let matchesDate = true; // default show all
+    if (filterDate) {
+      matchesDate = row.date === filterDate;
+    }
 
     return matchesSearch && matchesDate;
   });
@@ -118,11 +153,17 @@ export default function WorkHoursTable() {
     currentPage * itemsPerPage
   );
 
+  // total running time summary
+  const machineTotals = filteredData.reduce((acc, row) => {
+    if (!acc[row.machine]) acc[row.machine] = 0;
+    acc[row.machine] += row.total || 0;
+    return acc;
+  }, {});
+
   // time parsing
   const parseTime = (time) => {
     if (!time || typeof time !== "string") return NaN;
     if (time.trim() === "-") return NaN;
-    // if format "HH:MM AM/PM"
     if (time.includes(" ")) {
       const [hourMin, period] = time.split(" ");
       let [h, m] = hourMin.split(":").map(Number);
@@ -130,7 +171,6 @@ export default function WorkHoursTable() {
       if (period === "AM" && h === 12) h = 0;
       return h + (m || 0) / 60;
     }
-    // assume 24h "HH:MM"
     const [hRaw, mRaw] = time.split(":");
     const h = Number(hRaw);
     const m = Number(mRaw || 0);
@@ -139,31 +179,25 @@ export default function WorkHoursTable() {
 
   // shift definitions
   const shifts = [
-    { name: "Night", start: 0, end: 6, color: "#6b7280" }, // midnight - 6
-    { name: "Morning", start: 6, end: 12, color: "#5bc0f8" }, // 6 - 12
-    { name: "Afternoon", start: 12, end: 18, color: "#ffcb42" }, // 12 - 18
-    { name: "Evening", start: 18, end: 24, color: "#ff914d" }, // 18 - 24
+    { name: "Night", start: 0, end: 6, color: "#6b7280" },
+    { name: "Morning", start: 6, end: 12, color: "#5bc0f8" },
+    { name: "Afternoon", start: 12, end: 18, color: "#ffcb42" },
+    { name: "Evening", start: 18, end: 24, color: "#ff914d" },
   ];
 
-  // create multi-segments across shifts
   const getTimelineSegments = (start, end, status) => {
     if (!start || start === "-" || !start.includes(":")) return [];
     let startHour = parseTime(start);
     let endHour = parseTime(end);
-
-    // if running or missing end use now
     if (!Number.isFinite(endHour) || status === "Running") {
       const nowDate = now || new Date();
       endHour = nowDate.getHours() + nowDate.getMinutes() / 60;
     }
     if (!Number.isFinite(startHour)) return [];
 
-    // normalize across day
     if (endHour <= startHour) endHour += 24;
 
-    // collect segments by checking each shift window (allow shifts to be extended to 24..30 for overlaps)
     const segs = [];
-    // use shifts repeated for next day by mapping each shift to both day0 and day1
     const expandedShifts = shifts.concat(
       shifts.map((s) => ({ ...s, start: s.start + 24, end: s.end + 24 }))
     );
@@ -173,7 +207,6 @@ export default function WorkHoursTable() {
       const overlapEnd = Math.min(endHour, shift.end);
       if (overlapEnd > overlapStart) {
         const durationHours = overlapEnd - overlapStart;
-        // scaling: 1 hour = 12px (tweakable)
         const width = Math.max(2, Math.round(durationHours * 12));
         segs.push({
           name: shift.name,
@@ -190,7 +223,6 @@ export default function WorkHoursTable() {
     return segs;
   };
 
-  // status color fallback (used for label background if needed)
   const getStatusColor = (status) => {
     switch (status) {
       case "Running":
@@ -213,8 +245,26 @@ export default function WorkHoursTable() {
     "rgba(18,18,18,0.85)"
   );
 
-  // time scale tick labels (for header scale)
-  const scaleTicks = ["00:00", "06:00", "12:00", "18:00", "00:00"];
+  // Export filtered data to Excel
+  const exportToExcel = () => {
+    const dataToExport = filteredData.map((row) => ({
+      "Machine No": row.machine,
+      Receiver: row.receiverNo,
+      Operator: row.user,
+      Company: row.customer,
+      Fabric: row.material,
+      Start: row.start,
+      End: row.end,
+      Date: row.date,
+      "Running Time (min)": row.total,
+      Weight: row.cost,
+      Status: row.status,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+    XLSX.writeFile(workbook, `Machine_Report_${filterDate}.xlsx`);
+  };
 
   return (
     <Flex flexDirection="column" pt="40px" px={{ base: 2, md: 6 }}>
@@ -224,14 +274,7 @@ export default function WorkHoursTable() {
             <Heading size="sm" color="gray.700">
               🏭 Machine Work Reports
             </Heading>
-
-            <Flex
-              align="center"
-              flex="1"
-              maxW="480px"
-              gap={2} // ⭐ maintains proper spacing
-            >
-              {/* Search Input */}
+            <Flex align="center" flex="1" maxW="480px" gap={2}>
               <Input
                 placeholder="Search by operator, customer, material or status..."
                 value={search}
@@ -248,11 +291,7 @@ export default function WorkHoursTable() {
                 }}
                 color="black"
               />
-
-              {/* Search Icon */}
               <SearchIcon color="gray.500" />
-
-              {/* Clear Button */}
               {search && (
                 <Button
                   size="sm"
@@ -266,8 +305,6 @@ export default function WorkHoursTable() {
                   Clear
                 </Button>
               )}
-
-              {/* Date Filter */}
               <Input
                 type="date"
                 value={filterDate}
@@ -284,20 +321,19 @@ export default function WorkHoursTable() {
                   boxShadow: `0 0 0 1px ${customColor}`,
                 }}
               />
+              <Button
+                size="sm"
+                onClick={exportToExcel}
+                bg={customColor}
+                color="white"
+                _hover={{ bg: "#ff4b4b" }}
+                width="60%"
+              >
+                Export Excel
+              </Button>
             </Flex>
           </Flex>
         </CardHeader>
-
-        {/* Time scale row */}
-        {/* <Box mb={2} px={2}>
-          <Flex align="center" justify="space-between" maxW="1000px" mx="auto">
-            {scaleTicks.map((t) => (
-              <Text key={t} fontSize="xs" color="gray.500">
-                {t}
-              </Text>
-            ))}
-          </Flex>
-        </Box> */}
 
         <CardBody bg={tableBg}>
           <Box overflowX="auto" w="100%">
@@ -326,7 +362,6 @@ export default function WorkHoursTable() {
               </Thead>
 
               <Tbody>
-                {/* loading row kept inside tbody so columns keep alignment */}
                 {loading ? (
                   <Tr>
                     <Td colSpan={12} textAlign="center" py={6}>
@@ -356,7 +391,7 @@ export default function WorkHoursTable() {
                         <Td textAlign="center">{row.start}</Td>
                         <Td textAlign="center">{row.end}</Td>
                         <Td textAlign="center">{row.date}</Td>
-                        <Td textAlign="center">{row.total}</Td>
+                        <Td textAlign="center">{row.total} min</Td>
                         <Td textAlign="center">₹{row.cost}</Td>
                         <Td textAlign="center">
                           <Badge
@@ -371,8 +406,6 @@ export default function WorkHoursTable() {
                             {row.status}
                           </Badge>
                         </Td>
-
-                        {/* Timeline cell */}
                         <Td>
                           {segs.length === 0 ? (
                             <Text fontSize="xs" color="gray.500">
@@ -389,9 +422,8 @@ export default function WorkHoursTable() {
                               gap={1}
                             >
                               {segs.map((seg, i) => {
-                                // label inside segment: "<Shift> - <Status>" (A3)
                                 const label = `${seg.name} — ${row.status}`;
-                                const showLabel = seg.width > 70; // only show when enough width
+                                const showLabel = seg.width > 70;
                                 const segBg =
                                   row.status === "Running" && seg.isRunning
                                     ? "linear-gradient(90deg, rgba(34,197,94,0.95), rgba(16,185,129,0.9))"
@@ -425,19 +457,16 @@ export default function WorkHoursTable() {
                                       justify={
                                         showLabel ? "center" : "flex-start"
                                       }
-                                      key={i}
                                       px={showLabel ? 1 : 0.5}
                                       style={{
                                         width: `${seg.width}px`,
                                         minWidth: "2px",
                                         height: "16px",
                                         borderRadius: "4px",
-                                        background:
-                                          typeof segBg === "string"
-                                            ? segBg
-                                            : seg.color,
+                                        background: segBg,
                                         position: "relative",
                                         overflow: "hidden",
+                                        cursor: "pointer",
                                         ...(seg.isRunning
                                           ? {
                                               animation:
@@ -447,8 +476,11 @@ export default function WorkHoursTable() {
                                             }
                                           : {}),
                                       }}
+                                      onClick={() => {
+                                        setModalData(row);
+                                        onOpen();
+                                      }}
                                     >
-                                      {/* label inside segment (hide if too narrow) */}
                                       {showLabel && (
                                         <Text
                                           className="timeline-seg-text"
@@ -493,11 +525,9 @@ export default function WorkHoursTable() {
             >
               ⬅ Prev
             </Button>
-
             <Text fontWeight="bold">
               {currentPage} / {totalPages}
             </Text>
-
             <Button
               size="sm"
               disabled={currentPage === totalPages}
@@ -510,8 +540,42 @@ export default function WorkHoursTable() {
               Next ➡
             </Button>
           </Flex>
+
+          {/* Machine-wise total running time summary */}
+          <Box mt={6} p={2} bg={`${customColor}10`} borderRadius="md">
+            <Text fontWeight="bold" mb={2}>
+              🕒 Machine-wise Total Running Time
+            </Text>
+            {Object.entries(machineTotals).map(([machine, totalTime]) => (
+              <Text key={machine}>
+                {machine}: {totalTime} min
+              </Text>
+            ))}
+          </Box>
         </CardBody>
       </Card>
+
+      {/* Timeline Details Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Timeline Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {modalData ? (
+              <Box>
+                {Object.entries(modalData.raw || {}).map(([key, value]) => (
+                  <Text key={key}>
+                    <b>{key}:</b> {String(value)}
+                  </Text>
+                ))}
+              </Box>
+            ) : (
+              <Text>No details available</Text>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 }

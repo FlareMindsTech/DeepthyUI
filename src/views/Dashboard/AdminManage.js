@@ -57,12 +57,12 @@ import {
 
 import { IoCheckmarkDoneCircleSharp } from "react-icons/io5";
 import { MdAdminPanelSettings } from "react-icons/md";
-import axiosInstance, { deleteUser } from "../../utils/axiosInstance"; // use default axios instance
-
-// --- API helpers (local to this file) ---
-const getAllUsersApi = () => axiosInstance.get("/users/all"); // adjust endpoint as your backend expects
-const createAdminApi = (data) => axiosInstance.post("/users/create", data); // adjust if your backend uses a different endpoint
-const updateUserApi = (id, data) => axiosInstance.put(`/users/${id}`, data);
+import {
+  deleteUser,
+  updateUser,
+  getAllUsers,
+  createUsers,
+} from "../../utils/axiosInstance"; // use default axios instance
 
 // Main Admin Management Component
 function AdminManagement() {
@@ -156,7 +156,7 @@ function AdminManagement() {
       setDataLoaded(false);
 
       try {
-        const response = await getAllUsersApi();
+        const response = await getAllUsers();
         console.log("Fetched admins response:", response);
 
         // 🧩 Normalize response into an array safely
@@ -187,13 +187,10 @@ function AdminManagement() {
         if (!Array.isArray(admins)) admins = [];
 
         // ✅ Role-based filtering
-        // ✅ Role-based filtering
-        // ✅ Role-based filtering (case-insensitive)
-        // ✅ Role-based filtering
         let filteredAdmins = [];
         const userRole = currentUser?.role?.toLowerCase?.() || "";
 
-        if (userRole === "admin" ) {
+        if (userRole === "admin") {
           // Admins see only admins
           filteredAdmins = admins.filter(
             (u) => u.role?.toLowerCase?.() === "admin"
@@ -329,16 +326,21 @@ function AdminManagement() {
 
   // Handle edit admin - show edit form
   const handleEditAdmin = (admin) => {
+    const normalizedAdmin = {
+      ...admin,
+      _id: admin._id || admin.id, // 🔥 ensure _id always exists
+    };
+
     setFormData({
       name: admin.name,
       phone: admin.phone,
       role: admin.role,
-      password: "", // Don't pre-fill password for security
+      password: "",
     });
-    setEditingAdmin(admin);
+
+    setEditingAdmin(normalizedAdmin);
     setCurrentView("edit");
     setError("");
-    // setSuccess("");
   };
 
   // delete admin data
@@ -353,7 +355,9 @@ function AdminManagement() {
   // };
   const handleDelete = async () => {
     try {
-      if (!selectedAdmin?._id) {
+      const adminId = selectedAdmin?._id || selectedAdmin?.id;
+
+      if (!adminId) {
         toast({
           title: "Error",
           description: "Admin ID not found",
@@ -362,7 +366,7 @@ function AdminManagement() {
         return;
       }
 
-      await deleteUser(selectedAdmin._id);
+      await deleteUser(adminId);
 
       toast({
         title: "Admin Deleted",
@@ -372,8 +376,7 @@ function AdminManagement() {
         isClosable: true,
       });
 
-      onClose()
-      // fetchAdmins();
+      onClose();
     } catch (error) {
       console.error(error);
       toast({
@@ -451,7 +454,7 @@ function AdminManagement() {
 
       if (currentView === "add") {
         // Create new admin using local helper
-        response = await createAdminApi(formData);
+        response = await createUsers(formData);
         console.log("Create admin response:", response);
 
         // Extract admin data from response
@@ -475,10 +478,26 @@ function AdminManagement() {
         applyFiltersAndSearch(updatedAdmins);
 
         // setSuccess("Admin created successfully!");
-      } else {
-        // Update existing admin using the API function
-        response = await updateUserApi(editingAdmin._id, formData);
+      } else if (currentView === "edit") {
+        if (!editingAdmin || !editingAdmin._id) {
+          console.error("Editing admin missing:", editingAdmin);
+
+          toast({
+            title: "Error",
+            description: "Admin data not loaded. Please try again.",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+
+          setLoading(false);
+          return;
+        }
+
+        response = await updateUser(editingAdmin._id, formData);
         console.log("Update admin response:", response);
+        console.log("Editing Admin:", editingAdmin);
+        console.log("Editing Admin ID:", editingAdmin?._id);
 
         // Extract admin data from response
         const updatedAdmin = response.data?.admin || response.data || response;
@@ -751,6 +770,7 @@ function AdminManagement() {
                 Cancel
               </Button>
               <Button
+                type="button" // ✅ CRITICAL
                 bg={customColor}
                 _hover={{ bg: customHoverColor }}
                 color="white"

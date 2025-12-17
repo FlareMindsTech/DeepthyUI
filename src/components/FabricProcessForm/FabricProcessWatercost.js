@@ -189,18 +189,17 @@ function ProcessPageInner() {
   const firstPendingId = firstPending?._id;
 
   // time change to indian timing
-  const toIST = (date) => {
-    return new Date(date).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-  };
-
-  const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString("en-IN", {
+  // Convert JS Date to IST formatted string
+  const toISTTime = (date = new Date()) => {
+    return date.toLocaleTimeString("en-IN", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
       timeZone: "Asia/Kolkata",
     });
   };
+
+
 
   // Update human readable timer whenever elapsedTime changes
   useEffect(() => {
@@ -315,7 +314,8 @@ function ProcessPageInner() {
     }
     const opening = openingReading === "" ? undefined : Number(openingReading);
     const now = new Date();
-    const startTimeFormatted = formatTime(toIST(now));
+    const startTimeFormatted = toISTTime(now);
+
     setLoadingStart(true);
     try {
       const res = await startWaterProcess({
@@ -404,7 +404,7 @@ function ProcessPageInner() {
     console.log("Stopping waterId:", processId);
 
     const now = new Date();
-    const endTimeFormatted = formatTime(toIST(now));
+    const endTimeFormatted = toISTTime(now);
 
     if (!processId) {
       toast({ title: "No active process", status: "warning" });
@@ -840,19 +840,19 @@ function ProcessPageInner() {
                       </Tr>
                     ) : (
                       (() => {
-                        // Filter Reprocess orders only
-                        const reprocessOrders = orders.filter(
-                          (o) => o.status === "Reprocess"
+                        // Filter actionable orders: Pending + Reprocess
+                        const actionableOrders = orders.filter((o) =>
+                          ["Pending", "Reprocess"].includes(o.status)
                         );
 
-                        // Determine the top priority Reprocess order (e.g., lowest number)
+                        // Determine lowest order number for enabling button
                         const getOrderNumber = (orderNo) => {
-                          const match = String(orderNo).match(/\d+/); // first number in orderNo
+                          const match = String(orderNo).match(/\d+/);
                           return match ? parseInt(match[0], 10) : 0;
                         };
 
-                        const topReprocessOrder = reprocessOrders.length
-                          ? reprocessOrders.reduce((prev, curr) =>
+                        const firstActionableOrder = actionableOrders.length
+                          ? actionableOrders.reduce((prev, curr) =>
                               getOrderNumber(curr.orderNo) <
                               getOrderNumber(prev.orderNo)
                                 ? curr
@@ -863,34 +863,23 @@ function ProcessPageInner() {
                         return orders.map((order) => {
                           if (!order) return null;
 
+                          // Determine button text
                           let actionText = "Start";
-                          let isDisabled = false;
+                          if (order.status === "Running") actionText = "Stop";
+                          else if (order.status === "Paused")
+                            actionText = "Resume";
 
-                          switch (order.status) {
-                            case "Reprocess":
-                              // Only top priority Reprocess order is enabled
-                              if (
-                                !topReprocessOrder ||
-                                order._id !== topReprocessOrder._id
-                              ) {
-                                isDisabled = true;
-                              }
-                              break;
-                            case "Pending":
-                              // Disable all Pending orders
-                              isDisabled = true;
-                              actionText = "Start";
-                              break;
-                            case "Running":
-                              actionText = "Stop";
-                              break;
-                            case "Paused":
-                            case "Stopped":
-                              actionText = "Resume";
-                              break;
-                            default:
-                              actionText = "Start";
-                          }
+                          // Determine if button is disabled
+                          const isDisabled =
+                            order.status === "Completed" || // Completed → never clickable
+                            ![
+                              "Running",
+                              "Paused",
+                              "Pending",
+                              "Reprocess",
+                            ].includes(order.status) ||
+                            (["Pending", "Reprocess"].includes(order.status) &&
+                              order._id !== firstActionableOrder?._id); // only first actionable enabled
 
                           return (
                             <Tr key={order._id || order.orderNo}>
@@ -925,22 +914,7 @@ function ProcessPageInner() {
                                   bg={THEME.primary}
                                   color="white"
                                   _hover={{ bg: THEME.accent }}
-                                  isDisabled={
-                                    // ❌ Completed orders cannot be clicked
-                                    order.status === "Completed" ||
-                                    // ❌ Only these statuses allow button usage
-                                    !["Running", "Paused", "Pending"].includes(
-                                      order.status
-                                    ) ||
-                                    // 🛑 If button is Start, apply the special rules:
-                                    (actionText === "Start" &&
-                                      // 1️⃣ If some other order is running → disable this Start
-                                      ((anyRunning &&
-                                        order.status === "Pending" &&
-                                        order._id !== firstPendingId) ||
-                                        // 2️⃣ Enable only FIRST pending, disable all other pending
-                                        order._id !== firstPendingId))
-                                  }
+                                  isDisabled={isDisabled}
                                   leftIcon={
                                     loadingStop ? (
                                       <Spinner size="sm" />
@@ -954,11 +928,11 @@ function ProcessPageInner() {
                                   onClick={async () => {
                                     setSelectedOrder(order);
 
-                                    if (actionText === "Start") {
-                                      setIsOrderConfirmOpen(true);
-                                      setShowProcessUI(false);
-                                    } else if (actionText === "Stop") {
-                                      try {
+                                    try {
+                                      if (actionText === "Start") {
+                                        setIsOrderConfirmOpen(true);
+                                        setShowProcessUI(false);
+                                      } else if (actionText === "Stop") {
                                         const res = await getWaterIdByFabricProcessId(
                                           order._id
                                         );
@@ -976,18 +950,17 @@ function ProcessPageInner() {
 
                                         setSelectedWaterId(waterId);
                                         setIsStopConfirmModalOpen(true);
-                                      } catch (err) {
-                                        console.error(
-                                          "Water ID API FAILED:",
-                                          err
-                                        );
-                                        toast({
-                                          title: "Failed to fetch Water ID",
-                                          status: "error",
-                                        });
+                                      } else if (actionText === "Resume") {
+                                        setIsPauseConfirmOpen(true);
                                       }
-                                    } else if (actionText === "Resume") {
-                                      setIsPauseConfirmOpen(true);
+                                    } catch (err) {
+                                      console.error("Action failed:", err);
+                                      toast({
+                                        title: "Action failed",
+                                        description:
+                                          err.message || "Something went wrong",
+                                        status: "error",
+                                      });
                                     }
                                   }}
                                 >

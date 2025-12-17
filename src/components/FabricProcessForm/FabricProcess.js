@@ -573,7 +573,13 @@ function FabricProcess() {
             <Flex justify="center" py={10}>
               <Spinner size="xl" color={customColor} />
             </Flex>
-          ) : (
+          ) : currentRows.length === 0 ? (
+  <Flex justify="center" align="center" py={10}>
+    <Text fontSize="md" fontWeight="bold" color="gray.500">
+      No fabric data found
+    </Text>
+  </Flex>
+) : (
             (() => {
               // 1️⃣ Group rows by machine number
               const groupedMachines = currentRows.reduce((acc, item) => {
