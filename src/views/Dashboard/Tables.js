@@ -45,6 +45,7 @@ export default function WorkHoursTable() {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [modalData, setModalData] = useState(null);
+  const hiddenFields = ["createdAt", "updatedAt"];
 
   // tick now every 10s to animate running timelines
   useEffect(() => {
@@ -107,7 +108,7 @@ export default function WorkHoursTable() {
               end: endTime,
               date, // now we have a valid date for filtering
               total: item.runningTime || 0,
-              cost: item.weight || 0,
+              weight: item.weight || 0,
               status: item.status || "-",
               raw: item,
             };
@@ -146,7 +147,7 @@ export default function WorkHoursTable() {
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 5;
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
   const currentItems = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -267,7 +268,7 @@ export default function WorkHoursTable() {
   };
 
   return (
-    <Flex flexDirection="column" pt="40px" px={{ base: 2, md: 6 }}>
+    <Flex flexDirection="column" pt="40px" px={{ base: 2, md: 6 }} mt={-8}>
       <Card p={4} shadow="xl" bg="white">
         <CardHeader bg="white" p={0} mb={3}>
           <Flex justify="space-between" align="center" flexWrap="wrap" gap={3}>
@@ -350,6 +351,7 @@ export default function WorkHoursTable() {
                     "End",
                     "Date",
                     "Running Time",
+                    // "Cost",
                     "Weight",
                     "Status",
                     "Timeline",
@@ -392,7 +394,8 @@ export default function WorkHoursTable() {
                         <Td textAlign="center">{row.end}</Td>
                         <Td textAlign="center">{row.date}</Td>
                         <Td textAlign="center">{row.total} min</Td>
-                        <Td textAlign="center">₹{row.cost}</Td>
+                        {/* <Td textAlign="center">₹{row.cost}</Td> */}
+                        <Td textAlign="center">{row.weight}</Td>
                         <Td textAlign="center">
                           <Badge
                             colorScheme={
@@ -564,11 +567,13 @@ export default function WorkHoursTable() {
           <ModalBody>
             {modalData ? (
               <Box>
-                {Object.entries(modalData.raw || {}).map(([key, value]) => (
-                  <Text key={key}>
-                    <b>{key}:</b> {String(value)}
-                  </Text>
-                ))}
+                {Object.entries(modalData.raw || {})
+                  .filter(([key]) => !hiddenFields.includes(key))
+                  .map(([key, value]) => (
+                    <Text key={key}>
+                      <b>{key}:</b> {String(value)}
+                    </Text>
+                  ))}
               </Box>
             ) : (
               <Text>No details available</Text>
