@@ -1130,7 +1130,7 @@ const handleEditUser = (user) => {
       )}
 
       {/* Active Filter Display */}
-      <Flex justify="space-between" align="center" mb={1} mt={-4}>
+      <Flex justify="space-between" align="center" mb={4} mt={3}>
         <Text fontSize="lg" fontWeight="bold" color={textColor}>
           {activeFilter === "active" && "Active Users"}
           {activeFilter === "inactive" && "Inactive Users"}
@@ -1153,7 +1153,7 @@ const handleEditUser = (user) => {
       </Flex>
 
       {/* User Table with new styling */}
-      <Card mx={4} mb={2} shadow="xl" flex="1" overflow="hidden" bg="white">
+      <Card mx={1} mb={2} shadow="xl" flex="1" overflow="hidden" bg="white">
         <CardHeader p="4px 0px 8px 0px" bg="white">
           <Flex justify="space-between" align="center" flexWrap="wrap" gap={2}>
             <Heading size="sm" flexShrink={0} color="gray.700">

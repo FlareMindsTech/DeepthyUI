@@ -39,6 +39,15 @@ import { getAllUsers, getAllFabricProcesses } from "utils/axiosInstance";
 const customColor = "#FF6B6B";
 const customHoverColor = "#B71C1C";
 
+// Converts minutes to HH:MM format
+const formatMinutesToHHMM = (minutes = 0) => {
+  const hrs = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  return `${hrs.toString().padStart(2, "0")}:${mins
+    .toString()
+    .padStart(2, "0")}`;
+};
+
 /* ======================================================
    🔹 MAIN DASHBOARD COMPONENT
    ====================================================== */
@@ -156,16 +165,19 @@ export default function Dashboard() {
         const staffHours = {};
         salesData.forEach((proc) => {
           const key = proc.machineNo || "Unknown";
-          const runTime = Number(proc.runningTime) || 0;
+          const runTime = Number(proc.runningTime) || 0; // minutes
           staffHours[key] = (staffHours[key] || 0) + runTime;
         });
 
         const staffArray = Object.entries(staffHours).map(
-          ([name, totalHours]) => ({
+          ([name, totalMinutes]) => ({
             name,
-            totalHours,
+            totalMinutes,
+            totalHours: totalMinutes / 60,
+            isOvertime: totalMinutes > 8 * 60, // 🔴 overtime > 8 hrs
           })
         );
+
         setStaff(staffArray);
       } catch (err) {
         toast({
@@ -290,7 +302,7 @@ export default function Dashboard() {
                 ? "Process Showing"
                 : card.section === "users"
                 ? "Show Users"
-                : "Show Working Staff"}
+                : "Show Working Mechine"}
             </Button>
           </Card>
         ))}
@@ -335,50 +347,47 @@ export default function Dashboard() {
             </Center>
           ) : (
             <StaffSection
-              staff={staff.slice(startIndex, endIndex)}
+              staff={staff} // ✅ FULL DATA ONLY
               sales={sales}
             />
           ))}
 
         {/* ✅ Pagination Buttons */}
-        <Flex mt={4} justify="center" align="center" gap={4}>
-          <Button
-            size="sm"
-            onClick={() => setPage(page - 1)}
-            isDisabled={page === 1}
-            variant="outline"
-            borderColor={customColor}
-          >
-            Prev
-          </Button>
+        {(activeSection === "sales" || activeSection === "users") && (
+          <Flex mt={4} justify="center" align="center" gap={4}>
+            <Button
+              size="sm"
+              onClick={() => setPage((p) => p - 1)}
+              isDisabled={page === 1}
+              variant="outline"
+              borderColor={customColor}
+            >
+              Prev
+            </Button>
 
-          <Text fontSize="sm" fontWeight="bold" color={customColor}>
-            Page {page} of{" "}
-            {Math.ceil(
-              (activeSection === "sales"
-                ? sales.length
-                : activeSection === "users"
-                ? users.length
-                : staff.length) / rowsPerPage
-            )}
-          </Text>
+            <Text fontSize="sm" fontWeight="bold" color={customColor}>
+              Page {page} of{" "}
+              {Math.ceil(
+                (activeSection === "sales" ? sales.length : staff.length) /
+                  rowsPerPage
+              )}
+            </Text>
 
-          <Button
-            size="sm"
-            onClick={() => setPage(page + 1)}
-            isDisabled={
-              activeSection === "sales"
-                ? endIndex >= sales.length
-                : activeSection === "users"
-                ? endIndex >= users.length
-                : endIndex >= staff.length
-            }
-            variant="outline"
-            borderColor={customColor}
-          >
-            Next
-          </Button>
-        </Flex>
+            <Button
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              isDisabled={
+                activeSection === "sales"
+                  ? endIndex >= sales.length
+                  : endIndex >= staff.length
+              }
+              variant="outline"
+              borderColor={customColor}
+            >
+              Next
+            </Button>
+          </Flex>
+        )}
       </Box>
     </Flex>
   );
@@ -434,99 +443,120 @@ const UsersSection = ({ users, page, rowsPerPage }) => (
 /* ======================================================
    🔹 STAFF SECTION (Updated with Line + Bar Charts)
    ====================================================== */
+
 const StaffSection = ({ staff, sales }) => {
-  // Prepare chart data for running hours
-  const lineChartData = {
-    series: [
-      {
-        name: "Working Hours",
-        data: staff.map((s) => s.totalHours || 0),
-      },
-    ],
-    options: {
-      chart: { id: "staff-line" },
-      xaxis: { categories: staff.map((s) => s.name) },
-      stroke: { curve: "smooth" },
-      title: {
-        text: "Staff Working Hours",
-        align: "center",
-      },
-      markers: { size: 4 },
-    },
+  if (!staff || staff.length === 0) {
+    return (
+      <Center h="200px">
+        <Text>No staff data available</Text>
+      </Center>
+    );
+  }
+
+  // Generate a color based on index and total items
+  const getMachineColor = (index, total, isOvertime) => {
+    if (isOvertime) return "#E53E3E"; // 🔴 Red for overtime
+    const hue = Math.round((360 / total) * index); // Spread hues evenly
+    return `hsl(${hue}, 70%, 50%)`; // Saturation 70%, Lightness 50%
   };
 
-  // Prepare bar chart data for hours vs water cost
-  const machineStats = (staff || []).map((s) => {
-    const matching = (sales || []).filter((proc) => proc.machineNo === s.name);
+  // Assign colors dynamically for staff
+  const colors = staff.map((s, idx) =>
+    getMachineColor(idx, staff.length, s.isOvertime)
+  );
+
+  // 📊 Average Working Time
+  const totalMinutesAll = staff.reduce((sum, s) => sum + s.totalMinutes, 0);
+  const avgMinutes = totalMinutesAll / staff.length;
+  const avgHHMM = formatMinutesToHHMM(avgMinutes);
+
+  /* =========================
+     🕒 Working Hours Pie
+  ========================= */
+  const hoursSeries = staff.map((s) => Number(s.totalHours || 0));
+
+  const hoursOptions = {
+    chart: { type: "donut" },
+    labels: staff.map((s) => s.name),
+    colors: colors, // Each machine has a unique color
+    tooltip: {
+      y: {
+        formatter: (_, { seriesIndex }) =>
+          formatMinutesToHHMM(staff[seriesIndex].totalMinutes),
+      },
+    },
+    plotOptions: { pie: { donut: { size: "65%" } } },
+    title: { text: "Machine Working Time (HH:MM)", align: "center" },
+  };
+
+  /* =========================
+     💧 Water Cost Pie
+  ========================= */
+  const machineStats = staff.map((s) => {
+    const matching = sales.filter((p) => p.machineNo === s.name);
     const totalWater = matching.reduce(
       (sum, p) => sum + Number(p?.waterCost || 0),
       0
     );
-    return { name: s.name, totalHours: s.totalHours || 0, totalWater };
+    return { name: s.name, totalWater };
   });
 
-  const barChartData = {
-    series: [
-      {
-        name: "Total Running Hours",
-        data: machineStats.map((m) => m.totalHours),
+  const waterSeries = machineStats.map((m) => Number(m.totalWater));
+
+  const waterOptions = {
+    chart: { type: "donut" },
+    labels: machineStats.map((m) => m.name),
+    tooltip: {
+      y: {
+        formatter: (val) => `₹ ${val.toFixed(2)}`,
       },
-      {
-        name: "Water Cost (₹)",
-        data: machineStats.map((m) => m.totalWater),
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: "65%",
+        },
       },
-    ],
-    options: {
-      chart: { type: "bar", height: 300, toolbar: { show: false } },
-      plotOptions: { bar: { horizontal: false, columnWidth: "45%" } },
-      dataLabels: { enabled: false },
-      stroke: { show: true, width: 2, colors: ["transparent"] },
-      xaxis: { categories: machineStats.map((m) => m.name) },
-      yaxis: {
-        title: { text: "Hours / Water Cost" },
-      },
-      fill: { opacity: 1 },
-      colors: ["#FF6B6B", "#4ECDC4"], // red & teal contrast
-      legend: { position: "bottom" },
-      title: {
-        text: "Machine Hours vs Water Cost",
-        align: "center",
-      },
+    },
+    title: {
+      text: "Water Cost Distribution",
+      align: "center",
     },
   };
 
   return (
-    <Card
-      p={3}
-      borderRadius="10px"
-      border="1.5px solid"
-      borderColor={customColor}
-      mt={-5}
-    >
-      <Heading size="sm" mb={3} color={customColor}>
-        👨‍💼 Working Staff
+    <Box>
+      <Heading size="sm" mb={2} color={customColor} textAlign="center">
+        📊 Staff Analytics
       </Heading>
 
-      {/* Line Chart (Running Hours) */}
-      <Box mt={3} h="220px">
-        <ReactApexChart
-          options={lineChartData.options}
-          series={lineChartData.series}
-          type="line"
-          height="250"
-        />
-      </Box>
+      {/* 📊 Average */}
+      <Text textAlign="center" fontWeight="bold" mb={4}>
+        ⏱️ Average Working Time:{" "}
+        <Text as="span" color={customColor}>
+          {avgHHMM}
+        </Text>
+      </Text>
 
-      {/* Bar Chart (Hours vs Water Cost) */}
-      <Box mt={8}>
+      {/* 🔥 Two pies side-by-side */}
+      <Flex gap={6} wrap="wrap" justify="center">
         <ReactApexChart
-          options={barChartData.options}
-          series={barChartData.series}
-          type="bar"
-          height="300"
+          type="donut"
+          series={hoursSeries}
+          options={hoursOptions}
+          height={320}
+          width={320}
         />
-      </Box>
-    </Card>
+
+        <ReactApexChart
+          type="donut"
+          series={waterSeries}
+          options={waterOptions}
+          height={320}
+          width={320}
+        />
+      </Flex>
+    </Box>
   );
 };
 
@@ -563,8 +593,8 @@ const SalesSection = ({ sales, searchTerm, setSearchTerm }) => (
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           size="sm"
-          pl="32px" // space for left icon
-          pr="32px" // space for clear icon
+          pl="32px"
+          pr="32px"
           borderColor={customColor}
           _hover={{ borderColor: customColor }}
           _focus={{
@@ -607,25 +637,32 @@ const SalesSection = ({ sales, searchTerm, setSearchTerm }) => (
             <Th>Assign Number</Th>
             <Th>Date</Th>
             <Th>Status</Th>
-            {/* <Th>Actions</Th> */}
+            <Th>Running Time</Th>
           </Tr>
         </Thead>
 
         <Tbody>
-          {(sales || []).map((item, idx) => (
-            <Tr key={item._id || idx}>
-              <Td>{item.receiverNo || "-"}</Td>
-              <Td>{item.machineNo || "-"}</Td>
-              <Td>{item.shiftincharge || "-"}</Td>
-              <Td>{item.operator || "-"}</Td>
-              <Td>{item.qty || 0}</Td>
-              <Td>{item.rate || 0}</Td>
-              <Td>{item.orderNo || "-"}</Td>
-              <Td>{item.date?.substring(0, 10) || "-"}</Td>
-              <Td>{item.status || "-"}</Td>
-              <Td></Td>
-            </Tr>
-          ))}
+          {(sales || []).map((item, idx) => {
+            const runningMinutes = Number(item.runningTime || 0);
+            const isOvertime = runningMinutes > 480; // >8 hours
+            return (
+              <Tr
+                key={item._id || idx}
+                bg={isOvertime ? "#FFE3E3" : "transparent"} // 🔴 highlight overtime
+              >
+                <Td>{item.receiverNo || "-"}</Td>
+                <Td>{item.machineNo || "-"}</Td>
+                <Td>{item.shiftincharge || "-"}</Td>
+                <Td>{item.operator || "-"}</Td>
+                <Td>{item.qty || 0}</Td>
+                <Td>{item.rate || 0}</Td>
+                <Td>{item.orderNo || "-"}</Td>
+                <Td>{item.date?.substring(0, 10) || "-"}</Td>
+                <Td>{item.status || "-"}</Td>
+                <Td>{formatMinutesToHHMM(runningMinutes)}</Td>
+              </Tr>
+            );
+          })}
         </Tbody>
       </Table>
     </Box>
