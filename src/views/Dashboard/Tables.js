@@ -125,12 +125,13 @@ export default function WorkHoursTable() {
   }, [filterDate]); // optional: refetch if filterDate changes
 
   // filtered data
-  // filtered data
   const filteredData = workData.filter((row) => {
     const s = search.toLowerCase();
 
     // search match
     const matchesSearch =
+      row.mechineNo?.toLowerCase().includes(s) ||
+      row.receiverNo?.toLowerCase().includes(s) ||
       row.user?.toLowerCase().includes(s) ||
       row.customer?.toLowerCase().includes(s) ||
       row.material?.toLowerCase().includes(s) ||

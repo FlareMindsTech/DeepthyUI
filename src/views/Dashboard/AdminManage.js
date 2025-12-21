@@ -245,6 +245,11 @@ function AdminManagement() {
     fetchAdmins();
   }, [currentUser, toast]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+    applyFiltersAndSearch(adminData);
+  }, [activeFilter, searchTerm, adminData]);
+
   // Apply filters and search
   useEffect(() => {
     if (!dataLoaded) return;
@@ -470,11 +475,11 @@ function AdminManagement() {
           isClosable: true,
         });
 
-        // Add new admin to the beginning of the list (newest first)
+        // After successfully adding admin
         const updatedAdmins = [newAdmin, ...adminData];
         setAdminData(updatedAdmins);
 
-        // Update filtered data based on current filter and search
+        // Update filtered data immediately
         applyFiltersAndSearch(updatedAdmins);
 
         // setSuccess("Admin created successfully!");
@@ -513,6 +518,7 @@ function AdminManagement() {
         });
 
         // Update admin in the list
+        // After successfully updating admin
         const updatedAdmins = adminData.map((admin) =>
           admin._id === editingAdmin._id ? { ...admin, ...updatedAdmin } : admin
         );
@@ -557,7 +563,6 @@ function AdminManagement() {
   const applyFiltersAndSearch = (admins) => {
     let filtered = admins;
 
-    // Apply role/status filter
     switch (activeFilter) {
       case "super":
         filtered = admins.filter((admin) => admin.role === "super admin");
@@ -572,7 +577,6 @@ function AdminManagement() {
         filtered = admins;
     }
 
-    // Apply search filter
     if (searchTerm.trim() !== "") {
       const q = searchTerm.toLowerCase();
       filtered = filtered.filter((admin) => {
@@ -624,6 +628,25 @@ function AdminManagement() {
 
   // Render Form View (Add/Edit)
   if (currentView === "add" || currentView === "edit") {
+    // Determine if submit button should be disabled
+    const isSubmitDisabled = () => {
+      if (currentView === "add") {
+        // Disable if any required field is empty
+        return !formData.name || !formData.phone || !formData.password;
+      }
+      if (currentView === "edit") {
+        // Disable if no changes made
+        if (!editingAdmin) return true;
+        return (
+          formData.name === editingAdmin.name &&
+          formData.phone === editingAdmin.phone &&
+          formData.role === editingAdmin.role &&
+          formData.password === ""
+        );
+      }
+      return false;
+    };
+
     return (
       <Flex
         flexDirection="column"
@@ -640,14 +663,14 @@ function AdminManagement() {
                 color={customColor}
                 _hover={{ bg: `${customColor}10` }}
               />
-              <Heading size="md" color="#FF6B6B">
+              <Heading size="md" color={customColor}>
                 {currentView === "add" ? "Add Admin" : "Edit Admin"}
               </Heading>
             </Flex>
           </CardHeader>
 
           <CardBody bg="white" p={0}>
-            {/* Success/Error Message */}
+            {/* Error Message */}
             {error && (
               <Text
                 color="red.500"
@@ -661,19 +684,6 @@ function AdminManagement() {
                 {error}
               </Text>
             )}
-            {/* {success && (
-              <Text
-                color="green.500"
-                mb={4}
-                p={3}
-                border="1px"
-                borderColor="green.200"
-                borderRadius="md"
-                bg="green.50"
-              >
-                {success}
-              </Text>
-            )} */}
 
             {/* Form */}
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
@@ -706,6 +716,7 @@ function AdminManagement() {
                     borderColor: customColor,
                     boxShadow: `0 0 0 1px ${customColor}`,
                   }}
+                  // isDisabled={currentView === "edit"} // optional: make phone read-only on edit
                 />
               </FormControl>
             </SimpleGrid>
@@ -722,6 +733,7 @@ function AdminManagement() {
                   borderColor: customColor,
                   boxShadow: `0 0 0 1px ${customColor}`,
                 }}
+                isDisabled={currentView === "edit"} // optional: make role read-only on edit
               >
                 <option value="admin">Admin</option>
                 {/* <option value="owner">Owner</option> */}
@@ -770,12 +782,13 @@ function AdminManagement() {
                 Cancel
               </Button>
               <Button
-                type="button" // ✅ CRITICAL
+                type="button"
                 bg={customColor}
                 _hover={{ bg: customHoverColor }}
                 color="white"
                 onClick={handleSubmit}
                 isLoading={loading}
+                isDisabled={isSubmitDisabled()} // ✅ Disable logic applied
               >
                 {currentView === "add" ? "Create Admin" : "Update Admin"}
               </Button>
@@ -1154,107 +1167,103 @@ function AdminManagement() {
                     </Thead>
 
                     <Tbody>
-                      {currentItems.map((admin, index) => {
-                        const statusColors = getStatusColor(admin.status);
-                        return (
-                          <Tr
-                            key={admin._id || index}
-                            bg="white"
-                            _hover={{ bg: `${customColor}10` }}
-                            borderBottom="1px"
-                            borderColor={`${customColor}20`}
-                          >
-                            <Td
+                      {currentItems
+                        .slice() // create a copy
+                        .reverse() // reverse the order for latest first
+                        .map((admin, index) => {
+                          const statusColors = getStatusColor(admin.status);
+                          return (
+                            <Tr
+                              key={admin._id || index}
+                              bg="white"
+                              _hover={{ bg: `${customColor}10` }}
+                              borderBottom="1px"
                               borderColor={`${customColor}20`}
-                              py={1}
-                              fontSize="sm"
                             >
-                              <Avatar
-                                size="xs"
-                                name={admin.name}
-                                src={admin.profileImage}
-                                mr={2}
-                              />
-                              {admin.name}
-                            </Td>
-
-                            <Td
-                              borderColor={`${customColor}20`}
-                              py={1}
-                              fontSize="sm"
-                            >
-                              {admin.phone}
-                            </Td>
-
-                            <Td
-                              borderColor={`${customColor}20`}
-                              py={1}
-                              fontSize="sm"
-                            >
-                              {admin.role}
-                            </Td>
-
-                            <Td
-                              borderColor={`${customColor}20`}
-                              py={1}
-                              fontSize="sm"
-                            >
-                              <Badge
-                                bg={statusColors.bg}
-                                color={statusColors.color}
-                                px={2}
-                                py={0.5}
-                                borderRadius="full"
-                                fontSize="xs"
-                                fontWeight="bold"
+                              <Td
+                                borderColor={`${customColor}20`}
+                                py={1}
+                                fontSize="sm"
                               >
-                                {admin.status || "active"}
-                              </Badge>
-                            </Td>
-
-                            <Td
-                              borderColor={`${customColor}20`}
-                              py={1}
-                              fontSize="sm"
-                            >
-                              <Flex gap={2}>
-                                {/* Edit Icon */}
-                                <Button
+                                <Avatar
                                   size="xs"
-                                  variant="ghost"
-                                  p={1}
-                                  color={customColor}
-                                  onClick={() => handleEditAdmin(admin)}
-                                  _hover={{
-                                    color: customColor,
-                                    bg: "transparent",
-                                  }}
+                                  name={admin.name}
+                                  src={admin.profileImage}
+                                  mr={2}
+                                />
+                                {admin.name}
+                              </Td>
+                              <Td
+                                borderColor={`${customColor}20`}
+                                py={1}
+                                fontSize="sm"
+                              >
+                                {admin.phone}
+                              </Td>
+                              <Td
+                                borderColor={`${customColor}20`}
+                                py={1}
+                                fontSize="sm"
+                              >
+                                {admin.role}
+                              </Td>
+                              <Td
+                                borderColor={`${customColor}20`}
+                                py={1}
+                                fontSize="sm"
+                              >
+                                <Badge
+                                  bg={statusColors.bg}
+                                  color={statusColors.color}
+                                  px={2}
+                                  py={0.5}
+                                  borderRadius="full"
+                                  fontSize="xs"
+                                  fontWeight="bold"
                                 >
-                                  <FaEdit size={16} />
-                                </Button>
-
-                                {/* Delete Icon */}
-                                <Button
-                                  size="xs"
-                                  variant="ghost"
-                                  p={1}
-                                  color="red.500"
-                                  onClick={() => {
-                                    setSelectedAdmin(admin);
-                                    onOpen(); // Your delete confirmation modal trigger
-                                  }}
-                                  _hover={{
-                                    color: "red.600",
-                                    bg: "transparent",
-                                  }}
-                                >
-                                  <FaTrash size={16} />
-                                </Button>
-                              </Flex>
-                            </Td>
-                          </Tr>
-                        );
-                      })}
+                                  {admin.status || "active"}
+                                </Badge>
+                              </Td>
+                              <Td
+                                borderColor={`${customColor}20`}
+                                py={1}
+                                fontSize="sm"
+                              >
+                                <Flex gap={2}>
+                                  <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    p={1}
+                                    color={customColor}
+                                    onClick={() => handleEditAdmin(admin)}
+                                    _hover={{
+                                      color: customColor,
+                                      bg: "transparent",
+                                    }}
+                                  >
+                                    <FaEdit size={16} />
+                                  </Button>
+                                  <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    p={1}
+                                    color="red.500"
+                                    onClick={() => {
+                                      setSelectedAdmin(admin);
+                                      onOpen();
+                                    }}
+                                    _hover={{
+                                      color: "red.600",
+                                      bg: "transparent",
+                                    }}
+                                  >
+                                    <FaTrash size={16} />
+                                  </Button>
+                                </Flex>
+                              </Td>
+                            </Tr>
+                          );
+                        })}
                     </Tbody>
                   </Table>
 

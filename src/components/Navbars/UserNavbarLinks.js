@@ -294,7 +294,7 @@ export default function UserHeaderLinks(props) {
             >
               <Flex align="center" gap={3}>
                 <Avatar
-                  size={{ base: "sm", md: "md" }}
+                  size= "sm" 
                   name={user.name || "User"}
                 />
                 <VStack

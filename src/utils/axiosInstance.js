@@ -66,7 +66,7 @@ export const getCustomerById = (id) => axiosInstance.get(`/customers/${id}`);
 
 // Update Customer
 export const updateCustomer = (id, data) =>
-  axiosInstance.put(`/customers/${id}`, data);
+  axiosInstance.put(`/customers/update/${id}`, data);
 
 // Delete Customer
 export const deleteCustomer = (id) => axiosInstance.delete(`/customers/${id}`);

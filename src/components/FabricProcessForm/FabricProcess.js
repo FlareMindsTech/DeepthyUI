@@ -92,11 +92,15 @@ function FabricProcess() {
     date: new Date().toISOString().split("T")[0],
   });
 
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentRows = filteredData.slice(startIndex, startIndex + itemsPerPage);
+  const today = new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState({
     receiverNo: "",
@@ -177,22 +181,42 @@ function FabricProcess() {
 
   // ------------------------- Search Filter -------------------------
   useEffect(() => {
-    const q = searchTerm.toLowerCase();
-    const filtered = (data || []).filter(
-      (item) =>
-        (!selectedDate || item.date?.substring(0, 10) === selectedDate) &&
-        [
-          item.receiverNo,
-          item.machineNo,
-          item.shiftincharge,
-          item.status,
-          item.orderNo,
-        ]
-          .map((v) => String(v || "").toLowerCase())
-          .some((v) => v.includes(q))
-    );
+    const q = searchTerm.trim().toLowerCase();
+
+    const filtered = (data || []).filter((item) => {
+      const matchesDate =
+        !selectedDate || item.date?.slice(0, 10) === selectedDate;
+
+      const searchableFields = [
+        item.receiverNo,
+        item.machineNo,
+        item.shiftincharge,
+        item.status,
+        item.orderNo,
+        item.operator,
+      ];
+
+      const matchesSearch = searchableFields.some((field) =>
+        String(field ?? "")
+          .trim() // 🔥 removes hidden spaces
+          .toLowerCase() // 🔥 ignores case
+          .includes(q)
+      );
+
+      return matchesDate && matchesSearch;
+    });
+
     setFilteredData(filtered);
   }, [searchTerm, data, selectedDate]);
+
+  useEffect(() => {
+    if (currentView === "edit") {
+      setFormData((prev) => ({
+        ...prev,
+        date: today, // 🔥 force current date
+      }));
+    }
+  }, [currentView]);
 
   const handleSearchChange = (e) => setSearchTerm(e.target.value);
   const handleClearSearch = () => setSearchTerm("");
@@ -290,7 +314,7 @@ function FabricProcess() {
         setData((prev) => [...prev, updatedItem.data.data]);
         setFilteredData((prev) => [...prev, updatedItem.data.data]);
       }
-      fetchData()
+      fetchData();
 
       setCurrentView("list");
     } catch (err) {
@@ -470,6 +494,7 @@ function FabricProcess() {
                       type={type || "text"}
                       value={formData[key] || ""}
                       onChange={handleInputChange}
+                      min={key === "date" ? today : undefined} // 🔥 block past dates
                       borderColor={`${customColor}50`}
                       _focus={{
                         borderColor: customColor,
@@ -574,12 +599,12 @@ function FabricProcess() {
               <Spinner size="xl" color={customColor} />
             </Flex>
           ) : currentRows.length === 0 ? (
-  <Flex justify="center" align="center" py={10}>
-    <Text fontSize="md" fontWeight="bold" color="gray.500">
-      No fabric data found
-    </Text>
-  </Flex>
-) : (
+            <Flex justify="center" align="center" py={10}>
+              <Text fontSize="md" fontWeight="bold" color="gray.500">
+                No fabric data found
+              </Text>
+            </Flex>
+          ) : (
             (() => {
               // 1️⃣ Group rows by machine number
               const groupedMachines = currentRows.reduce((acc, item) => {
@@ -601,6 +626,7 @@ function FabricProcess() {
                   <Table size="sm" minW="800px">
                     <Thead bg={`${customColor}60`}>
                       <Tr>
+                        <Th>Order No</Th>
                         <Th>Receiver No</Th>
                         <Th>Machine</Th>
                         <Th>Shift Incharge</Th>
@@ -623,14 +649,23 @@ function FabricProcess() {
                         <React.Fragment key={machine}>
                           {/* Machine header */}
                           <Tr bg={`${customColor}30`}>
-                            <Td colSpan={14} fontWeight="bold">
+                            <Td colSpan={15} fontWeight="bold">
                               Machine {machine}
                             </Td>
                           </Tr>
 
                           {/* Rows for this machine */}
                           {groupedMachines[machine].map((item) => (
-                            <Tr key={item._id}>
+                            <Tr
+                              key={item._id}
+                              cursor="pointer"
+                              _hover={{ bg: "gray.50" }}
+                              onClick={() => {
+                                setPreviewItem(item);
+                                setIsPreviewOpen(true);
+                              }}
+                            >
+                              <Td>{item.orderNo || "-"}</Td>
                               <Td>{item.receiverNo || "-"}</Td>
                               <Td>{item.machineNo || "-"}</Td>
                               <Td>{item.shiftincharge || "-"}</Td>
@@ -719,7 +754,8 @@ function FabricProcess() {
                                         size="xs"
                                         bg="#FF6B6B"
                                         color="white"
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           setSelectedItem(item);
                                           setDyesInput(
                                             item.dyes?.length
@@ -740,7 +776,8 @@ function FabricProcess() {
                                         size="xs"
                                         bg="#FF6B6B"
                                         color="white"
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           setSelectedItem(item);
                                           setReprocessData({
                                             machineNo: item.machineNo || "",
@@ -766,7 +803,8 @@ function FabricProcess() {
                                       size="xs"
                                       bg="#FF6B6B"
                                       color="white"
-                                      onClick={async () => {
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
                                         setSelectedItem(item); // set the current row
                                         try {
                                           const res = await getWaterIdByFabricProcessId(
@@ -804,7 +842,10 @@ function FabricProcess() {
                                       <>
                                         <Button
                                           size="xs"
-                                          onClick={() => handleEdit(item)}
+                                          onClick={(e) => {
+                                            e.stopPropagation(); // 🔥 IMPORTANT
+                                            handleEdit(item);
+                                          }}
                                           color={customColor}
                                         >
                                           <FaEdit title="Edit" />
@@ -812,7 +853,8 @@ function FabricProcess() {
                                         <Button
                                           size="xs"
                                           color="red.500"
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                             setSelectedItem(item);
                                             setIsDeleteOpen(true);
                                           }}
@@ -904,7 +946,12 @@ function FabricProcess() {
       >
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader color="#FF6B6B">Add Dyes & Chemicals</ModalHeader>{" "}
+          <ModalHeader color="#FF6B6B">
+            {selectedItem?.dyes?.length || selectedItem?.chemicals?.length
+              ? "Edit Dyes & Chemicals"
+              : "Add Dyes & Chemicals"}
+          </ModalHeader>
+
           {/* Header color */}
           <ModalCloseButton />
           <ModalBody>
@@ -937,7 +984,7 @@ function FabricProcess() {
                   <Input
                     type="number"
                     placeholder="Qty"
-                    // value={d.qty}
+                    value={d.qty}
                     onChange={(e) =>
                       setDyesInput((prev) =>
                         prev.map((item, idx) =>
@@ -956,7 +1003,7 @@ function FabricProcess() {
                   <Input
                     type="number"
                     placeholder="Cost"
-                    // value={d.cost}x
+                    value={d.cost}
                     onChange={(e) =>
                       setDyesInput((prev) =>
                         prev.map((item, idx) =>
@@ -972,15 +1019,19 @@ function FabricProcess() {
                       boxShadow: `0 0 0 1px #FF6B6B`,
                     }}
                   />
-                  <Button
-                    size="sm"
-                    colorScheme="red"
-                    onClick={() =>
-                      setDyesInput((prev) => prev.filter((_, idx) => idx !== i))
-                    }
-                  >
-                    -
-                  </Button>
+                  {dyesInput.length > 1 && (
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      onClick={() =>
+                        setDyesInput((prev) =>
+                          prev.filter((_, idx) => idx !== i)
+                        )
+                      }
+                    >
+                      -
+                    </Button>
+                  )}
                 </Flex>
               ))}
               <Button
@@ -1008,7 +1059,7 @@ function FabricProcess() {
                   <Input
                     type="text"
                     placeholder="Name"
-                    // value={c.name || ""}
+                    value={c.name || ""}
                     onChange={(e) =>
                       setChemicalsInput((prev) =>
                         prev.map((item, idx) =>
@@ -1025,7 +1076,7 @@ function FabricProcess() {
                   <Input
                     type="number"
                     placeholder="Qty"
-                    // value={c.qty}
+                    value={c.qty}
                     onChange={(e) =>
                       setChemicalsInput((prev) =>
                         prev.map((item, idx) =>
@@ -1044,7 +1095,7 @@ function FabricProcess() {
                   <Input
                     type="number"
                     placeholder="Cost"
-                    // value={c.cost}
+                    value={c.cost}
                     onChange={(e) =>
                       setChemicalsInput((prev) =>
                         prev.map((item, idx) =>
@@ -1060,17 +1111,19 @@ function FabricProcess() {
                       boxShadow: `0 0 0 1px #FF6B6B`,
                     }}
                   />
-                  <Button
-                    size="sm"
-                    colorScheme="red"
-                    onClick={() =>
-                      setChemicalsInput((prev) =>
-                        prev.filter((_, idx) => idx !== i)
-                      )
-                    }
-                  >
-                    -
-                  </Button>
+                  {chemicalsInput.length > 1 && (
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      onClick={() =>
+                        setChemicalsInput((prev) =>
+                          prev.filter((_, idx) => idx !== i)
+                        )
+                      }
+                    >
+                      -
+                    </Button>
+                  )}
                 </Flex>
               ))}
               <Button
@@ -1310,6 +1363,61 @@ function FabricProcess() {
               }}
             >
               Add Water Cost
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* table preview */}
+      <Modal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        size="xl"
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader color={customColor}>Fabric Process Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {previewItem && (
+              <SimpleGrid columns={2} spacing={4}>
+                <Text>
+                  <b>Receiver No:</b> {previewItem.receiverNo}
+                </Text>
+                <Text>
+                  <b>Machine No:</b> {previewItem.machineNo}
+                </Text>
+                <Text>
+                  <b>Shift Incharge:</b> {previewItem.shiftincharge}
+                </Text>
+                <Text>
+                  <b>Quantity:</b> {previewItem.qty} kg
+                </Text>
+                <Text>
+                  <b>Rate:</b> ₹{previewItem.rate}
+                </Text>
+                <Text>
+                  <b>Status:</b> {previewItem.status}
+                </Text>
+                <Text>
+                  <b>Order No:</b> {previewItem.orderNo}
+                </Text>
+                <Text>
+                  <b>Date:</b> {previewItem.date?.substring(0, 10)}
+                </Text>
+                <Text>
+                  <b>Water Cost:</b> ₹{previewItem.waterCost || 0}
+                </Text>
+                <Text>
+                  <b>Total Cost:</b> ₹{previewItem.totalCost || 0}
+                </Text>
+              </SimpleGrid>
+            )}
+          </ModalBody>
+
+          <ModalFooter>
+            <Button colorScheme="red" onClick={() => setIsPreviewOpen(false)}>
+              Close
             </Button>
           </ModalFooter>
         </ModalContent>

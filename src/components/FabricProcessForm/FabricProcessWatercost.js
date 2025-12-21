@@ -172,6 +172,12 @@ function ProcessPageInner() {
   const [canShowWaterForm, setCanShowWaterForm] = useState(false);
   const [showProcessUI, setShowProcessUI] = useState(false);
 
+  // const [selectedOrder, setSelectedOrder] = useState(null);
+  // const [fabric, setFabric] = useState(null);
+  // const [timer, setTimer] = useState("00:00:00"); // display format HH:MM:SS
+  // const [canShowWaterForm, setCanShowWaterForm] = useState(false);
+  // const [completed, setCompleted] = useState(false);
+
   /* ---------------- Timer logic (REPLACED) ---------------- */
   // elapsedTime now in milliseconds
   const [elapsedTime, setElapsedTime] = useState(0); // ms
@@ -198,8 +204,6 @@ function ProcessPageInner() {
       timeZone: "Asia/Kolkata",
     });
   };
-
-
 
   // Update human readable timer whenever elapsedTime changes
   useEffect(() => {
@@ -337,7 +341,7 @@ function ProcessPageInner() {
       lastStartAtRef.current = Date.now();
       setElapsedTime(runningMs);
       setIsRunning(true);
-
+      setSelectedWaterId(water._id);
       setFabric(water);
       setCompleted(false);
       setClosingReading("");
@@ -357,41 +361,72 @@ function ProcessPageInner() {
   };
 
   const handlePauseConfirm = async () => {
-    if (!fabric?._id) return;
+    // Require remarks for pausing
+    if (!remarks || remarks.trim() === "") {
+      toast({
+        title: "Remarks required",
+        description: "Please enter remarks before pausing the process.",
+        status: "warning",
+      });
+      return; // stop execution
+    }
+    // Determine which process ID to use: selectedWaterId or fabric._id
+    const processId = selectedWaterId || fabric?._id;
+
+    if (!processId) {
+      toast({
+        title: "No active process",
+        description: "Cannot pause/resume because process ID is missing.",
+        status: "warning",
+      });
+      return;
+    }
 
     setLoadingPause(true);
-    try {
-      const res = await pauseWaterProcess(fabric._id, { remarks });
-      const updatedWater = res?.data?.water || res?.data?.data || fabric;
 
+    try {
+      const res = await pauseWaterProcess(processId, { remarks });
+      const updatedWater = res?.data?.water || res?.data?.data;
+
+      if (!updatedWater) {
+        throw new Error("Invalid water process response");
+      }
+
+      // Update fabric state
       setFabric(updatedWater);
 
-      // backend returns runningTime in minutes (we returned runningTime in response earlier)
+      // Convert backend runningTime (minutes) → milliseconds
       const runningMin = Number(updatedWater.runningTime || 0);
       const runningMs = Math.round(runningMin * 60 * 1000);
 
+      // Update timer based on new status
       if (updatedWater.status === "Paused") {
-        // freeze timer: base = runningMs, stop ticking
+        // 🔴 Pause → freeze timer
         baseElapsedMsRef.current = runningMs;
         lastStartAtRef.current = null;
         setElapsedTime(runningMs);
         setIsRunning(false);
       } else if (updatedWater.status === "Running") {
-        // resumed: base keeps runningMs, start from now
+        // 🟢 Resume → continue timer
         baseElapsedMsRef.current = runningMs;
         lastStartAtRef.current = Date.now();
         setElapsedTime(runningMs);
         setIsRunning(true);
       }
 
-      toast({ title: res?.data?.message || "Process updated", status: "info" });
+      toast({
+        title: res?.data?.message || "Process updated",
+        status: "info",
+      });
+
+      // Clear remarks & close modal
       setRemarks("");
       setIsPauseConfirmOpen(false);
     } catch (err) {
-      console.error("pause error:", err);
+      console.error("Pause/Resume failed:", err);
       toast({
-        title: "Pause/Resume failed",
-        description: err?.response?.data?.message || err?.message,
+        title: "Pause / Resume failed",
+        description: err?.response?.data?.message || err.message,
         status: "error",
       });
     } finally {
@@ -399,70 +434,59 @@ function ProcessPageInner() {
     }
   };
 
+  const handleResume = (order) => {
+    setSelectedOrder(order);
+    setFabric({
+      ...order,
+      status: "Running", // mark as running
+      startTime: order.startTime || new Date(), // store start time if not exists
+    });
+    setCanShowWaterForm(true);
+  };
+
   const handleStopApi = async () => {
-    const processId = fabric?._id || selectedWaterId;
-    console.log("Stopping waterId:", processId);
+    const waterId = selectedWaterId || fabric?._id;
+
+    if (!waterId) {
+      toast({
+        title: "Water record missing",
+        description: "Unable to stop. Please resume the process again.",
+        status: "error",
+      });
+      return;
+    }
 
     const now = new Date();
     const endTimeFormatted = toISTTime(now);
 
-    if (!processId) {
-      toast({ title: "No active process", status: "warning" });
-      return;
-    }
-
     setLoadingStop(true);
 
     try {
-      // Call stop API
-      const stopRes = await stopWaterProcess(processId, {
+      const stopRes = await stopWaterProcess(waterId, {
         endTimeFormattedFE: endTimeFormatted,
       });
 
-      // Handle API response safely
-      const stoppedWater =
-        stopRes?.data?.water || stopRes?.data?.data || fabric;
+      const stoppedWater = stopRes?.data?.water || stopRes?.data?.data;
 
-      // Convert runningTime from minutes → milliseconds
       const runningMs = (Number(stoppedWater.runningTime) || 0) * 60 * 1000;
 
-      // Update timers
       baseElapsedMsRef.current = runningMs;
       lastStartAtRef.current = null;
       setElapsedTime(runningMs);
       setIsRunning(false);
 
-      // Update fabric state
       setFabric(stoppedWater);
 
       toast({ title: "Process stopped", status: "success" });
 
-      // Open closing reading modal
       setIsClosingReadingModalOpen(true);
     } catch (err) {
-      console.error("Stop process error:", err);
-
-      // If 404, show friendly message
-      if (err?.response?.status === 404) {
-        toast({
-          title: "Stop failed",
-          description: err?.response?.data?.message || "Water record not found",
-          status: "warning",
-        });
-
-        // Optional: reset timers/UI even if record is missing
-        setIsRunning(false);
-        baseElapsedMsRef.current = 0;
-        setElapsedTime(0);
-        setFabric(null);
-        setIsClosingReadingModalOpen(false);
-      } else {
-        toast({
-          title: "Stop failed",
-          description: err?.response?.data?.message || err?.message,
-          status: "error",
-        });
-      }
+      console.error("Stop error:", err);
+      toast({
+        title: "Stop failed",
+        description: err?.response?.data?.message || "Water record not found",
+        status: "error",
+      });
     } finally {
       setLoadingStop(false);
     }
@@ -579,6 +603,29 @@ function ProcessPageInner() {
     setOrders([]); // reset orders list
     setSelectedOrder(null); // reset any selected order
   };
+
+  const handleBackToList = async () => {
+    // Don't allow leaving while running
+    if (fabric?.status === "Running") {
+      toast({
+        title: "Process is running",
+        description: "Pause or stop the process before going back.",
+        status: "warning",
+      });
+      return;
+    }
+
+    // Just go back to list UI
+    setShowProcessUI(true);
+    setCanShowWaterForm(false);
+    setSelectedOrder(null);
+
+    // 🔁 Refresh list only
+    if (machineNumber) {
+      await fetchOrders(machineNumber);
+    }
+  };
+
   /* ---------------- Render ---------------- */
   return (
     <>
@@ -687,6 +734,7 @@ function ProcessPageInner() {
               placeholder="Enter Remarks"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
+              required
             />
             <Text mt={3} fontSize="sm" color="gray.500">
               Remarks are optional for resume but recommended for pauses.
@@ -781,6 +829,7 @@ function ProcessPageInner() {
               borderColor={THEME.primary}
               color={THEME.primary}
               _hover={{ bg: THEME.primary, color: THEME.surface }}
+              onClick={() => setIsClosingReadingModalOpen(false)}
             >
               Cancel
             </Button>
@@ -951,7 +1000,76 @@ function ProcessPageInner() {
                                         setSelectedWaterId(waterId);
                                         setIsStopConfirmModalOpen(true);
                                       } else if (actionText === "Resume") {
-                                        setIsPauseConfirmOpen(true);
+                                        const res = await getWaterIdByFabricProcessId(
+                                          order._id
+                                        );
+                                        const waterId = res?.data?.waterId;
+
+                                        if (!waterId) {
+                                          toast({
+                                            title: "Water record missing!",
+                                            description:
+                                              "Backend did not return a valid waterId",
+                                            status: "error",
+                                          });
+                                          return;
+                                        }
+
+                                        setSelectedWaterId(waterId);
+
+                                        // ✅ Directly resume without modal
+                                        if (!remarks || remarks.trim() === "") {
+                                          // optional: default remark for resume
+                                          setRemarks("Resumed");
+                                        }
+
+                                        setLoadingPause(true);
+                                        try {
+                                          const resPause = await pauseWaterProcess(
+                                            waterId,
+                                            { remarks: "Resumed" }
+                                          );
+                                          const updatedWater =
+                                            resPause?.data?.water ||
+                                            resPause?.data?.data;
+
+                                          if (!updatedWater)
+                                            throw new Error(
+                                              "Invalid water process response"
+                                            );
+
+                                          setFabric(updatedWater);
+
+                                          const runningMs = Math.round(
+                                            (Number(updatedWater.runningTime) ||
+                                              0) *
+                                              60 *
+                                              1000
+                                          );
+                                          baseElapsedMsRef.current = runningMs;
+
+                                          // Start timer immediately
+                                          lastStartAtRef.current = Date.now();
+                                          setIsRunning(true);
+                                          setElapsedTime(runningMs);
+
+                                          toast({
+                                            title: "Process Resumed",
+                                            status: "success",
+                                          });
+                                          handleResume(order);
+                                        } catch (err) {
+                                          console.error("Resume failed:", err);
+                                          toast({
+                                            title: "Resume failed",
+                                            description:
+                                              err?.response?.data?.message ||
+                                              err.message,
+                                            status: "error",
+                                          });
+                                        } finally {
+                                          setLoadingPause(false);
+                                        }
                                       }
                                     } catch (err) {
                                       console.error("Action failed:", err);
@@ -1001,11 +1119,7 @@ function ProcessPageInner() {
                       <Button
                         bg="transparent"
                         leftIcon={<FaArrowLeft />}
-                        onClick={() => {
-                          if (fabric?.status === "Running") return; // disable back
-                          handleReset();
-                          setShowProcessUI(true);
-                        }}
+                        onClick={handleBackToList}
                       >
                         Back
                       </Button>
@@ -1068,15 +1182,19 @@ function ProcessPageInner() {
                       <Button
                         bg={THEME.primary}
                         color="white"
-                        _hover={{ bg: THEME.accent }}
-                        leftIcon={
-                          loadingStart ? <Spinner size="sm" /> : <FaPlay />
-                        }
                         size="lg"
+                        leftIcon={
+                          selectedOrder?.status === "Reprocess" ? (
+                            <FaRedo />
+                          ) : (
+                            <FaPlay />
+                          )
+                        }
                         onClick={() => setIsProcessConfirmOpen(true)}
-                        isLoading={loadingStart}
                       >
-                        Start Process
+                        {selectedOrder?.status === "Reprocess"
+                          ? "Reprocess"
+                          : "Start Process"}
                       </Button>
                     </VStack>
                   )}
