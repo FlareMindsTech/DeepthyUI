@@ -69,7 +69,7 @@ export const updateCustomer = (id, data) =>
   axiosInstance.put(`/customers/update/${id}`, data);
 
 // Delete Customer
-export const deleteCustomer = (id) => axiosInstance.delete(`/customers/${id}`);
+export const deleteCustomer = (id) => axiosInstance.delete(`/customers/delete/${id}`);
 
 // Safe get (returns null if not found / error)
 export const safeGetCustomer = async (id) => {

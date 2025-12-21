@@ -39,6 +39,7 @@ import {
   createCustomer,
   getAllCustomers,
   deleteCustomer,
+  updateCustomer, // ✅ add this
 } from "../utils/axiosInstance";
 
 function CustomerList() {
@@ -81,6 +82,7 @@ function CustomerList() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const [originalData, setOriginalData] = useState(null);
 
   /* ---------------------- User Authentication ---------------------- */
   useEffect(() => {
@@ -131,7 +133,7 @@ function CustomerList() {
     };
 
     fetchCustomers();
-  }, [currentUser]);
+  }, [currentUser, toast]);
 
   /* --------------------- Search & Filter Logic ---------------------- */
   useEffect(() => {
@@ -168,7 +170,13 @@ function CustomerList() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    const numericFields = ["weight", "roll", "dia"];
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: numericFields.includes(name) ? Number(value) : value,
+    }));
   };
 
   const handleAddCustomer = () => {
@@ -189,33 +197,57 @@ function CustomerList() {
   };
 
   const handleEditCustomer = (customer) => {
-    setFormData({ ...customer, date: customer.date?.substring(0, 10) });
+    const prepared = {
+      ...customer,
+      date: customer.date?.substring(0, 10),
+    };
+
+    setFormData(prepared);
+    setOriginalData(prepared); // ✅ store original
     setEditingCustomer(customer);
     setCurrentView("edit");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setTableLoading(true);
+    setTableLoading(true); // 🔥 show spinner
 
     try {
-      const response = await createCustomer(formData);
+      let response;
 
-      toast({ title: "Customer saved", status: "success" });
+      if (currentView === "edit") {
+        response = await updateCustomer(editingCustomer._id, formData);
+      } else {
+        response = await createCustomer(formData);
+      }
 
-      // Update UI immediately
-      const newCustomer = response.data?.customer || formData;
-      const updatedData = [newCustomer, ...customerData];
+      const savedCustomer = response.data?.customer || response.data?.data;
+
+      let updatedData;
+
+      if (currentView === "edit") {
+        updatedData = customerData.map((c) =>
+          c._id === editingCustomer._id ? savedCustomer : c
+        );
+      } else {
+        // 🔥 ADD → new data FIRST
+        updatedData = [savedCustomer, ...customerData];
+      }
 
       setCustomerData(updatedData);
       setFilteredData(updatedData);
-
+      setCurrentPage(1); // 🔥 jump to first page
       setCurrentView("list");
 
-      setTableLoading(true);
+      toast({
+        title: currentView === "edit" ? "Customer updated" : "Customer created",
+        status: "success",
+      });
     } catch (err) {
       console.error(err);
       toast({ title: "Failed to save", status: "error" });
+    } finally {
+      setTableLoading(false);
     }
   };
 
@@ -250,6 +282,26 @@ function CustomerList() {
     }
   };
 
+  // Check empty fields (ADD)
+  const isFormValid = () => {
+    const requiredFields = Object.entries(formData).filter(
+      ([key]) => key !== "receiverNo" // ❌ exclude optional field
+    );
+
+    return requiredFields.every(
+      ([_, value]) => value !== "" && value !== null && value !== undefined
+    );
+  };
+
+  // Check if data changed (EDIT)
+  const isFormChanged = () => {
+    if (!originalData) return false;
+
+    return Object.keys(formData).some(
+      (key) => String(formData[key]) !== String(originalData[key])
+    );
+  };
+
   /* --------------------------- Pagination --------------------------- */
 
   const handleNextPage = () =>
@@ -257,7 +309,7 @@ function CustomerList() {
 
   const handlePrevPage = () =>
     currentPage > 1 && setCurrentPage(currentPage - 1);
-
+  
   const handlePageClick = (p) => setCurrentPage(p);
 
   const getPageNumbers = () => {
@@ -371,6 +423,16 @@ function CustomerList() {
                 _hover={{ bg: customHoverColor }}
                 color="white"
                 onClick={handleSubmit}
+                isDisabled={
+                  currentView === "add"
+                    ? !isFormValid() // 🔥 ADD: all fields required
+                    : !isFormChanged() // 🔥 EDIT: enable only if changed
+                }
+                title={
+                  currentView === "add"
+                    ? "Fill all fields to create"
+                    : "Modify at least one field to update"
+                }
               >
                 {currentView === "add" ? "Create" : "Update"}
               </Button>

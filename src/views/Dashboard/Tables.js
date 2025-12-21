@@ -546,15 +546,28 @@ export default function WorkHoursTable() {
           </Flex>
 
           {/* Machine-wise total running time summary */}
-          <Box mt={6} p={2} bg={`${customColor}10`} borderRadius="md">
-            <Text fontWeight="bold" mb={2}>
+          <Box mt={6} p={4} bg={`${customColor}10`} borderRadius="md">
+            <Text fontWeight="bold" mb={3}>
               🕒 Machine-wise Total Running Time
             </Text>
-            {Object.entries(machineTotals).map(([machine, totalTime]) => (
-              <Text key={machine}>
-                {machine}: {totalTime} min
-              </Text>
-            ))}
+
+            <Table variant="simple" size="sm">
+              <Thead bg={`${customColor}20`}>
+                <Tr>
+                  <Th>Machine No</Th>
+                  <Th isNumeric>Total Time (min)</Th>
+                </Tr>
+              </Thead>
+
+              <Tbody>
+                {Object.entries(machineTotals).map(([machine, totalTime]) => (
+                  <Tr key={machine}>
+                    <Td fontWeight="600">{machine}</Td>
+                    <Td isNumeric>{totalTime}</Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
           </Box>
         </CardBody>
       </Card>
