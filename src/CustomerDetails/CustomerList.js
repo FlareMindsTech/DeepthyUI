@@ -26,6 +26,7 @@ import {
   ModalBody,
   ModalFooter,
   Text,
+   Badge, 
 } from "@chakra-ui/react";
 
 import Card from "components/Card/Card.js";
@@ -72,6 +73,7 @@ function CustomerList() {
     roll: 0,
     weight: 0,
     partyDcNo: "",
+    status: "",
     date: "",
   });
 
@@ -156,6 +158,7 @@ function CustomerList() {
           c.color,
           c.dia,
           c.partyDcNo,
+          c.status
         ]
           .map((v) => String(v || "").toLowerCase())
           .some((v) => v.includes(q))
@@ -519,6 +522,7 @@ function CustomerList() {
                       "Diameter",
                       "Roll",
                       "Weight",
+                      "Status",
                       "Actions",
                     ].map((h) => (
                       <Th key={h} color="gray.700">
@@ -540,7 +544,23 @@ function CustomerList() {
                       <Td>{customer.dia}</Td>
                       <Td>{customer.roll}</Td>
                       <Td>{customer.weight}</Td>
-
+                      <Td>
+  <Badge
+  px={2}
+  py={1}
+  borderRadius="md"
+  fontSize="0.75rem"
+  colorScheme={
+    customer.fabricStatus === "Completed"
+      ? "green"
+      : customer.fabricStatus === "Running"
+      ? "orange"
+      : "gray"
+  }
+>
+  {customer.fabricStatus || "Not Started"}
+</Badge>
+</Td>
                       <Td>
                         <Flex gap={2}>
                           <Button

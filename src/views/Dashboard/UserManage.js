@@ -111,6 +111,7 @@ function UserManagement() {
     name: "",
     mobile: "",
     password: "",
+    status: "active",
     role: "", // leave empty — user must select
   });
 
@@ -129,6 +130,7 @@ function UserManagement() {
       name: "",
       phone: "",
       password: "",
+      status: "active",
       role: "user",
     });
     setEditingUser(null);
@@ -140,9 +142,9 @@ function UserManagement() {
   const getAllowedRolesForCreator = (creatorRole) => {
     switch (creatorRole) {
       case "owner":
-        return ["admin", "shiftincharge", "operator"];
+        return ["operator"];
       case "admin":
-        return ["shiftincharge", "operator"];
+        return ["operator"];
       case "shiftincharge":
         return ["operator"];
       default:
@@ -274,9 +276,9 @@ function UserManagement() {
         case "inactive":
           filtered = userData.filter((user) => user.status === "inactive");
           break;
-        case "verified":
-          filtered = userData.filter((user) => user.isVerified === true);
-          break;
+        // case "verified":
+        //   filtered = userData.filter((user) => user.isVerified === true);
+        //   break;
         default:
           filtered = userData;
       }
@@ -337,6 +339,7 @@ const handleEditUser = (user) => {
     name: user.name,
     phone: user.phone,
     role: user.role,
+    status: user.status,
     password: "",
   });
 
@@ -428,6 +431,7 @@ const handleEditUser = (user) => {
         name: formData.name,
         phone: formData.phone,
         role: formData.role,
+         status: formData.status,
         ...(formData.password && { password: formData.password }),
       };
 
@@ -442,6 +446,7 @@ const handleEditUser = (user) => {
 
         setUserData([...userData, response.data.user]);
         setFilteredData([...userData, response.data.user]);
+
       } else {
         // ✅ Update user API
         const response = await updateUser(editingUser._id, userDataToSend);
@@ -548,13 +553,13 @@ const handleEditUser = (user) => {
   };
 
   // Get verification badge
-  const getVerificationBadge = (isVerified) => {
-    if (isVerified) {
-      return { text: "Verified", color: "green" };
-    } else {
-      return { text: "Not Verified", color: "red" };
-    }
-  };
+  // const getVerificationBadge = (isVerified) => {
+  //   if (isVerified) {
+  //     return { text: "Verified", color: "green" };
+  //   } else {
+  //     return { text: "Not Verified", color: "red" };
+  //   }
+  // };
 
   // Card click handlers
   const handleCardClick = (filterType) => {
@@ -703,6 +708,24 @@ const handleEditUser = (user) => {
                 ))}
               </Select>
             </FormControl>
+            <FormControl mb={4}>
+  <FormLabel>Status</FormLabel>
+  <Select
+    name="status"
+    value={formData.status}
+    onChange={handleInputChange}
+    borderColor={`${customColor}50`}
+    _hover={{ borderColor: customColor }}
+    _focus={{
+      borderColor: customColor,
+      boxShadow: `0 0 0 1px ${customColor}`,
+    }}
+    bg="white"
+  >
+    <option value="active">Active</option>
+    <option value="inactive">Inactive</option>
+  </Select>
+</FormControl>
 
             {/* ✅ Updated Password with Eye Toggle */}
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
@@ -1061,7 +1084,7 @@ const handleEditUser = (user) => {
           </CardBody>
         </Card>
 
-        {/* Verified Users Card */}
+        {/* Inactive Card */}
         <Card
           minH="83px"
           cursor="pointer"
@@ -1087,11 +1110,11 @@ const handleEditUser = (user) => {
                   fontWeight="bold"
                   pb="2px"
                 >
-                  Verified Users
+                  Inactive Users
                 </StatLabel>
                 <Flex>
                   <StatNumber fontSize="lg" color={textColor}>
-                    {userData.filter((a) => a.isVerified === true).length}
+                    {userData.filter((a) => a.status === "inactive").length}
                   </StatNumber>
                 </Flex>
               </Stat>
@@ -1427,7 +1450,7 @@ const handleEditUser = (user) => {
                             {sortConfig.key === "status" &&
                               (sortConfig.direction === "asc" ? "▲" : "▼")}
                           </Th>
-                          <Th
+                          {/* <Th
                             py={2}
                             fontSize="sm"
                             cursor="pointer"
@@ -1436,7 +1459,7 @@ const handleEditUser = (user) => {
                             Verification{" "}
                             {sortConfig.key === "isVerified" &&
                               (sortConfig.direction === "asc" ? "▲" : "▼")}
-                          </Th>
+                          </Th> */}
                           <Th py={2} fontSize="sm">
                             Actions
                           </Th>
@@ -1503,7 +1526,7 @@ const handleEditUser = (user) => {
                                     {user.status || "active"}
                                   </Badge>
                                 </Td>
-                                <Td py={2}>
+                                {/* <Td py={2}>
                                   <Badge
                                     colorScheme={
                                       getVerificationBadge(user.isVerified)
@@ -1515,7 +1538,7 @@ const handleEditUser = (user) => {
                                   >
                                     {getVerificationBadge(user.isVerified).text}
                                   </Badge>
-                                </Td>
+                                </Td> */}
                                 <Td py={2}>
                                   <Flex gap={2}>
                                     <Button

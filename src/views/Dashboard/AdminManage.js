@@ -103,6 +103,7 @@ function AdminManagement() {
     name: "",
     phone: "",
     role: "user",
+    status: "active",
     password: "",
   });
 
@@ -193,7 +194,7 @@ function AdminManagement() {
         if (userRole === "admin") {
           // Admins see only admins
           filteredAdmins = admins.filter(
-            (u) => u.role?.toLowerCase?.() === "admin"
+            (u) => u.role?.toLowerCase?.() === "admin" && u.role?.toLowerCase?.() === "shiftincharge"
           );
         } else if (userRole === "owner") {
           // Owners see admins + owners
@@ -309,6 +310,32 @@ function AdminManagement() {
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
+const getRoleOptions = () => {
+  const role = currentUser?.role?.toLowerCase();
+
+  if (role === "owner") {
+    return [
+      { label: "Owner", value: "owner" },
+      { label: "Admin", value: "admin" },
+      { label: "Shift Incharge", value: "shiftincharge" },
+    ];
+  }
+
+  if (role === "admin") {
+    return [
+      { label: "Admin", value: "admin" },
+      { label: "Shift Incharge", value: "shiftincharge" },
+    ];
+  }
+
+  if (role === "shiftincharge") {
+    return [
+      { label: "Shift Incharge", value: "shiftincharge" },
+    ];
+  }
+
+  return [];
+};
 
   // Clear search
   const handleClearSearch = () => {
@@ -321,6 +348,7 @@ function AdminManagement() {
       name: "",
       phone: "",
       role: "admin",
+      status: "active",
       password: "",
     });
     setEditingAdmin(null);
@@ -340,6 +368,7 @@ function AdminManagement() {
       name: admin.name,
       phone: admin.phone,
       role: admin.role,
+      status: admin.status,
       password: "",
     });
 
@@ -535,6 +564,7 @@ function AdminManagement() {
         name: "",
         phone: "",
         role: "admin",
+        status: "active", 
         password: "",
       });
       setEditingAdmin(null);
@@ -641,6 +671,7 @@ function AdminManagement() {
           formData.name === editingAdmin.name &&
           formData.phone === editingAdmin.phone &&
           formData.role === editingAdmin.role &&
+          formData.status === editingAdmin.status &&
           formData.password === ""
         );
       }
@@ -733,12 +764,32 @@ function AdminManagement() {
                   borderColor: customColor,
                   boxShadow: `0 0 0 1px ${customColor}`,
                 }}
-                isDisabled={currentView === "edit"} // optional: make role read-only on edit
+                // isDisabled={currentView === "edit"} // optional: make role read-only on edit
               >
-                <option value="admin">Admin</option>
-                {/* <option value="owner">Owner</option> */}
+                {getRoleOptions().map((role) => (
+      <option key={role.value} value={role.value}>
+        {role.label}
+      </option>   ))}
               </Select>
             </FormControl>
+            <FormControl mb={4}>
+  <FormLabel color="gray.700">Status</FormLabel>
+  <Select
+    name="status"
+    value={formData.status}
+    onChange={handleInputChange}
+    borderColor={`${customColor}50`}
+    _hover={{ borderColor: customColor }}
+    _focus={{
+      borderColor: customColor,
+      boxShadow: `0 0 0 1px ${customColor}`,
+    }}
+  >
+    <option value="active">Active</option>
+    <option value="inactive">Inactive</option>
+  </Select>
+</FormControl>
+
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl>
@@ -834,60 +885,7 @@ function AdminManagement() {
         gap="24px"
         mb="24px"
       >
-        {/* Super Admins Card */}
-        <Card
-          minH="83px"
-          cursor="pointer"
-          onClick={() => handleCardClick("super")}
-          border={activeFilter === "super" ? "2px solid" : "1px solid"}
-          borderColor={
-            activeFilter === "super" ? customColor : `${customColor}30`
-          }
-          transition="all 0.2s"
-          bg="white"
-          _hover={{
-            transform: "translateY(-2px)",
-            shadow: "lg",
-            bg: `${customColor}05`,
-          }}
-        >
-          <CardBody>
-            <Flex flexDirection="row" align="center" justify="center" w="100%">
-              <Stat me="auto">
-                <StatLabel
-                  fontSize="sm"
-                  color="gray.600"
-                  fontWeight="bold"
-                  pb="2px"
-                >
-                  Super Admins
-                </StatLabel>
-                <Flex>
-                  <StatNumber fontSize="lg" color={textColor}>
-                    {adminData.filter((a) => a.role === "super admin").length}
-                  </StatNumber>
-                </Flex>
-              </Stat>
-              <Box
-                h={"45px"}
-                w={"45px"}
-                bg={customColor}
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                borderRadius="12px"
-              >
-                <Icon
-                  as={MdAdminPanelSettings}
-                  h={"24px"}
-                  w={"24px"}
-                  color="white"
-                />
-              </Box>
-            </Flex>
-          </CardBody>
-        </Card>
-
+        
         {/* Active Status Card */}
         <Card
           minH="83px"
@@ -933,6 +931,59 @@ function AdminManagement() {
               >
                 <Icon
                   as={IoCheckmarkDoneCircleSharp}
+                  h={"24px"}
+                  w={"24px"}
+                  color="white"
+                />
+              </Box>
+            </Flex>
+          </CardBody>
+        </Card>
+          {/* Super Admins Card */}
+        <Card
+          minH="83px"
+          cursor="pointer"
+          onClick={() => handleCardClick("super")}
+          border={activeFilter === "super" ? "2px solid" : "1px solid"}
+          borderColor={
+            activeFilter === "super" ? customColor : `${customColor}30`
+          }
+          transition="all 0.2s"
+          bg="white"
+          _hover={{
+            transform: "translateY(-2px)",
+            shadow: "lg",
+            bg: `${customColor}05`,
+          }}
+        >
+          <CardBody>
+            <Flex flexDirection="row" align="center" justify="center" w="100%">
+              <Stat me="auto">
+                <StatLabel
+                  fontSize="sm"
+                  color="gray.600"
+                  fontWeight="bold"
+                  pb="2px"
+                >
+                  Inactive Status
+                </StatLabel>
+                <Flex>
+                  <StatNumber fontSize="lg" color={textColor}>
+                    {adminData.filter((a) => a.status === "inactive").length}
+                  </StatNumber>
+                </Flex>
+              </Stat>
+              <Box
+                h={"45px"}
+                w={"45px"}
+                bg={customColor}
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                borderRadius="12px"
+              >
+                <Icon
+                  as={MdAdminPanelSettings}
                   h={"24px"}
                   w={"24px"}
                   color="white"
