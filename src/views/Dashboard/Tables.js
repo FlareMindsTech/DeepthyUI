@@ -35,6 +35,7 @@ import * as XLSX from "xlsx";
 
 export default function WorkHoursTable() {
   const customColor = "#FF6B6B";
+  const customHoverColor = "#B71C1C";
   const [workData, setWorkData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
@@ -107,6 +108,7 @@ export default function WorkHoursTable() {
               start: startTime,
               end: endTime,
               date, // now we have a valid date for filtering
+              endDate: item.endDate,
               total: item.runningTime || 0,
               weight: item.weight || 0,
               status: item.status || "-",
@@ -328,7 +330,7 @@ export default function WorkHoursTable() {
                 onClick={exportToExcel}
                 bg={customColor}
                 color="white"
-                _hover={{ bg: "#ff4b4b" }}
+                _hover={{ bg: customHoverColor }}
                 width="60%"
               >
                 Export Excel
@@ -348,9 +350,10 @@ export default function WorkHoursTable() {
                     "Operator",
                     "Company",
                     "Fabric",
-                    "Start",
-                    "End",
-                    "Date",
+                    "Start Date",
+                    "Start Time",
+                    "End Time",
+                    "End Date",
                     "Running Time",
                     // "Cost",
                     "Weight",
@@ -391,9 +394,10 @@ export default function WorkHoursTable() {
                         <Td textAlign="center">{row.user}</Td>
                         <Td textAlign="center">{row.customer}</Td>
                         <Td textAlign="center">{row.material}</Td>
+                        <Td textAlign="center">{row.date}</Td>
                         <Td textAlign="center">{row.start}</Td>
                         <Td textAlign="center">{row.end}</Td>
-                        <Td textAlign="center">{row.date}</Td>
+                        <Td textAlign="center">{row.endDate || "-"}</Td>
                         <Td textAlign="center">{row.total} min</Td>
                         {/* <Td textAlign="center">₹{row.cost}</Td> */}
                         <Td textAlign="center">{row.weight}</Td>

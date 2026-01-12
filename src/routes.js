@@ -130,7 +130,7 @@ export const userRoutes = [
         name: "Fabric Process",
         icon: <RocketIcon color="inherit" />,
         element: <FabricProcessPage />,
-        layout: "/user",
+        layout: "/admin",
         roles: [ "owner", "admin", "shiftincharge"],
       },
       {
@@ -138,7 +138,7 @@ export const userRoutes = [
         name: "Machine Process",
         icon: <StatsIcon color="inherit" />,
         element: <FabricProcessWatercost />,
-        layout: "/user",
+        layout: "/admin",
         roles: ["operator", "owner", "admin", "shiftincharge"],
       },
 

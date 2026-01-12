@@ -205,13 +205,13 @@ export const startWaterProcess = (data) =>
   axiosInstance.post("/water/start", data);
 // Pause Process
 export const pauseWaterProcess = (id, data) =>
-  axiosInstance.patch(`/water/pause/${id}`, data);
+  axiosInstance.post(`/water/pause/${id}`, data);
 
 // Stop Process
 // Stop process (just freezes the process, no closingReading yet)
 export const stopWaterProcess = (id, body) =>
   axiosInstance.post(`/water/stop/${id}`, body);
-
+ 
 
 // Calculate water cost & set closingReading
 export const calculateWaterCost = async (waterId, closingReading) => {
