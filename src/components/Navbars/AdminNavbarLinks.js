@@ -28,7 +28,7 @@ import {
 } from "@chakra-ui/react";
 
 import { BellIcon, ChevronDownIcon } from "@chakra-ui/icons";
-import { FiLogOut } from "react-icons/fi";
+import { FiLogOut, FiClock } from "react-icons/fi";
 import { NavLink, useNavigate } from "react-router-dom";
 import routes from "routes.js";
 
@@ -57,6 +57,31 @@ export default function HeaderLinks(props) {
   const menuBg = colorMode === "light" ? "white" : "navy.800";
   const hoverBg = colorMode === "light" ? "gray.50" : "navy.700";
   const borderColor = colorMode === "light" ? "gray.200" : "gray.600";
+  const [dateTime, setDateTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDateTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const time = dateTime.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const date = dateTime.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const day = dateTime.toLocaleDateString("en-IN", {
+    weekday: "long",
+  });
 
   // LOGOUT
   const handleLogout = () => {
@@ -256,21 +281,49 @@ export default function HeaderLinks(props) {
 
       {/* =============== CENTER (Page Title) =============== */}
       <Flex
-        flex={1}
-        justifyContent="center"
-        minW={0} // IMPORTANT for text truncation
-        px={{ base: 1, md: 2 }}
+        direction="column"
+        align="center"
+        px={4}
+        py={2}
+        borderRadius="lg"
+        bg="blackAlpha.400"
+        boxShadow="md"
       >
+        {/* Brand */}
         <Text
           fontSize={{ base: "md", md: "lg" }}
           fontWeight="bold"
           color={navbarIcon}
           noOfLines={1}
-          textAlign="center"
-          maxW="100%"
         >
           {brandText}
         </Text>
+
+        {/* Top Row: Day + Date */}
+        <HStack spacing={3}>
+          <Text fontSize="sm" color="orange.300" fontWeight="600">
+            {day}
+          </Text>
+
+          <Divider orientation="vertical" h="14px" />
+
+          <Text fontSize="sm" color="gray.300">
+            {date}
+          </Text>
+        </HStack>
+
+        {/* Bottom Row: Time + Icon */}
+        <HStack mt={1} spacing={2}>
+          <FiClock size={16} color="#fdfdfdff" />
+          <Text
+            fontSize="md"
+            fontWeight="bold"
+            color="green.300"
+            letterSpacing="wide"
+          >
+            {time}
+          </Text>
+        </HStack>
       </Flex>
 
       {/* =============== RIGHT SIDE (Icons) =============== */}
@@ -286,11 +339,7 @@ export default function HeaderLinks(props) {
               _active={{ bg: "transparent" }}
               _focus={{ boxShadow: "none" }}
             >
-              <Avatar
-                size= "sm" 
-                name={user?.name}
-                src={user?.avatar}
-              />
+              <Avatar size="sm" name={user?.name} src={user?.avatar} />
             </Button>
           </PopoverTrigger>
 

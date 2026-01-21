@@ -61,6 +61,8 @@ import {
 
 function FabricProcess() {
   const customColor = "#FF6B6B";
+  const customHoverColor = "#B71C1C";
+
   const toast = useToast();
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -587,6 +589,7 @@ function FabricProcess() {
               color="white"
               size="sm"
               onClick={handleAdd}
+              _hover={{ bg: customHoverColor }}
             >
               + Add Process
             </Button>
@@ -735,11 +738,26 @@ function FabricProcess() {
                                       />
                                     </Tooltip>
                                   )}
-                                  {item.status === "Reprocess" && (
-                                    <Tooltip label="Reprocess">
+                                  {(item.status === "Reprocess" ||
+                                    item.status === "Reprocess-Completed") && (
+                                    <Tooltip
+                                      label={
+                                        item.status === "Reprocess"
+                                          ? "Reprocess"
+                                          : "Reprocess Completed"
+                                      }
+                                    >
                                       <FaRecycle
-                                        color="#FF6B6B"
-                                        title="Reprocess"
+                                        title={
+                                          item.status === "Reprocess"
+                                            ? "Reprocess"
+                                            : "Reprocess Completed"
+                                        }
+                                        color={
+                                          item.status === "Reprocess"
+                                            ? "#FF6B6B" // pending
+                                            : "#4CAF50" // completed
+                                        }
                                       />
                                     </Tooltip>
                                   )}
@@ -754,6 +772,7 @@ function FabricProcess() {
                                         size="xs"
                                         bg="#FF6B6B"
                                         color="white"
+                                        _hover={{ bg: customHoverColor }}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setSelectedItem(item);
@@ -776,6 +795,7 @@ function FabricProcess() {
                                         size="xs"
                                         bg="#FF6B6B"
                                         color="white"
+                                        _hover={{ bg: customHoverColor }}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setSelectedItem(item);
@@ -803,6 +823,7 @@ function FabricProcess() {
                                       size="xs"
                                       bg="#FF6B6B"
                                       color="white"
+                                      _hover={{ bg: customHoverColor }}
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         setSelectedItem(item); // set the current row
@@ -1245,6 +1266,7 @@ function FabricProcess() {
                 type="date"
                 name="date"
                 value={reprocessData.date}
+                min={new Date().toISOString().split("T")[0]} // ✅ blocks past dates
                 onChange={(e) =>
                   setReprocessData((prev) => ({
                     ...prev,

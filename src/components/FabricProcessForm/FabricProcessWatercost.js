@@ -187,6 +187,19 @@ function ProcessPageInner() {
   // baseElapsedMs is the accumulated elapsed time before the current running segment
   const baseElapsedMsRef = React.useRef(0);
   const [timer, setTimer] = useState("00:00:00");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; // change to 10 if needed
+
+  // Filter orders (same logic you already use)
+  const filteredOrders = orders;
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   // table data start button
   const anyRunning = orders.some((o) => o.status === "Running");
@@ -445,46 +458,67 @@ function ProcessPageInner() {
   };
 
   const handleStopApi = async () => {
-    const waterId = selectedWaterId || fabric?._id;
-
-    if (!waterId) {
-      toast({
-        title: "Water record missing",
-        description: "Unable to stop. Please resume the process again.",
-        status: "error",
-      });
-      return;
-    }
-
-    const now = new Date();
-    const endTimeFormatted = toISTTime(now);
-
-    setLoadingStop(true);
-
     try {
+      // 1️⃣ Determine the correct water ID
+      const waterId = selectedWaterId || fabric?._id;
+
+      if (!waterId) {
+        toast({
+          title: "Water record missing",
+          description:
+            "Cannot stop the process because no water record was found. Please resume the process first.",
+          status: "error",
+        });
+        return;
+      }
+
+      // 2️⃣ Get current time in IST format for backend
+      const now = new Date();
+      const endTimeFormatted = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      });
+
+      setLoadingStop(true);
+
+      // 3️⃣ Call the stopWaterProcess API
       const stopRes = await stopWaterProcess(waterId, {
         endTimeFormattedFE: endTimeFormatted,
       });
 
-      const stoppedWater = stopRes?.data?.water || stopRes?.data?.data;
+      // 4️⃣ Check if response is valid
+      const stoppedWater = stopRes?.data?.water;
 
+      // ✅ Do NOT throw error on success message
+      if (!stoppedWater) {
+        console.warn("Stop succeeded but water object not returned");
+      }
+
+      // 5️⃣ Update timer and UI
       const runningMs = (Number(stoppedWater.runningTime) || 0) * 60 * 1000;
-
       baseElapsedMsRef.current = runningMs;
       lastStartAtRef.current = null;
       setElapsedTime(runningMs);
       setIsRunning(false);
-
       setFabric(stoppedWater);
 
       toast({ title: "Process stopped", status: "success" });
 
+      // 6️⃣ Open closing reading modal
       setIsClosingReadingModalOpen(true);
     } catch (err) {
-      console.error("Stop error:", err);
+      console.error("Stop process failed:", err);
+
+      // Display proper toast messages
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to stop the process";
       toast({
         title: "Stop failed",
-        description: err?.response?.data?.message || "Water record not found",
+        description: message,
         status: "error",
       });
     } finally {
@@ -851,10 +885,10 @@ function ProcessPageInner() {
       </Modal>
 
       {/* MAIN LAYOUT */}
-      <Box minH="90vh" bg="gray.50" p={{ base: 4, md: 12 }}>
+      <Box minH="90vh" bg="gray.50" p={{ base: 4, md: 12 }} mt={-10}>
         {/* ORDER TABLE */}
         {showProcessUI && !selectedOrder && (
-          <Box bg="white" p={5} borderRadius="16px" boxShadow="lg">
+          <Box bg="white" p={5} borderRadius="16px" boxShadow="lg" width="100%">
             <HStack justify="space-between" mb={4}>
               <Button leftIcon={<FaArrowLeft />} onClick={handleBackToMachine}>
                 Back
@@ -866,8 +900,8 @@ function ProcessPageInner() {
             {loadingOrders ? (
               <Spinner />
             ) : (
-              <Box overflowX="auto">
-                <Table variant="simple">
+              <Box overflowX="auto" width="100%">
+                <Table variant="simple" width="100%" minW="900px">
                   <Thead>
                     <Tr>
                       <Th>Order No</Th>
@@ -883,7 +917,7 @@ function ProcessPageInner() {
                   <Tbody>
                     {orders.length === 0 ? (
                       <Tr>
-                        <Td colSpan={7} textAlign="center" py={4}>
+                        <Td colSpan={7} textAlign="center" py={2}>
                           No orders assigned for this machine today.
                         </Td>
                       </Tr>
@@ -909,7 +943,7 @@ function ProcessPageInner() {
                             )
                           : null;
 
-                        return orders.map((order) => {
+                        return paginatedOrders.map((order) => {
                           if (!order) return null;
 
                           // Determine button text
@@ -1093,6 +1127,33 @@ function ProcessPageInner() {
                   </Tbody>
                 </Table>
               </Box>
+            )}
+            {/* PAGINATION CONTROLS */}
+            {orders.length > itemsPerPage && (
+              <HStack justify="space-between" mt={4}>
+                <Button
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  isDisabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+
+                <Text fontSize="sm">
+                  Page <strong>{currentPage}</strong> of{" "}
+                  <strong>{totalPages}</strong>
+                </Text>
+
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
+                  isDisabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </HStack>
             )}
           </Box>
         )}
