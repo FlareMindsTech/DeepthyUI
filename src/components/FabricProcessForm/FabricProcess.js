@@ -1004,8 +1004,8 @@ function FabricProcess() {
                   />
                   <Input
                     type="number"
-                    placeholder="Qty"
-                    value={d.qty}
+                    placeholder="0"
+                    value={d.qty || ""}
                     onChange={(e) =>
                       setDyesInput((prev) =>
                         prev.map((item, idx) =>
@@ -1023,8 +1023,8 @@ function FabricProcess() {
                   />
                   <Input
                     type="number"
-                    placeholder="Cost"
-                    value={d.cost}
+                    placeholder="0"
+                    value={d.cost || ""}
                     onChange={(e) =>
                       setDyesInput((prev) =>
                         prev.map((item, idx) =>
@@ -1096,8 +1096,8 @@ function FabricProcess() {
                   />
                   <Input
                     type="number"
-                    placeholder="Qty"
-                    value={c.qty}
+                    placeholder="0"
+                    value={c.qty || ""}
                     onChange={(e) =>
                       setChemicalsInput((prev) =>
                         prev.map((item, idx) =>
@@ -1115,8 +1115,8 @@ function FabricProcess() {
                   />
                   <Input
                     type="number"
-                    placeholder="Cost"
-                    value={c.cost}
+                    placeholder="0"
+                    value={c.cost || ""}
                     onChange={(e) =>
                       setChemicalsInput((prev) =>
                         prev.map((item, idx) =>

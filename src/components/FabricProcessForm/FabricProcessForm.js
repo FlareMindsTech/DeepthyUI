@@ -966,7 +966,7 @@ export default function FabricProcessForm() {
                           type="number"
                           value={chemicalQuantity}
                           onChange={(e) => setChemicalQuantity(e.target.value)}
-                          placeholder="Quantity (kg)"
+                          placeholder="0"
                           borderColor={borderColor}
                           _hover={{ borderColor: primaryColor }}
                           _focus={{ borderColor: primaryColor }}
@@ -985,7 +985,7 @@ export default function FabricProcessForm() {
                           type="number"
                           value={chemicalCost}
                           onChange={(e) => setChemicalCost(e.target.value)}
-                          placeholder="Cost"
+                          placeholder="0"
                           borderColor={borderColor}
                           _hover={{ borderColor: primaryColor }}
                           _focus={{ borderColor: primaryColor }}
@@ -1118,7 +1118,7 @@ export default function FabricProcessForm() {
                           type="number"
                           value={dyeQuantity}
                           onChange={(e) => setDyeQuantity(e.target.value)}
-                          placeholder="Quantity (kg)"
+                          placeholder="0"
                           borderColor={borderColor}
                           _hover={{ borderColor: primaryColor }}
                           _focus={{ borderColor: primaryColor }}
@@ -1137,7 +1137,7 @@ export default function FabricProcessForm() {
                           type="number"
                           value={dyeCost}
                           onChange={(e) => setDyeCost(e.target.value)}
-                          placeholder="Cost"
+                          placeholder="0"
                           borderColor={borderColor}
                           _hover={{ borderColor: primaryColor }}
                           _focus={{ borderColor: primaryColor }}
